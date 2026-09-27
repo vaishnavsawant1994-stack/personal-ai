@@ -1,0 +1,43 @@
+name: Android Instrumentation
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Enable KVM acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          working-directory: android-companion
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics
+          script: gradle connectedDebugAndroidTest --stacktrace --info
+      - name: Capture emulator diagnostics on failure
+        if: failure()
+        run: |
+          mkdir -p android-diagnostics
+          adb devices -l > android-diagnostics/adb-devices.txt || true
+          adb logcat -d > android-diagnostics/logcat.txt || true
+          cp -R android-companion/app/build/reports/androidTests android-diagnostics/reports 2>/dev/null || true
+      - name: Upload emulator diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-instrumentation-diagnostics
+          path: android-diagnostics
+          if-no-files-found: ignore

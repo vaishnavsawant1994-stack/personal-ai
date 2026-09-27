@@ -1,0 +1,121 @@
+name: V9 Production Evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      soak_hours:
+        description: Reliability soak duration
+        required: true
+        default: '1'
+        type: choice
+        options: ['1','4','6']
+      run_realtime_audio:
+        description: Run physical microphone/speaker OpenAI Realtime probe
+        required: true
+        default: false
+        type: boolean
+      run_iphone:
+        description: Run physical iPhone signed build/test
+        required: true
+        default: false
+        type: boolean
+      run_apns:
+        description: Send a live APNs push to configured iPhone token
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  deterministic-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt psutil pip-audit
+      - run: pip check
+      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models notifications security server tools ui updates vision voice
+      - run: pytest -q
+      - run: pip-audit
+
+  soak:
+    needs: deterministic-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 370
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt psutil
+      - name: Run selected long-duration integration soak
+        run: python tests/soak_runtime.py --seconds "$(( ${{ inputs.soak_hours }} * 3600 ))"
+
+  apns-live:
+    if: ${{ inputs.run_apns }}
+    needs: deterministic-preflight
+    runs-on: ubuntu-latest
+    env:
+      APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
+      APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
+      APNS_TOPIC: ${{ secrets.APNS_TOPIC }}
+      APNS_PRIVATE_KEY_B64: ${{ secrets.APNS_PRIVATE_KEY_B64 }}
+      APNS_ENVIRONMENT: ${{ secrets.APNS_ENVIRONMENT }}
+      IOS_APNS_DEVICE_TOKEN: ${{ secrets.IOS_APNS_DEVICE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt
+      - name: Require APNs production secrets
+        run: |
+          test -n "$APNS_TEAM_ID"
+          test -n "$APNS_KEY_ID"
+          test -n "$APNS_PRIVATE_KEY_B64"
+          test -n "$IOS_APNS_DEVICE_TOKEN"
+      - name: Send live APNs evidence notification
+        run: python tests/apns_live_probe.py
+
+  realtime-audio:
+    if: ${{ inputs.run_realtime_audio }}
+    needs: deterministic-preflight
+    runs-on: [self-hosted, personal-ai-audio]
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      REALTIME_PROVIDER: openai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt
+      - name: Physical microphone/speaker Realtime round trip
+        run: python tests/realtime_hardware_probe.py --seconds 60
+
+  iphone-physical:
+    if: ${{ inputs.run_iphone }}
+    needs: deterministic-preflight
+    runs-on: [self-hosted, macos, iphone, personal-ai-device]
+    timeout-minutes: 45
+    env:
+      IOS_DEVICE_UDID: ${{ secrets.IOS_DEVICE_UDID }}
+      IOS_DEVELOPMENT_TEAM: ${{ secrets.IOS_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require real iPhone
+        run: |
+          test -n "$IOS_DEVICE_UDID"
+          test -n "$IOS_DEVELOPMENT_TEAM"
+          xcrun devicectl list devices | tee iphone-devices.txt
+          grep -q "$IOS_DEVICE_UDID" iphone-devices.txt
+      - run: brew install xcodegen || brew upgrade xcodegen
+      - working-directory: ios-companion
+        run: xcodegen generate
+      - name: Signed physical-iPhone test
+        working-directory: ios-companion
+        run: |
+          xcodebuild -project PersonalAICompanion.xcodeproj -scheme PersonalAICompanion -destination "platform=iOS,id=$IOS_DEVICE_UDID" DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" CODE_SIGN_STYLE=Automatic -allowProvisioningUpdates test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v9-iphone-evidence
+          path: iphone-devices.txt

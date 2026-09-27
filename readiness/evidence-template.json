@@ -1,0 +1,22 @@
+{
+  "v9_exact_head_ci": false,
+  "ios_simulator": false,
+  "ios_physical_pairing": false,
+  "ios_command_roundtrip": false,
+  "ios_revocation": false,
+  "apns_delivery": false,
+  "realtime_audio": false,
+  "reconnect_interruption": false,
+  "soak_1h": false,
+  "soak_4h": false,
+  "soak_6h": false,
+  "windows_authenticode": false,
+  "macos_developer_id": false,
+  "macos_notarized": false,
+  "release_manifest": false,
+  "updater_install_rollback": false,
+  "security_audit": false,
+  "memory_correctness": false,
+  "regression": false,
+  "android_physical": false
+}

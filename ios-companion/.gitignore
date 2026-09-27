@@ -1,0 +1,7 @@
+*.p12
+*.mobileprovision
+*.p8
+*.cer
+*.xcarchive
+*.ipa
+PersonalAICompanion.xcodeproj/

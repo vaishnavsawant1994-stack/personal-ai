@@ -1,0 +1,45 @@
+name: Long Duration Reliability
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "Soak duration in hours (1-6)"
+        required: true
+        default: "2"
+        type: choice
+        options: ["1", "2", "4", "6"]
+  schedule:
+    - cron: "17 1 * * 0"
+
+jobs:
+  security-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pip-audit
+      - run: pip-audit -r requirements.txt
+      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models security server tools ui updates vision voice packaging
+      - run: pytest -q
+
+  soak:
+    needs: security-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 370
+    env:
+      SOAK_HOURS: ${{ github.event_name == 'schedule' && '4' || inputs.hours }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt psutil
+      - name: Multi-hour runtime soak
+        shell: bash
+        run: |
+          SECONDS_TO_RUN=$((SOAK_HOURS * 3600))
+          echo "Running Personal AI soak for ${SOAK_HOURS} hour(s) / ${SECONDS_TO_RUN} seconds"
+          python tests/soak_runtime.py --seconds "${SECONDS_TO_RUN}"

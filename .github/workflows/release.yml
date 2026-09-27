@@ -1,0 +1,148 @@
+name: Signed Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      WINDOWS_SIGNING_CERT_B64: ${{ secrets.WINDOWS_SIGNING_CERT_B64 }}
+      WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt 'cx-Freeze>=8,<9'
+      - run: python packaging/build_installer.py
+      - name: Require Authenticode certificate
+        shell: pwsh
+        run: |
+          if (-not $env:WINDOWS_SIGNING_CERT_B64) { throw 'WINDOWS_SIGNING_CERT_B64 is required for production release' }
+          if (-not $env:WINDOWS_SIGNING_PASSWORD) { throw 'WINDOWS_SIGNING_PASSWORD is required for production release' }
+          [IO.File]::WriteAllBytes('signing.pfx',[Convert]::FromBase64String($env:WINDOWS_SIGNING_CERT_B64))
+      - name: Authenticode sign MSI
+        shell: pwsh
+        run: |
+          $signtool=(Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe | Sort-Object FullName | Select-Object -Last 1).FullName
+          if (-not $signtool) { throw 'signtool.exe not found' }
+          $msi=(Get-ChildItem dist -Filter *.msi | Select-Object -First 1).FullName
+          if (-not $msi) { throw 'MSI not found' }
+          & $signtool sign /fd SHA256 /td SHA256 /tr https://timestamp.digicert.com /f signing.pfx /p $env:WINDOWS_SIGNING_PASSWORD $msi
+          if ($LASTEXITCODE -ne 0) { throw 'Authenticode signing failed' }
+          & $signtool verify /pa /all /v $msi
+          if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: dist/*.msi
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    env:
+      APPLE_CERTIFICATE_P12_B64: ${{ secrets.APPLE_CERTIFICATE_P12_B64 }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt
+      - name: Require Apple production credentials
+        run: |
+          test -n "$APPLE_CERTIFICATE_P12_B64"
+          test -n "$APPLE_CERTIFICATE_PASSWORD"
+          test -n "$APPLE_SIGNING_IDENTITY"
+          test -n "$APPLE_TEAM_ID"
+          test -n "$APPLE_ID"
+          test -n "$APPLE_APP_SPECIFIC_PASSWORD"
+      - name: Import Developer ID certificate
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/personal-ai.keychain-db"
+          PASS="$(openssl rand -hex 24)"
+          echo "$APPLE_CERTIFICATE_P12_B64" | base64 --decode > "$RUNNER_TEMP/apple-cert.p12"
+          security create-keychain -p "$PASS" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$PASS" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/apple-cert.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$PASS" "$KEYCHAIN"
+      - name: Build native app before DMG
+        env:
+          PERSONAL_AI_SKIP_DMG: '1'
+        run: python packaging/build_installer.py
+      - name: Sign app bundle
+        run: |
+          test -d dist/PersonalAI.app
+          codesign --force --deep --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/PersonalAI.app
+          codesign --verify --deep --strict --verbose=2 dist/PersonalAI.app
+      - name: Build and sign DMG
+        run: |
+          hdiutil create -volname 'Personal AI' -srcfolder dist/PersonalAI.app -ov -format UDZO dist/PersonalAI.dmg
+          codesign --force --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/PersonalAI.dmg
+          codesign --verify --verbose=2 dist/PersonalAI.dmg
+      - name: Notarize and staple DMG
+        run: |
+          xcrun notarytool submit dist/PersonalAI.dmg --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple dist/PersonalAI.dmg
+          xcrun stapler validate dist/PersonalAI.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: dist/*.dmg
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt
+      - name: Build DEB
+        env:
+          PERSONAL_AI_VERSION: ${{ github.ref_name }}
+        run: |
+          export PERSONAL_AI_VERSION="${PERSONAL_AI_VERSION#v}"
+          python packaging/build_installer.py
+      - run: dpkg-deb --info dist/*.deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: dist/*.deb
+          if-no-files-found: error
+
+  manifest:
+    needs: [windows,macos,linux]
+    runs-on: ubuntu-latest
+    env:
+      PERSONAL_AI_RELEASE_PRIVATE_KEY_B64: ${{ secrets.PERSONAL_AI_RELEASE_PRIVATE_KEY_B64 }}
+      RELEASE_PUBLIC_KEY_B64: ${{ secrets.RELEASE_PUBLIC_KEY_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install cryptography
+      - uses: actions/download-artifact@v4
+        with: {path: release-artifacts, merge-multiple: true}
+      - name: Require release signing keys
+        run: |
+          test -n "$PERSONAL_AI_RELEASE_PRIVATE_KEY_B64"
+          test -n "$RELEASE_PUBLIC_KEY_B64"
+      - name: Sign installer manifest
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os,subprocess,sys
+          artifacts=sorted(p for p in Path('release-artifacts').iterdir() if p.suffix.lower() in {'.msi','.dmg','.deb'})
+          if len(artifacts)!=3:raise SystemExit(f'expected 3 release installers, found {len(artifacts)}: {artifacts}')
+          subprocess.check_call([sys.executable,'updates/release_sign.py','--version',os.environ['GITHUB_REF_NAME'],'--output','release-artifacts/manifest.json',*[str(p) for p in artifacts]])
+          subprocess.check_call([sys.executable,'updates/release_verify.py','--manifest','release-artifacts/manifest.json','--signature','release-artifacts/manifest.json.sig','--public-key-b64',os.environ['RELEASE_PUBLIC_KEY_B64'],'--artifact-dir','release-artifacts'])
+          PY
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*

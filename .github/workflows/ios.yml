@@ -1,0 +1,30 @@
+name: iOS Companion
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  simulator:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios-companion
+        run: xcodegen generate
+      - name: Show available simulators
+        run: xcrun simctl list devices available
+      - name: Build and test iOS companion
+        working-directory: ios-companion
+        run: |
+          DESTINATION=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ && /Shutdown|Booted/ {print $2; exit}')
+          test -n "$DESTINATION"
+          xcodebuild \
+            -project PersonalAICompanion.xcodeproj \
+            -scheme PersonalAICompanion \
+            -destination "platform=iOS Simulator,id=$DESTINATION" \
+            CODE_SIGNING_ALLOWED=NO \
+            test

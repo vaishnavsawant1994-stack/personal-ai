@@ -1,0 +1,64 @@
+name: Android Real Device
+on:
+  workflow_dispatch:
+jobs:
+  physical-device:
+    runs-on: [self-hosted, android, personal-ai-device]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Verify exactly one healthy physical device
+        shell: bash
+        run: |
+          adb start-server
+          adb devices -l
+          SERIALS=$(adb devices | awk 'NR>1 && $2=="device" {print $1}')
+          COUNT=$(echo "$SERIALS" | sed '/^$/d' | wc -l)
+          test "$COUNT" -eq 1
+          SERIAL=$(echo "$SERIALS" | head -n1)
+          test "$(adb -s "$SERIAL" get-state)" = "device"
+          test "$(adb -s "$SERIAL" shell getprop ro.kernel.qemu | tr -d '\r')" != "1"
+          echo "ANDROID_SERIAL=$SERIAL" >> "$GITHUB_ENV"
+      - name: Build app and test APKs
+        working-directory: android-companion
+        run: gradle assembleDebug assembleDebugAndroidTest --stacktrace
+      - name: Clean install candidate APK
+        shell: bash
+        run: |
+          adb -s "$ANDROID_SERIAL" uninstall ai.personal.companion || true
+          adb -s "$ANDROID_SERIAL" install -r android-companion/app/build/outputs/apk/debug/app-debug.apk
+          adb -s "$ANDROID_SERIAL" shell pm path ai.personal.companion | grep '^package:'
+      - name: Run instrumentation on physical device
+        working-directory: android-companion
+        run: gradle connectedDebugAndroidTest --stacktrace --info
+      - name: Launch and verify process remains alive
+        shell: bash
+        run: |
+          adb -s "$ANDROID_SERIAL" shell am force-stop ai.personal.companion
+          adb -s "$ANDROID_SERIAL" shell monkey -p ai.personal.companion -c android.intent.category.LAUNCHER 1
+          sleep 4
+          adb -s "$ANDROID_SERIAL" shell pidof ai.personal.companion | tee physical-device-pid.txt
+          test -s physical-device-pid.txt
+      - name: Capture physical-device evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p physical-device-evidence
+          adb -s "$ANDROID_SERIAL" shell getprop > physical-device-evidence/getprop.txt || true
+          adb -s "$ANDROID_SERIAL" shell dumpsys package ai.personal.companion > physical-device-evidence/package.txt || true
+          adb -s "$ANDROID_SERIAL" logcat -d > physical-device-evidence/logcat.txt || true
+          adb -s "$ANDROID_SERIAL" exec-out screencap -p > physical-device-evidence/screenshot.png || true
+          cp -R android-companion/app/build/reports/androidTests physical-device-evidence/reports 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: physical-android-evidence
+          path: physical-device-evidence
+          if-no-files-found: error

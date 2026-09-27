@@ -1,0 +1,25 @@
+name: Reliability and Security
+on:
+  pull_request:
+  schedule:
+    - cron: '17 2 * * 1'
+  workflow_dispatch:
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt pip-audit
+      - run: pip-audit -r requirements.txt
+      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models security server tools ui updates vision voice packaging
+      - run: pytest -q
+  soak:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r requirements.txt psutil
+      - run: python tests/soak_runtime.py --seconds ${{ github.event_name == 'schedule' && '1800' || '45' }}

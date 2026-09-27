@@ -1,0 +1,48 @@
+name: iPhone Physical Device
+
+on:
+  workflow_dispatch:
+
+jobs:
+  iphone:
+    runs-on: [self-hosted, macos, iphone, personal-ai-device]
+    timeout-minutes: 45
+    env:
+      IOS_DEVICE_UDID: ${{ secrets.IOS_DEVICE_UDID }}
+      IOS_DEVELOPMENT_TEAM: ${{ secrets.IOS_DEVELOPMENT_TEAM }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require configured physical iPhone
+        run: |
+          test -n "$IOS_DEVICE_UDID"
+          test -n "$IOS_DEVELOPMENT_TEAM"
+          xcrun xctrace list devices
+          xcrun devicectl list devices | tee iphone-devices.txt
+          grep -q "$IOS_DEVICE_UDID" iphone-devices.txt
+      - name: Install XcodeGen
+        run: brew install xcodegen || brew upgrade xcodegen
+      - name: Generate Xcode project
+        working-directory: ios-companion
+        run: xcodegen generate
+      - name: Build and test on physical iPhone
+        working-directory: ios-companion
+        run: |
+          xcodebuild \
+            -project PersonalAICompanion.xcodeproj \
+            -scheme PersonalAICompanion \
+            -destination "platform=iOS,id=$IOS_DEVICE_UDID" \
+            DEVELOPMENT_TEAM="$IOS_DEVELOPMENT_TEAM" \
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            test
+      - name: Capture device evidence
+        if: always()
+        run: |
+          mkdir -p ios-evidence
+          xcrun devicectl list devices > ios-evidence/devices.txt || true
+          xcrun devicectl device info details --device "$IOS_DEVICE_UDID" > ios-evidence/device-details.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-physical-evidence
+          path: ios-evidence
