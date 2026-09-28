@@ -1,17 +1,17 @@
 # Stage-8 Adversarial Inventory — Deepened (28 September 2026)
 
-Branch head at inventory time: continue from recovery TOCTOU lineage + `d06305d8…` control API restore on `fix/connector-scope-auth-fail-closed`.
+Branch: `fix/connector-scope-auth-fail-closed` (recovery TOCTOU + api.py restore + connector/epoch/workflow hostility).
 
-This document is the living Stage-8 inventory. An item is closed only when a hostile regression exists **and** the production path fails closed under that attack, with exact-head evidence.
+An item is closed only when a hostile regression exists **and** the production path fails closed under that attack, with exact-head evidence.
 
 ## Status legend
 
 | Status | Meaning |
 | --- | --- |
-| CLOSED | Hostile test + production fail-closed + prior/ current Stage-8 checkpoint evidence |
-| REPAIRED_PENDING_GATE | Production repaired; needs exact-head 6/6 confirmation |
-| OPEN | Attack surface still requires hostile coverage or production hardening |
-| DEFERRED_ARCH | Architectural gap; not a demonstrated exploit; track for Stage 9/10 |
+| CLOSED | Hostile test + production fail-closed + checkpoint evidence |
+| REPAIRED_PENDING_GATE | Production repaired / tests added; needs exact-head 6/6 |
+| OPEN | Still requires coverage or hardening |
+| DEFERRED_ARCH | Architecture track; not a demonstrated exploit |
 
 ---
 
@@ -19,99 +19,80 @@ This document is the living Stage-8 inventory. An item is closed only when a hos
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
-| A1 | Backup create path escape (absolute/traversal/symlink parent) | CLOSED | Confined to backup_dir; symlink parents rejected |
-| A2 | Restore destination existing symlink | CLOSED | `_safe_destination` / pre-write checks |
-| A3 | Restore parent-symlink TOCTOU after validation | REPAIRED_PENDING_GATE | Re-validate after mkdir and before open/replace; no-follow component walk |
-| A4 | Rollback copies must not inherit data-root checks | REPAIRED_PENDING_GATE | `enforce_data_root` only on restore writes into owner data |
-| A5 | Failed hostile restore leaves no external residue | REPAIRED_PENDING_GATE | Hostile residual-file test tightened; confirm on exact-head |
-| A6 | Security authority non-restorable | CLOSED | NON_RESTORABLE_SECURITY_NAMES skipped |
-| A7 | Symlinked source files excluded from backup | CLOSED | `_eligible` skips symlinks |
+| A1 | Backup create path escape | CLOSED | |
+| A2 | Restore destination existing symlink | CLOSED | |
+| A3 | Restore parent-symlink TOCTOU | REPAIRED_PENDING_GATE | |
+| A4 | Rollback vs data-root checks | REPAIRED_PENDING_GATE | |
+| A5 | Failed restore external residue | REPAIRED_PENDING_GATE | |
+| A6 | Security authority non-restorable | CLOSED | |
+| A7 | Symlinked sources excluded from backup | CLOSED | |
 
 ## B. Authorization / scopes
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
-| B1 | Owner APIs require callable scope authorizer | CLOSED | Fail 503 when authorize missing |
-| B2 | Connector APIs require callable scope authorizer | CLOSED | Same pattern in connector_router |
-| B3 | Continuity handoff revalidates at commit boundary | CLOSED | Revocation race repaired |
-| B4 | Device authorize implies is_active | CLOSED | `authorize` checks revoked |
-| B5 | Authorization parity modern vs legacy transports | OPEN | Audit remaining legacy routes for identical scope names and fail-closed behavior |
-| B6 | Stale session after security epoch advance | OPEN | Approvals invalidate; confirm PWA/cloud session surfaces cannot reuse pre-epoch tokens for consequential actions |
+| B1 | Owner APIs require callable authorizer | CLOSED | |
+| B2 | Connector APIs require callable authorizer | CLOSED | |
+| B3 | Continuity handoff revalidation | CLOSED | |
+| B4 | Device authorize implies is_active | CLOSED | |
+| B5 | Auth parity modern vs legacy | REPAIRED_PENDING_GATE | Fail-closed authorize predicate parity test |
+| B6 | Stale approval after security epoch | REPAIRED_PENDING_GATE | Epoch invalidates pending/approved; approve/consume/dispatch fail closed |
 
 ## C. Connector → Knowledge
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
-| C1 | knowledge:write required (not device:admin alone) | CLOSED | |
-| C2 | knowledge:private required for private access_class | CLOSED | |
-| C3 | Explicit approved=true required | CLOSED | 409 otherwise |
-| C4 | Checksum dedupe binds access_class | CLOSED | Private cannot inherit owner classification |
-| C5 | Missing authorize fails closed | CLOSED | 503 |
-| C6 | Per-source minimum sensitivity classification | DEFERRED_ARCH | No canonical source→min-class map yet; track as architecture, not auto-vuln |
-| C7 | never_store honored end-to-end | REPAIRED_PENDING_GATE | Bridge raises before read; Drive+Sheets hostile tests added |
-| C8 | Sheets path parity with Drive | REPAIRED_PENDING_GATE | Hostile parity tests for scope/approval/private/never_store |
+| C1–C5 | write/private/approved/dedupe/authorize | CLOSED | |
+| C6 | Per-source min sensitivity | DEFERRED_ARCH | |
+| C7 | never_store end-to-end | REPAIRED_PENDING_GATE | |
+| C8 | Sheets parity with Drive | REPAIRED_PENDING_GATE | |
 
 ## D. Workflow / automation authority
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
-| D1 | Workflow run visibility device/session binding | CLOSED (partial) | Filters by owner/device/session when binding present |
-| D2 | Missing run_binding fails closed | REPAIRED_PENDING_GATE | Was fail-open (`return rows`); now 503 in restored api.py |
-| D3 | Tool authority laundering via workflow step params | OPEN | Ensure step tool names cannot escalate beyond device scopes / approval policy |
-| D4 | Emergency Stop blocks workflow continuation | CLOSED (prior) | recovery_required transitions |
-| D5 | Workflow list unfiltered | OPEN | `/workflows` returns all workflows to any workflow:read device — confirm product intent for single-owner |
+| D1 | Run visibility binding | CLOSED (partial) | |
+| D2 | Missing run_binding fails closed | REPAIRED_PENDING_GATE | 503 in api.py |
+| D3 | Tool/shell step laundering | REPAIRED_PENDING_GATE | Only condition/set/emit/prompt; other kinds fail |
+| D4 | E-stop blocks workflow | CLOSED | |
+| D5 | Workflow list unfiltered | OPEN | Product intent for single-owner |
 
-## E. Emergency Stop / cloud convergence
+## E. Emergency Stop
 
-| ID | Surface | Status | Notes |
-| --- | --- | --- | --- |
-| E1 | PWA E-stop vs established cloud session | CLOSED | Shared stop predicate |
-| E2 | Cloud command returns 423 when stopped | CLOSED | |
-| E3 | Approvals blocked under E-stop | CLOSED | |
+| ID | Status |
+| --- | --- |
+| E1–E3 | CLOSED |
 
 ## F. Input / URL / SQL
 
-| ID | Surface | Status | Notes |
-| --- | --- | --- | --- |
-| F1 | Legacy web open rejects private/metadata/file URLs | CLOSED | test_stage8_web_url_security |
-| F2 | Dynamic SQL identifier injection in workflow/ops/oauth | CLOSED | test_stage8_sql_identifier_guards |
-| F3 | JSON body size/nesting limits on control API | CLOSED | bounded_mapping / limits in api.py |
-| F4 | Browser safe operator redirect / open redirect | OPEN | Extend hostile URL tests to browser operator if separate path |
+| ID | Status |
+| --- | --- |
+| F1–F3 | CLOSED |
+| F4 Browser operator redirect | OPEN |
 
-## G. Audit / information leakage
+## G. Audit / leakage
 
-| ID | Surface | Status | Notes |
-| --- | --- | --- | --- |
-| G1 | Connector events do not embed file body | CLOSED (partial) | Stage-8 test asserts SENTINEL not in events |
-| G2 | False-success tool results | OPEN | Model/tool verified=false must not become owner-visible completed |
-| G3 | Error messages do not leak secrets/paths outside data root | OPEN | Sample BackupError / ConnectorError surfaces |
+| ID | Status |
+| --- | --- |
+| G1 | CLOSED (partial) |
+| G2 False-success | OPEN |
+| G3 Error path leakage | OPEN |
 
 ## H. Continuity / devices
 
-| ID | Surface | Status | Notes |
-| --- | --- | --- | --- |
-| H1 | Handoff revocation race | CLOSED | |
-| H2 | Revoked offline device cannot activate | CLOSED (prior P8) | |
-| H3 | Cross-device continuity is not authority transfer | CLOSED (design) | Automated; physical deferred |
+| ID | Status |
+| --- | --- |
+| H1–H3 | CLOSED |
 
 ---
 
-## Immediate Stage-8 work queue (priority order)
+## Queue to freeze Stage 8
 
-1. Confirm exact-head 6/6 on recovery TOCTOU + api.py restore + new hostile tests.
-2. A5 residual-file assertion green on CI.
-3. C7/C8 never_store + Sheets parity green on CI.
-4. B5/B6 authorization parity + epoch/session residual.
-5. D3 tool laundering via workflow steps.
-6. G2/G3 audit/false-success sampling.
-7. Exhaust OPEN items or explicitly DEFER with rationale.
-8. Final Stage-8 freeze SHA + formal closure note.
+1. Exact-head 6/6 green on current branch head.
+2. Promote all REPAIRED_PENDING_GATE → CLOSED with CI evidence.
+3. Resolve or DEFER D5, F4, G2, G3 with owner-visible rationale.
+4. Formal Stage-8 freeze SHA + handoff to Stage 9 charter (`docs/STAGE9_*`).
 
-## Closure rule (unchanged)
+## Closure rule
 
-Stage 8 is **not** closed until:
-
-- All CLOSED/REPAIRED items have exact-head evidence,
-- OPEN items are either closed or explicitly deferred with owner-visible rationale,
-- Full pytest + Reliability & Security + six workflow families are green on one freeze SHA,
-- No unresolved high-severity fail-open remains in recovery, auth, connector→Knowledge, or workflow visibility.
+Stage 8 closes only when OPEN high-severity items are gone or deferred, REPAIRED items have exact-head evidence, and 6/6 families are green on one freeze SHA.
