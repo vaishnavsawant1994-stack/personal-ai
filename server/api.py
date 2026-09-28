@@ -355,6 +355,7 @@ def create_app(
         active = service.active_for_device(device_id)
         if not active or active['id'] != body.thread_id:
             raise HTTPException(403, 'Source device is not active in the requested continuity thread')
+
         def handoff_authority_guard():
             if not device_registry.is_active(device_id):
                 raise PermissionError('Source device is no longer trusted/active')
@@ -430,8 +431,6 @@ def create_app(
                 continue
             if binding.get('device_id') not in (None, device_id):
                 continue
-            # This legacy bearer-token transport has no browser session
-            # authority. Never expose a run that is explicitly session-bound.
             if binding.get('session_id') is not None:
                 continue
             visible.append(row)
@@ -455,8 +454,309 @@ def create_app(
         )
         return {'workflow_id': workflow_id}
 
-    # NOTE: Remainder of create_app is restored from pre-placeholder commit c6c95b8f
-    # and is required for a non-broken control API. Full body continues below via
-    # identical structure to last good snapshot with only the binding fail-closed change above.
+    @app.post('/workflows/run')
+    def workflow_run(
+        body: WorkflowRunBody,
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        device_id = auth_device(authorization, x_device_id, 'workflow:write')
+        run_id = require_runtime('automations').run_workflow(
+            body.workflow_id,
+            background=True,
+            owner_id='owner',
+            device_id=device_id,
+            idempotency_key=body.idempotency_key,
+        )
+        return {'run_id': run_id}
+
+    @app.post('/workflows/pause')
+    def workflow_pause(
+        body: WorkflowPauseBody,
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        auth_device(authorization, x_device_id, 'workflow:write')
+        return require_runtime('automations').pause_workflow(body.workflow_id, body.paused)
+
+    @app.post('/workflows/approval')
+    def workflow_approval(
+        body: WorkflowApprovalBody,
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        device_id = auth_device(authorization, x_device_id, 'workflow:approve')
+        engine = require_runtime('automations')
+        decision = body.decision.strip().lower()
+        if decision == 'approve':
+            return engine.approve_run(
+                body.run_id,
+                body.approval_id,
+                owner_id='owner',
+                device_id=device_id,
+            )
+        if decision == 'reject':
+            return engine.reject_run(
+                body.run_id,
+                body.approval_id,
+                owner_id='owner',
+                device_id=device_id,
+            )
+        raise HTTPException(400, 'decision must be approve or reject')
+
+    @app.get('/benchmark')
+    def benchmark_latest(
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        auth_device(authorization, x_device_id, 'qualification:read')
+        benchmark = require_runtime('benchmark')
+        return {'capabilities': benchmark.latest(), 'tasks': benchmark.task_matrix()}
+
+    @app.post('/benchmark/run')
+    def benchmark_run(
+        body: BenchmarkRunBody,
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        auth_device(authorization, x_device_id, 'qualification:record')
+        benchmark = require_runtime('benchmark')
+        if body.capability.strip().lower() == 'all':
+            return benchmark.run_all()
+        return benchmark.run(body.capability.strip())
+
+    @app.post('/cloud/session')
+    def cloud_session(body: SessionStart):
+        return result(require_cloud().issue_session(body.device_id, body.device_token))
+
+    @app.post('/cloud/session/revoke')
+    def cloud_revoke(authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'status:read')
+        return result(relay.revoke_session(session.id, session.device_id))
+
+    @app.post('/cloud/command')
+    def cloud_command(body: CloudCommand, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'ai:chat', body.nonce)
+        return result(relay.command(session, body.text, body.nonce))
+
+    @app.post('/cloud/memory/search')
+    def cloud_memory(body: MemoryQuery, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'memory:read')
+        return result(relay.memory_search(session, body.query, body.include_sensitive))
+
+    @app.get('/cloud/status')
+    def cloud_status(authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'status:read')
+        return result(relay.status(session))
+
+    @app.get('/cloud/events')
+    async def cloud_events(request: Request, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'status:read')
+        events = runtime.get('events') if runtime else None
+        if not events:
+            raise HTTPException(503, 'Event stream unavailable')
+        event_queue = queue.Queue(maxsize=64)
+
+        def push(event):
+            safe = {'event': event.get('event')}
+            if 'state' in event:
+                safe['state'] = event.get('state')
+            if event.get('event') == 'emergency.stop':
+                safe['enabled'] = bool(event.get('enabled'))
+            if event.get('event') == 'approval.required':
+                safe['approval_id'] = event.get('approval_id')
+                safe['tool'] = event.get('tool')
+                safe['expires_at'] = event.get('expires_at')
+            if event.get('event') in {'proactive.suggest', 'proactive.notify'}:
+                safe['message'] = event.get('message')
+                safe['score'] = event.get('score')
+            if event.get('event') == 'workflow.approval_required':
+                safe['run_id'] = event.get('run_id')
+                safe['approval_id'] = event.get('approval_id')
+                safe['tool'] = event.get('tool')
+            try:
+                event_queue.put_nowait(safe)
+            except queue.Full:
+                pass
+
+        names = (
+            'state',
+            'emergency.stop',
+            'approval.required',
+            'approval.approved',
+            'approval.rejected',
+            'proactive.suggest',
+            'proactive.notify',
+            'workflow.approval_required',
+            'workflow.completed',
+            'workflow.failed',
+            'continuity.handoff',
+        )
+        unsubscribers = [events.subscribe(name, push) for name in names]
+
+        async def stream():
+            try:
+                initial = relay.status(session).payload
+                yield f"data: {json.dumps({'event': 'status', **initial}, separators=(',', ':'))}\n\n"
+                while not await request.is_disconnected():
+                    if relay._live_session(session) is None:
+                        break
+                    try:
+                        item = await asyncio.to_thread(event_queue.get, True, 15)
+                        if relay._live_session(session) is None:
+                            break
+                        yield f"data: {json.dumps(item, separators=(',', ':'))}\n\n"
+                    except queue.Empty:
+                        if relay._live_session(session) is None:
+                            break
+                        yield ': keepalive\n\n'
+            finally:
+                for unsubscribe in unsubscribers:
+                    try:
+                        unsubscribe()
+                    except Exception:
+                        pass
+
+        return StreamingResponse(
+            stream(),
+            media_type='text/event-stream',
+            headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'},
+        )
+
+    @app.get('/cloud/activities')
+    def cloud_activities(limit: int = 100, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'status:read')
+        rows = require_runtime('memory').audit_entries(limit=max(1, min(int(limit), 200)))
+        output = []
+        seen = set()
+        for entry in rows:
+            payload = entry.get('payload') or {}
+            identity_kind = next((key for key in ('execution_id', 'run_id', 'approval_id') if payload.get(key)), None)
+            if not identity_kind:
+                continue
+            identity = str(payload[identity_kind])[:200]
+            key = (identity_kind, identity, entry.get('category'), entry.get('action'))
+            if key in seen:
+                continue
+            seen.add(key)
+            safe_payload = {
+                key: payload.get(key)
+                for key in ('execution_id', 'run_id', 'approval_id', 'tool', 'status', 'verified', 'failure_code')
+                if key in payload
+            }
+            output.append({
+                'activity_id': f'{identity_kind}:{identity}',
+                'identity_kind': identity_kind,
+                'identity': identity,
+                'category': str(entry.get('category') or '')[:80],
+                'action': str(entry.get('action') or '')[:80],
+                'created_at': entry.get('created_at'),
+                'payload': safe_payload,
+            })
+            if len(output) >= max(1, min(int(limit), 200)):
+                break
+        return {'activities': output}
+
+    @app.get('/cloud/approval/{approval_id}')
+    def cloud_approval_status(approval_id: str, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'approval:read')
+        context = executor.approval_context(approval_id) if hasattr(executor, 'approval_context') else None
+        if not context:
+            raise HTTPException(404, 'approval unavailable')
+        if context.get('device_id') not in (None, session.device_id):
+            raise HTTPException(403, 'approval device mismatch')
+        return {
+            key: context.get(key)
+            for key in (
+                'approval_id',
+                'execution_id',
+                'device_id',
+                'conversation_id',
+                'tool',
+                'expires_at',
+                'security_epoch',
+                'destination',
+                'data_classification',
+            )
+        }
+
+    @app.post('/cloud/approval')
+    def cloud_approval(body: ApprovalDecision, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'approval:write', body.nonce)
+        return result(relay.approval(session, body.approval_id, body.decision))
+
+    @app.post('/cloud/emergency-stop')
+    def cloud_emergency_stop(
+        body: EmergencyStopBody,
+        x_personal_ai_owner_key: str | None = Header(default=None),
+    ):
+        return result(require_cloud().set_emergency_stop(x_personal_ai_owner_key or '', body.enabled))
+
+    @app.websocket('/device/ws/{device_id}')
+    async def device_ws(ws: WebSocket, device_id: str):
+        token = ws.headers.get('authorization', '').removeprefix('Bearer ').strip()
+        if not device_registry or not token or not device_registry.authenticate(device_id, token):
+            await ws.close(code=4401)
+            return
+        if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(device_id, 'ai:chat'):
+            await ws.close(code=4403)
+            return
+        await ws.accept()
+        if device_gateway:
+            device_gateway.connect(device_id, ws)
+        continuity = runtime.get('continuity') if runtime else None
+        if continuity:
+            continuity.resume(device_id)
+        try:
+            while True:
+                message = await ws.receive_json()
+                if not device_registry or not device_registry.is_active(device_id):
+                    if device_gateway:
+                        device_gateway.disconnect(device_id)
+                    await ws.close(code=4401)
+                    break
+                if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(device_id, 'ai:chat'):
+                    if device_gateway:
+                        device_gateway.disconnect(device_id)
+                    await ws.close(code=4403)
+                    break
+                if message.get('type') == 'push_registration' and message.get('provider') == 'apns' and message.get('token'):
+                    device_registry.set_metadata(device_id, 'push.apns.token', str(message['token']).strip())
+                    if message.get('environment'):
+                        device_registry.set_metadata(
+                            device_id,
+                            'push.apns.environment',
+                            str(message['environment']).strip().lower(),
+                        )
+                if message.get('type') == 'continuity_event' and continuity:
+                    thread = continuity.active_for_device(device_id)
+                    if thread:
+                        payload = bounded_mapping(dict(message.get('payload') or {}))
+                        continuity.append(
+                            thread['id'],
+                            device_id=device_id,
+                            kind=str(message.get('kind', 'device_event'))[:80],
+                            payload=payload,
+                        )
+                if device_gateway:
+                    device_gateway.receive(device_id, message)
+                if message.get('type') not in {'result'}:
+                    await ws.send_json({'type': 'ack', 'message_id': message.get('message_id')})
+        except WebSocketDisconnect:
+            pass
+        finally:
+            if device_gateway:
+                device_gateway.disconnect(device_id)
+
+    if runtime:
+        from dashboard.api import dashboard_router
+        from dashboard.web import dashboard_html
+
+        app.include_router(dashboard_router(runtime, auth_device))
+
+        @app.get('/dashboard-ui', include_in_schema=False)
+        def dashboard_ui(request: Request):
+            require_loopback(request)
+            return dashboard_html()
 
     return app
