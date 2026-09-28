@@ -9,7 +9,9 @@ class BearerREST:
     def __init__(self,base_url,token,timeout=30,*,gateway=None,connector_id='',granted_scopes=None):
         self.base_url=base_url.rstrip('/'); self.token=token; self.timeout=timeout; self.gateway=gateway; self.connector_id=connector_id; self.granted_scopes=None if granted_scopes is None else set(granted_scopes)
     def set_token(self,token,granted_scopes=None): self.token=token; self.granted_scopes=self.granted_scopes if granted_scopes is None else set(granted_scopes)
+    def clear_token(self): self.token=None; self.granted_scopes=set()
     def request(self,method,path,**kwargs):
+        if not self.token: raise IntegrationError('connector credential is revoked')
         op=kwargs.pop('operation',None); operation_parameters=kwargs.pop('operation_parameters',{}); owner_id=kwargs.pop('owner_id','owner'); device_id=kwargs.pop('device_id',None); session_id=kwargs.pop('session_id',None); destination=kwargs.pop('destination',''); idempotency_key=kwargs.pop('idempotency_key',None); cancelled=kwargs.pop('cancelled',None); deadline=kwargs.pop('deadline',None); response_mode=kwargs.pop('response_mode','json'); max_response_bytes=kwargs.pop('max_response_bytes',None); provider_account=kwargs.pop('provider_account',''); content_checksum=kwargs.pop('content_checksum',''); data_body=kwargs.pop('data',None)
         h={'Authorization':f'Bearer {self.token}','Accept':'application/json',**kwargs.pop('headers',{})}
         if self.gateway and op:

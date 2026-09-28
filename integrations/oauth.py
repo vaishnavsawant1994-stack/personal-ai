@@ -11,7 +11,18 @@ class OAuthAccountManager:
     def __init__(self,vault,redirect_uri='http://127.0.0.1:8766/oauth/callback',*,state_store=None,allowed_redirects=None,security_epoch_provider=None,device_active=None,session_active=None):
         self.vault=vault; self.redirect_uri=redirect_uri; self._pending={}; self.state_store=state_store
         self.allowed_redirects=set(allowed_redirects or [redirect_uri]); self.security_epoch_provider=security_epoch_provider or (lambda:0)
-        self.device_active=device_active; self.session_active=session_active
+        self.device_active=device_active; self.session_active=session_active; self._live={}
+    def bind_live(self,adapters):
+        self._live=dict(adapters or {})
+    def _drop_live(self,provider_id,connector_id):
+        ids={str(connector_id or ''),str(provider_id or '')}
+        if provider_id=='google': ids.update({'gmail','calendar','drive','sheets'})
+        if provider_id=='slack': ids.add('slack')
+        for key,adapter in list(self._live.items()):
+            manifest=getattr(adapter,'manifest',None)
+            if key in ids or getattr(manifest,'provider',None)==provider_id:
+                clear=getattr(adapter,'clear_token',None)
+                if clear: clear()
     @staticmethod
     def _challenge(verifier):return base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
     def _validate_redirect(self,uri):
@@ -110,6 +121,7 @@ class OAuthAccountManager:
             raw=self.vault.get(f'oauth:{provider_id}'); token=json.loads(raw) if raw else None
         except Exception: token=None
         self.vault.delete(f'oauth:{provider_id}')
+        self._drop_live(provider_id,connector_id)
         rev='local_only'; health_id=connector_id or provider_id
         if self.state_store:self.state_store.set_health(health_id,'revoked',scopes=[],revocation_status='local_revoked'); self.state_store.audit('connector.locally_revoked',connector_id=health_id,owner_id=owner_id,device_id=device_id,session_id=session_id)
         if attempt_provider_revocation and provider and provider.revoke_url and token and token.get('access_token'):
