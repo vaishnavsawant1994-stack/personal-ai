@@ -60,12 +60,12 @@ class Drive:
         }
 
 
-def make_client(base, scopes):
+def make_client(base, scopes, device_registry=None):
     store = KnowledgeStore(base / 'knowledge.sqlite3', base / 'objects')
     knowledge = KnowledgeAuthority(store)
     drive = Drive()
     runtime = {
-        'device_registry': Devices(scopes),
+        'device_registry': device_registry or Devices(scopes),
         'integrations': SimpleNamespace(list=lambda: []),
         'oauth': None,
         'oauth_providers': {},
@@ -202,3 +202,37 @@ def test_stage8_connector_private_knowledge_authorized_positive_control(tmp_path
     assert counts['source_documents'] == 1
     assert counts['documents'] == 1
     assert counts['chunks'] >= 1
+
+
+class AuthenticateOnlyDevices:
+    def authenticate(self, device_id, token):
+        return device_id == 'device-1' and token == 'token-1'
+
+
+def test_stage8_connector_scope_authorization_fails_closed_when_unavailable(tmp_path):
+    client, knowledge, drive, store = make_client(
+        tmp_path / 'missing-scope-authorizer',
+        {'knowledge:write'},
+        device_registry=AuthenticateOnlyDevices(),
+    )
+
+    response = client.post(
+        '/iphone/api/connectors/drive/files/file-1/knowledge',
+        json={'approved': True},
+    )
+
+    assert response.status_code == 503
+    assert 'scope authorization is unavailable' in response.json()['detail']
+    assert drive.read_count == 0
+    assert drive.events == []
+    assert knowledge.sources() == []
+    assert knowledge.list() == []
+    assert knowledge.search(SENTINEL) == []
+    assert durable_counts(store) == {
+        'sources': 0,
+        'source_documents': 0,
+        'sync_requests': 0,
+        'documents': 0,
+        'chunks': 0,
+    }
+    assert list(store.object_dir.iterdir()) == []
