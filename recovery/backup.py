@@ -24,9 +24,6 @@ from security.keychain import KeychainUnavailable, RootKeyStore
 
 EXCLUDED_NAMES = {'vault.json', '.env', 'secrets.json'}
 EXCLUDED_DIRS = {'browser-profile', 'cache', 'tmp'}
-# Security authority is intentionally non-restorable from ordinary data backups.
-# Restoring an older copy could resurrect revoked devices/sessions, roll back the
-# approval security epoch, or weaken owner/policy controls.
 NON_RESTORABLE_SECURITY_NAMES = {
     'devices.sqlite3',
     'pwa-sessions.sqlite3',
@@ -108,7 +105,6 @@ class BackupService:
         current = Path(self.data_dir)
         for part in rel_parts:
             current = current / part
-            # is_symlink() is True for symlinks even when the target is missing.
             if current.is_symlink():
                 raise BackupError(f'unsafe restore destination: {hint}')
 
@@ -454,13 +450,15 @@ class BackupService:
             if cleanup:
                 payload.unlink(missing_ok=True)
 
-    def _copy_fsynced(self, source: Path, destination: Path) -> None:
+    def _copy_fsynced(self, source: Path, destination: Path, *, enforce_data_root: bool = False) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
-        # Re-check immediately before opening so a parent symlink swap after the
-        # earlier validation cannot redirect the write outside the data root.
-        self._assert_no_symlink_components(destination)
-        if destination.exists() and destination.is_symlink():
-            raise BackupError(f'unsafe restore destination: {destination.as_posix()}')
+        # When writing into the owner data root, re-check immediately before opening
+        # so a parent symlink swap after earlier validation cannot redirect output.
+        # Rollback/temp copies live outside data_dir and must not use this check.
+        if enforce_data_root:
+            self._assert_no_symlink_components(destination)
+            if destination.exists() and destination.is_symlink():
+                raise BackupError(f'unsafe restore destination: {destination.as_posix()}')
         with source.open('rb') as src, destination.open('wb') as dst:
             shutil.copyfileobj(src, dst, COPY_CHUNK)
             dst.flush()
@@ -499,8 +497,6 @@ class BackupService:
                 destination = self._safe_destination(rel)
                 destinations.append((rel, staged, destination))
 
-            # Snapshot all existing targets before mutating anything. If any
-            # snapshot fails, the restore aborts with owner state untouched.
             for rel, _, destination in destinations:
                 rollback_copy = None
                 if destination.exists():
@@ -514,15 +510,12 @@ class BackupService:
             try:
                 for rel, source, destination in destinations:
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                    # Bind write to the validated tree: re-validate after mkdir so a
-                    # parent-directory symlink swap between validation and write fails closed.
                     self._assert_no_symlink_components(destination, rel_hint=rel.as_posix())
                     temp_destination = destination.with_name(
                         f'.{destination.name}.{secrets.token_hex(6)}.restore'
                     )
                     try:
-                        self._copy_fsynced(source, temp_destination)
-                        # Final check immediately before the atomic replace.
+                        self._copy_fsynced(source, temp_destination, enforce_data_root=True)
                         self._assert_no_symlink_components(destination, rel_hint=rel.as_posix())
                         if destination.exists() and destination.is_symlink():
                             raise BackupError(f'unsafe restore destination: {rel.as_posix()}')
@@ -545,7 +538,7 @@ class BackupService:
                                 os.replace(rollback_temp, destination)
                             finally:
                                 rollback_temp.unlink(missing_ok=True)
-                    except Exception as rollback_exc:  # pragma: no cover - catastrophic filesystem failure
+                    except Exception as rollback_exc:
                         rollback_errors.append(f'{destination}: {rollback_exc}')
                 if rollback_errors:
                     raise BackupError(
