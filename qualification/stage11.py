@@ -138,6 +138,12 @@ def blank_register() -> dict:
         "stage9_freeze": STAGE9_FREEZE,
         "stage10_freeze": STAGE10_FREEZE,
         "production_ready": False,
+        "owner_environment": {
+            "recorded": "2026-09-28",
+            "hardware": "unavailable",
+            "statement": "Owner has no physical phone, laptop, microphone, or other hardware available.",
+            "effect": "Rows stay pending. This is not a pass, not a fail, and not a Stage 11 freeze.",
+        },
         "cases": [
             {
                 "id": case["id"],

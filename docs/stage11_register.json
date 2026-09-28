@@ -5,6 +5,12 @@
   "stage9_freeze": "ddd53d17d60db2e5e5438cf29e2d704a9ba69af0",
   "stage10_freeze": "cd558936276aece705fa46032e3bab6453c7f014",
   "production_ready": false,
+  "owner_environment": {
+    "recorded": "2026-09-28",
+    "hardware": "unavailable",
+    "statement": "Owner has no physical phone, laptop, microphone, or other hardware available.",
+    "effect": "Rows stay pending. This is not a pass, not a fail, and not a Stage 11 freeze."
+  },
   "cases": [
     {
       "id": "S11-IOS-01",

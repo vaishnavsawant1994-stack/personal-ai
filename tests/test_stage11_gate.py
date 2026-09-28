@@ -25,6 +25,7 @@ def test_stage11_register_is_pending_and_matches_the_catalog():
     assert on_disk == register
     assert register["frozen"] is False
     assert register["production_ready"] is False
+    assert register["owner_environment"]["hardware"] == "unavailable"
     assert register["stage10_freeze"] == STAGE10_FREEZE
     assert [case["id"] for case in CASES] == [row["id"] for row in register["cases"]]
     assert all(row["status"].startswith("PENDING_") for row in register["cases"])
