@@ -368,7 +368,7 @@ def test_stage8_restore_parent_symlink_swap_after_validation_fails_closed(tmp_pa
     real_copy = backup_module.BackupService._copy_fsynced
     swapped = False
 
-    def swap_parent_before_restore_copy(source_path, destination_path):
+    def swap_parent_before_restore_copy(self, source_path, destination_path, *, enforce_data_root: bool = False):
         nonlocal swapped
         destination_path = Path(destination_path)
         if not swapped and str(destination_path).endswith('.restore'):
@@ -378,12 +378,12 @@ def test_stage8_restore_parent_symlink_swap_after_validation_fails_closed(tmp_pa
             except OSError:
                 pytest.skip('symlink creation not permitted')
             swapped = True
-        return real_copy(source_path, destination_path)
+        return real_copy(self, source_path, destination_path, enforce_data_root=enforce_data_root)
 
     monkeypatch.setattr(
         backup_module.BackupService,
         '_copy_fsynced',
-        staticmethod(swap_parent_before_restore_copy),
+        swap_parent_before_restore_copy,
     )
 
     with pytest.raises(BackupError):

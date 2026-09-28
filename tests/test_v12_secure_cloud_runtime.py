@@ -98,21 +98,23 @@ def test_stage7_emergency_stop_converges_tool_and_approval_guards():
 def test_stage7_cloud_approval_reconnect_projects_canonical_identity():
     from pathlib import Path
     source = Path('server/api.py').read_text(encoding='utf-8')
+    compact = ''.join(source.split())
     assert "@app.get('/cloud/approval/{approval_id}')" in source
     assert "cloud_auth(authorization, 'approval:read')" in source
     assert "executor.approval_context(approval_id)" in source
     assert "context.get('device_id') not in (None, session.device_id)" in source
-    assert "'approval_id','execution_id','device_id','conversation_id','tool','expires_at','security_epoch','destination','data_classification'" in source
+    assert "'approval_id','execution_id','device_id','conversation_id','tool','expires_at','security_epoch','destination','data_classification'" in compact
 
 
 def test_stage7_cloud_activities_preserve_canonical_execution_identities():
     from pathlib import Path
     source = Path('server/api.py').read_text(encoding='utf-8')
+    compact = ''.join(source.split())
     assert "@app.get('/cloud/activities')" in source
     assert "cloud_auth(authorization, 'status:read')" in source
-    assert "('execution_id','run_id','approval_id')" in source
+    assert "('execution_id','run_id','approval_id')" in compact
     assert "'activity_id': f'{identity_kind}:{identity}'" in source
-    assert "('execution_id','run_id','approval_id','tool','status','verified','failure_code')" in source
+    assert "('execution_id','run_id','approval_id','tool','status','verified','failure_code')" in compact
 
 
 def test_stage7_command_and_approval_revalidate_live_session_at_use_time():

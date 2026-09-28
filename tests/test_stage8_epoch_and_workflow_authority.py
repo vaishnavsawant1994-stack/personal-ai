@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import uuid
+
 import pytest
 
-from automation.engine import AutomationEngine
+from automation.engine import AutomationEngine, now
 from security.approvals import ApprovalManager
 
 
@@ -102,13 +105,42 @@ def test_stage8_consume_after_epoch_change_fails_closed(tmp_path):
         )
 
 
+def _poison_workflow(engine: AutomationEngine, title: str, steps: list[dict]) -> str:
+    """Insert a workflow that bypassed create-time normalization."""
+    workflow_id = str(uuid.uuid4())
+    stamp = now()
+    with engine._con() as con:
+        con.execute(
+            '''INSERT INTO workflows(id,title,trigger_json,steps_json,enabled,paused,next_run_at,interval_seconds,created_at,updated_at,last_run_at,policy_json)
+               VALUES(?,?,?,?,1,0,NULL,NULL,?,?,NULL,?)''',
+            (
+                workflow_id,
+                title,
+                json.dumps({'type': 'manual'}),
+                json.dumps(steps),
+                stamp,
+                stamp,
+                '{}',
+            ),
+        )
+    return workflow_id
+
+
 def test_stage8_workflow_rejects_tool_kind_laundering(tmp_path):
     """Workflow steps cannot invent a direct tool kind to bypass prompt/approval path."""
     engine = AutomationEngine(tmp_path / 'workflows.sqlite3', executor=None, events=None)
-    workflow_id = engine.create_workflow(
-        'launder',
-        {'type': 'manual'},
-        [{'kind': 'tool', 'tool_name': 'desktop.open', 'parameters': {'path': '/etc/passwd'}}],
+    with pytest.raises(ValueError, match='unsupported workflow step kind: tool'):
+        engine.create_workflow(
+            'launder',
+            {'type': 'manual'},
+            [{'kind': 'tool', 'tool_name': 'desktop.open', 'parameters': {'path': '/etc/passwd'}}],
+        )
+    assert engine.workflows() == []
+
+    workflow_id = _poison_workflow(
+        engine,
+        'poison-tool',
+        [{'kind': 'tool', 'tool_name': 'desktop.open', 'parameters': {'path': '/etc/passwd'}, 'position': 0}],
     )
     run_id = engine.run_workflow(
         workflow_id,
@@ -120,14 +152,23 @@ def test_stage8_workflow_rejects_tool_kind_laundering(tmp_path):
     run = engine._run(run_id)
     assert run['status'] != 'completed'
     assert run['status'] in {'failed', 'recovery_required', 'cancelled'}
+    assert 'unsupported' in str(run.get('error') or '').lower()
 
 
 def test_stage8_workflow_rejects_shell_kind_laundering(tmp_path):
     engine = AutomationEngine(tmp_path / 'workflows.sqlite3', executor=None, events=None)
-    workflow_id = engine.create_workflow(
-        'shell-launder',
-        {'type': 'manual'},
-        [{'kind': 'shell', 'command': 'echo pwned'}],
+    with pytest.raises(ValueError, match='unsupported workflow step kind: shell'):
+        engine.create_workflow(
+            'shell-launder',
+            {'type': 'manual'},
+            [{'kind': 'shell', 'command': 'echo pwned'}],
+        )
+    assert engine.workflows() == []
+
+    workflow_id = _poison_workflow(
+        engine,
+        'poison-shell',
+        [{'kind': 'shell', 'command': 'echo pwned', 'position': 0}],
     )
     run_id = engine.run_workflow(
         workflow_id,
@@ -136,8 +177,8 @@ def test_stage8_workflow_rejects_shell_kind_laundering(tmp_path):
         background=False,
     )
     run = engine._run(run_id)
-    assert run['status'] != 'completed'
     error = str(run.get('error') or '').lower()
+    assert run['status'] != 'completed'
     assert run['status'] == 'failed' or 'unsupported' in error
 
 

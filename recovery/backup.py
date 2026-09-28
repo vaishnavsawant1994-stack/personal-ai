@@ -451,6 +451,10 @@ class BackupService:
                 payload.unlink(missing_ok=True)
 
     def _copy_fsynced(self, source: Path, destination: Path, *, enforce_data_root: bool = False) -> None:
+        if enforce_data_root:
+            self._assert_no_symlink_components(destination)
+            if destination.exists() and destination.is_symlink():
+                raise BackupError(f'unsafe restore destination: {destination.as_posix()}')
         destination.parent.mkdir(parents=True, exist_ok=True)
         # When writing into the owner data root, re-check immediately before opening
         # so a parent symlink swap after earlier validation cannot redirect output.

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from recovery.backup import BackupError, BackupService
+from test_v10_recovery import StaticRootKeyStore
 
 
 def test_stage8_restore_parent_symlink_swap_leaves_no_external_residue(tmp_path, monkeypatch):
@@ -22,7 +23,7 @@ def test_stage8_restore_parent_symlink_swap_leaves_no_external_residue(tmp_path,
     outside = tmp_path / 'outside'
     outside.mkdir()
 
-    service = BackupService(data)
+    service = BackupService(data, root_key_store=StaticRootKeyStore(b'k' * 32))
     archive = service.create('residue-check.paibackup')
 
     target = tmp_path / 'restore-target'
@@ -60,3 +61,4 @@ def test_stage8_restore_parent_symlink_swap_leaves_no_external_residue(tmp_path,
         service.restore(archive)
     after_outside = {p.name for p in outside.iterdir()} if outside.exists() else set()
     assert after_outside == before_outside
+    assert swapped['done'] is True
