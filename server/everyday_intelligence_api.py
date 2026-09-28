@@ -24,13 +24,13 @@ def everyday_intelligence_router(runtime):
     def authenticate(device_id: str | None, token: str | None):
         if not device_id or not token or not registry.authenticate(device_id, token):
             raise HTTPException(401, 'This browser is not trusted or its session was revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, 'ai:chat'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, 'ai:chat'):
             raise HTTPException(403, 'This device is not permitted to use everyday intelligence')
         return device_id
 
     def allowed_memory(device_id: str):
         allowed = {'normal'}
-        if not hasattr(registry, 'authorize') or registry.authorize(device_id, 'memory:sensitive'):
+        if callable(getattr(registry, 'authorize', None)) and registry.authorize(device_id, 'memory:sensitive'):
             allowed.update({'sensitive', 'secret'})
         return allowed
 
