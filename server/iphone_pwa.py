@@ -228,7 +228,7 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
             raise HTTPException(401, 'iPhone session is not enrolled or has been revoked')
         if not registry.is_active(device_id):
             raise HTTPException(401, 'iPhone device is revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, 'ai:chat'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, 'ai:chat'):
             raise HTTPException(403, 'This device is not permitted to use conversation or voice')
         return device_id
 
