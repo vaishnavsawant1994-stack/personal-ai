@@ -404,8 +404,9 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id, 'workflow:read')
-        return require_runtime('automations').workflows()
+        device_id = auth_device(authorization, x_device_id, 'workflow:read')
+        rows = require_runtime('automations').workflows()
+        return [row for row in rows if row.get('created_device_id') == device_id]
 
     @app.get('/workflows/runs')
     def workflow_runs(
@@ -442,7 +443,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id, 'workflow:write')
+        device_id = auth_device(authorization, x_device_id, 'workflow:write')
         trigger = bounded_mapping(body.trigger)
         steps = [bounded_mapping(step, max_bytes=32768) for step in body.steps]
         workflow_id = require_runtime('automations').create_workflow(
@@ -451,6 +452,8 @@ def create_app(
             steps,
             next_run_at=body.next_run_at,
             interval_seconds=body.interval_seconds,
+            owner_id='owner',
+            device_id=device_id,
         )
         return {'workflow_id': workflow_id}
 

@@ -33,6 +33,12 @@ class Registry:
         return device_id in self.active
     def authorize(self, device_id, scope):
         return device_id in self.active
+    def revoke(self, device_id):
+        if device_id not in self.tokens:
+            return False
+        self.tokens.pop(device_id, None)
+        self.active.discard(device_id)
+        return True
 
 
 class Executor:

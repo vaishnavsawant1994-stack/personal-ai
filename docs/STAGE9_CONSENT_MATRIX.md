@@ -3,13 +3,15 @@
 Generated from `docs/stage9_route_classification.json`. This is not a Stage 9 freeze.
 A row records the handler check that was found. `not-in-handler` means this function does not itself read Emergency Stop.
 
-## Deferred gaps (not canonical)
+## Former Stage 9 gaps
 
-| Route | Why it stays a gap |
+These three routes were gaps at the Stage 9 freeze `ddd53d1`. They were closed after the Stage 9 freeze. The freeze SHA was not moved.
+
+| Route | Closure |
 | --- | --- |
-| GET /workflows | D5. Authenticated with `workflow:read`, but the list is still the deferred single-owner projection. |
-| GET /capabilities/api/status | No device or session check. Returns runtime presence only, not Memory or Knowledge. |
-| POST /iphone/api/logout | Clears browser cookies only. It does not revoke the device or the server session. Revocation stays on the device and session routes. |
+| GET /workflows | A device with `workflow:read` sees only workflows it created. Another device gets an empty list, not the steps. |
+| GET /capabilities/api/status | Requires a trusted device with `device:read`. Presence only. No Memory or Knowledge body. |
+| POST /iphone/api/logout | Requires the device cookie, revokes that device and its server sessions, then clears the cookies. Another device stays active. |
 
 ## Consequential routes
 

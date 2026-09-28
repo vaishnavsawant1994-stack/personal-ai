@@ -70,6 +70,8 @@ class AutomationEngine:
                 interval_seconds INTEGER,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,last_run_at TEXT)''')
             workflow_cols={r['name'] for r in con.execute('PRAGMA table_info(workflows)')}
             if 'policy_json' not in workflow_cols: con.execute("ALTER TABLE workflows ADD COLUMN policy_json TEXT NOT NULL DEFAULT '{}'")
+            for name, definition in {'owner_id': 'TEXT', 'created_device_id': 'TEXT'}.items():
+                if name not in workflow_cols: con.execute(f'ALTER TABLE workflows ADD COLUMN {name} {definition}')
             con.execute('''CREATE TABLE IF NOT EXISTS workflow_runs(
                 id TEXT PRIMARY KEY,workflow_id TEXT NOT NULL,status TEXT NOT NULL,trigger_json TEXT,context_json TEXT,
                 current_step INTEGER NOT NULL DEFAULT 0,completed_steps_json TEXT NOT NULL DEFAULT '[]',result_json TEXT,
@@ -117,7 +119,7 @@ class AutomationEngine:
     def enable(self,automation_id,enabled=True):
         with self._con() as con: con.execute('UPDATE automations SET enabled=? WHERE id=?',(int(enabled),automation_id))
 
-    def create_workflow(self,title:str,trigger:dict,steps:list[dict],*,next_run_at=None,interval_seconds=None,policy:dict|None=None):
+    def create_workflow(self,title:str,trigger:dict,steps:list[dict],*,next_run_at=None,interval_seconds=None,policy:dict|None=None,owner_id=None,device_id=None):
         trigger=dict(trigger or {}); embedded_policy=trigger.pop('policy',None); policy=normalize_policy(policy if policy is not None else embedded_policy); t=str(trigger.get('type','event'))
         if t not in {'event','schedule','manual'}: raise ValueError('workflow trigger type must be event, schedule or manual')
         if not steps: raise ValueError('workflow requires at least one step')
@@ -128,7 +130,7 @@ class AutomationEngine:
             next_run_at=str(trigger.get('next_run_at') or '')
             if not next_run_at: raise ValueError('scheduled workflow requires next_run_at')
         wid=str(uuid.uuid4()); stamp=now()
-        with self._con() as con: con.execute('''INSERT INTO workflows(id,title,trigger_json,steps_json,enabled,paused,next_run_at,interval_seconds,created_at,updated_at,last_run_at,policy_json) VALUES(?,?,?,?,1,0,?,?,?,?,NULL,?)''',(wid,str(title),json.dumps(trigger),json.dumps(normalized),next_run_at,interval_seconds,stamp,stamp,json.dumps(policy)))
+        with self._con() as con: con.execute('''INSERT INTO workflows(id,title,trigger_json,steps_json,enabled,paused,next_run_at,interval_seconds,created_at,updated_at,last_run_at,policy_json,owner_id,created_device_id) VALUES(?,?,?,?,1,0,?,?,?,?,NULL,?,?,?)''',(wid,str(title),json.dumps(trigger),json.dumps(normalized),next_run_at,interval_seconds,stamp,stamp,json.dumps(policy),owner_id,device_id))
         self._emit('workflow.created',workflow_id=wid,title=title); return wid
 
     def _normalize_step(self,step,position):

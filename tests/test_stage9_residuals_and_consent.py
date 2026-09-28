@@ -56,6 +56,7 @@ def test_stage9_consent_matrix_matches_classification():
     assert 'not a Stage 9 freeze' in matrix
     assert 'GET /capabilities/api/status' in matrix
     assert 'POST /iphone/api/logout' in matrix
+    assert 'closed after the Stage 9 freeze' in matrix
     for row in facts:
         if row['method'] == 'GET' and row['status'] == 'surface-specific-ok':
             continue
@@ -63,5 +64,5 @@ def test_stage9_consent_matrix_matches_classification():
         if row['evidence']:
             source = (ROOT / row['file']).read_text(encoding='utf-8')
             assert row['evidence'] in source
-    assert sum(1 for row in facts if row['status'] == 'gap') == 3
+    assert sum(1 for row in facts if row['status'] == 'gap') == 0
     assert sum(1 for row in facts if row['status'] == 'legacy-opt-in') == 7

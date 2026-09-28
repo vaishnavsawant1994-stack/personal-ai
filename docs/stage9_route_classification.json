@@ -345,7 +345,7 @@
     "method": "GET",
     "path": "/workflows",
     "handler": "workflow_list",
-    "status": "gap",
+    "status": "canonical",
     "auth": "auth_device",
     "scope": "workflow:read",
     "authority": "server/api.py",
@@ -357,7 +357,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 410,
+    "line": 411,
     "method": "GET",
     "path": "/workflows/runs",
     "handler": "workflow_runs",
@@ -375,7 +375,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 439,
+    "line": 440,
     "method": "POST",
     "path": "/workflows/create",
     "handler": "workflow_create",
@@ -393,7 +393,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 457,
+    "line": 460,
     "method": "POST",
     "path": "/workflows/run",
     "handler": "workflow_run",
@@ -409,7 +409,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 473,
+    "line": 476,
     "method": "POST",
     "path": "/workflows/pause",
     "handler": "workflow_pause",
@@ -425,7 +425,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 482,
+    "line": 485,
     "method": "POST",
     "path": "/workflows/approval",
     "handler": "workflow_approval",
@@ -444,7 +444,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 507,
+    "line": 510,
     "method": "GET",
     "path": "/benchmark",
     "handler": "benchmark_latest",
@@ -460,7 +460,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 516,
+    "line": 519,
     "method": "POST",
     "path": "/benchmark/run",
     "handler": "benchmark_run",
@@ -476,7 +476,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 528,
+    "line": 531,
     "method": "POST",
     "path": "/cloud/session",
     "handler": "cloud_session",
@@ -492,7 +492,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 532,
+    "line": 535,
     "method": "POST",
     "path": "/cloud/session/revoke",
     "handler": "cloud_revoke",
@@ -510,7 +510,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 537,
+    "line": 540,
     "method": "POST",
     "path": "/cloud/command",
     "handler": "cloud_command",
@@ -526,7 +526,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 542,
+    "line": 545,
     "method": "POST",
     "path": "/cloud/memory/search",
     "handler": "cloud_memory",
@@ -542,7 +542,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 547,
+    "line": 550,
     "method": "GET",
     "path": "/cloud/status",
     "handler": "cloud_status",
@@ -558,7 +558,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 552,
+    "line": 555,
     "method": "GET",
     "path": "/cloud/events",
     "handler": "cloud_events",
@@ -574,7 +574,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 626,
+    "line": 629,
     "method": "GET",
     "path": "/cloud/activities",
     "handler": "cloud_activities",
@@ -593,7 +593,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 660,
+    "line": 663,
     "method": "GET",
     "path": "/cloud/approval/{approval_id}",
     "handler": "cloud_approval_status",
@@ -609,7 +609,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 683,
+    "line": 686,
     "method": "POST",
     "path": "/cloud/approval",
     "handler": "cloud_approval",
@@ -625,7 +625,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 688,
+    "line": 691,
     "method": "POST",
     "path": "/cloud/emergency-stop",
     "handler": "cloud_emergency_stop",
@@ -643,7 +643,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 695,
+    "line": 698,
     "method": "WEBSOCKET",
     "path": "/device/ws/{device_id}",
     "handler": "device_ws",
@@ -661,7 +661,7 @@
   },
   {
     "file": "server/api.py",
-    "line": 757,
+    "line": 760,
     "method": "GET",
     "path": "/dashboard-ui",
     "handler": "dashboard_ui",
@@ -861,19 +861,19 @@
     "method": "GET",
     "path": "/capabilities/api/status",
     "handler": "status",
-    "status": "gap",
-    "auth": "none",
-    "scope": "none",
+    "status": "canonical",
+    "auth": "authenticate",
+    "scope": "device:read",
     "authority": "server/capability_console.py",
-    "session_binding": "none",
+    "session_binding": "bearer",
     "estop": "not-in-handler",
     "approval": "none-visible",
     "durable_writes": [],
-    "evidence": ""
+    "evidence": "authenticate(x_device_id, token):"
   },
   {
     "file": "server/capability_console.py",
-    "line": 29,
+    "line": 40,
     "method": "GET",
     "path": "/capabilities/",
     "handler": "page",
@@ -1671,21 +1671,23 @@
     "method": "POST",
     "path": "/iphone/api/logout",
     "handler": "logout",
-    "status": "gap",
-    "auth": "none",
-    "scope": "none",
+    "status": "canonical",
+    "auth": "auth_device",
+    "scope": "ai:chat",
     "authority": "server/iphone_pwa.py",
     "session_binding": "device-cookie",
     "estop": "not-in-handler",
     "approval": "none-visible",
     "durable_writes": [
-      "delete_cookie"
+      "delete_cookie",
+      "revoke",
+      "revoke_device"
     ],
-    "evidence": ""
+    "evidence": "auth_device(pa_device, pa_token)"
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 602,
+    "line": 612,
     "method": "POST",
     "path": "/iphone/api/voice/turn",
     "handler": "voice_turn",
@@ -1701,7 +1703,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 720,
+    "line": 730,
     "method": "POST",
     "path": "/iphone/api/approval/{approval_id}/approve",
     "handler": "approval_approve",
@@ -1717,7 +1719,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 754,
+    "line": 764,
     "method": "POST",
     "path": "/iphone/api/approval/{approval_id}/reject",
     "handler": "approval_reject",
@@ -1736,7 +1738,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 778,
+    "line": 788,
     "method": "GET",
     "path": "/iphone/api/conversations",
     "handler": "conversation_list",
@@ -1752,7 +1754,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 794,
+    "line": 804,
     "method": "POST",
     "path": "/iphone/api/conversations",
     "handler": "conversation_create",
@@ -1770,7 +1772,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 806,
+    "line": 816,
     "method": "GET",
     "path": "/iphone/api/conversations/{conversation_id}",
     "handler": "conversation_get",
@@ -1786,7 +1788,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 819,
+    "line": 829,
     "method": "POST",
     "path": "/iphone/api/conversations/{conversation_id}/activate",
     "handler": "conversation_activate",
@@ -1802,7 +1804,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 832,
+    "line": 842,
     "method": "PATCH",
     "path": "/iphone/api/conversations/{conversation_id}",
     "handler": "conversation_rename",
@@ -1818,7 +1820,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 843,
+    "line": 853,
     "method": "POST",
     "path": "/iphone/api/voice/barge",
     "handler": "voice_barge",
@@ -1834,7 +1836,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 857,
+    "line": 867,
     "method": "POST",
     "path": "/iphone/api/voice/client-event",
     "handler": "voice_client_event",
@@ -1850,7 +1852,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 869,
+    "line": 879,
     "method": "POST",
     "path": "/iphone/api/qualification/start",
     "handler": "qualification_start",
@@ -1866,7 +1868,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 922,
+    "line": 932,
     "method": "POST",
     "path": "/iphone/api/qualification/stop",
     "handler": "qualification_stop",
@@ -1882,7 +1884,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 943,
+    "line": 953,
     "method": "POST",
     "path": "/iphone/api/qualification/takeover",
     "handler": "qualification_takeover",
@@ -1898,7 +1900,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 986,
+    "line": 996,
     "method": "GET",
     "path": "/iphone/api/qualification/sessions",
     "handler": "qualification_sessions",

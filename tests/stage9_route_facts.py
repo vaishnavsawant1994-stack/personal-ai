@@ -172,12 +172,6 @@ def derive_route_facts() -> list[dict]:
                 binding = 'one-time-pairing-code'
             if (method, route) in LEGACY and rel == 'server/iphone_pwa.py':
                 status = 'legacy-opt-in'
-            elif route == '/workflows' and method == 'GET' and rel == 'server/api.py':
-                status = 'gap'
-            elif route == '/capabilities/api/status':
-                status = 'gap'
-            elif route == '/iphone/api/logout':
-                status = 'gap'
             elif auth != 'none':
                 status = 'canonical'
             elif route in STATIC_OK or route.endswith('.js'):

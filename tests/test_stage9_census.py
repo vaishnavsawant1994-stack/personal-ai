@@ -41,7 +41,10 @@ def test_stage9_census_covers_every_route_decorator():
     listed = {(row['file'], row['line'], row['method'], row['path']) for row in census}
     live = set(_decorators())
     assert live == listed
-    assert any(row['path'] == '/workflows' and row['status'] == 'gap' for row in census)
+    assert any(
+        row['path'] == '/workflows' and row['method'] == 'GET' and row['file'] == 'server/api.py' and row['status'] == 'canonical'
+        for row in census
+    )
     assert not any(row['status'] == 'inventoried' for row in census)
     from tests.stage9_route_facts import derive_route_facts
     facts = {(r['file'], r['line'], r['method'], r['path'], r['status']) for r in derive_route_facts()}

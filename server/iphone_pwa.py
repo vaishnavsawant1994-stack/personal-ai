@@ -594,10 +594,20 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
         return {'ok': True, 'device_id': device['id']}
 
     @router.post('/api/logout')
-    def logout(response: Response):
+    def logout(
+        response: Response,
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        device_id = auth_device(pa_device, pa_token)
+        registry.revoke(device_id)
+        sessions = runtime.get('pwa_sessions')
+        if sessions is not None and hasattr(sessions, 'revoke_device'):
+            sessions.revoke_device(device_id)
         response.delete_cookie('pa_device', path='/iphone')
         response.delete_cookie('pa_token', path='/iphone')
-        return {'ok': True}
+        emit('iphone.logout', device_id=device_id)
+        return {'ok': True, 'revoked': True, 'device_id': device_id}
 
     @router.post('/api/voice/turn')
     async def voice_turn(
