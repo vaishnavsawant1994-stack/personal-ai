@@ -342,3 +342,53 @@ def test_stage8_backup_create_rejects_symlinked_parent_escape(tmp_path):
         svc.create('escape/linked.paibackup')
 
     assert not (outside / 'linked.paibackup').exists()
+
+
+def test_stage8_restore_parent_symlink_swap_after_validation_fails_closed(tmp_path, monkeypatch):
+    """A parent swapped to a symlink after validation must not redirect restore writes."""
+    if not hasattr(os, 'symlink'):
+        pytest.skip('symlink unsupported')
+
+    source = tmp_path / 'source'
+    source.mkdir()
+    nested = source / 'nested'
+    nested.mkdir()
+    (nested / 'note.txt').write_text('backup-owner-data')
+    archive = service(source).create('restore-parent-race.paibackup')
+
+    target = tmp_path / 'target'
+    target.mkdir()
+    target_nested = target / 'nested'
+    target_nested.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+
+    import recovery.backup as backup_module
+
+    real_copy = backup_module.BackupService._copy_fsynced
+    swapped = False
+
+    def swap_parent_before_restore_copy(source_path, destination_path):
+        nonlocal swapped
+        destination_path = Path(destination_path)
+        if not swapped and str(destination_path).endswith('.restore'):
+            target_nested.rmdir()
+            try:
+                target_nested.symlink_to(outside, target_is_directory=True)
+            except OSError:
+                pytest.skip('symlink creation not permitted')
+            swapped = True
+        return real_copy(source_path, destination_path)
+
+    monkeypatch.setattr(
+        backup_module.BackupService,
+        '_copy_fsynced',
+        staticmethod(swap_parent_before_restore_copy),
+    )
+
+    with pytest.raises(BackupError):
+        service(target).restore(archive)
+
+    assert swapped is True
+    assert not (outside / 'note.txt').exists()
+    assert not any(outside.iterdir())
