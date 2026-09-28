@@ -125,7 +125,7 @@ class IphonePwaState:
                 self._cancel.pop(device_id, None)
 
 
-def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool = True):
+def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool = False):
     router = APIRouter(prefix='/iphone', tags=['iphone-pwa'])
     state = IphonePwaState()
     web_dir = Path(settings.base_dir) / 'pwa'

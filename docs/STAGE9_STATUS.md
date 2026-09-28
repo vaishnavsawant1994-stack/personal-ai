@@ -17,7 +17,7 @@ That result covers the census, H1–H12, and the single-writer checks that were 
 | WP0 | Done for Stage 8 | `docs/STAGE8_FREEZE.md` |
 | WP1 Authority map | Map published. Single class per concept. Openers of `ApprovalManager` are several; the class is one. | `tests/test_stage9_single_writers.py` |
 | WP2 Census | 191 decorators listed. 150 remain `inventoried`, not individually classified. | `docs/stage9_entrypoint_census.json` |
-| WP2 residuals | Only seven duplicate routes, and production strips them. Emergency Stop still has two stores. That split blocks exit. | `docs/STAGE9_RESIDUALS.md` |
+| WP2 residuals | Seven legacy routes stay unmounted unless a test opts in. The router default is now False. Emergency Stop writers set both the tool flag and the cloud mirror, and fail if they diverge. The cloud table was not deleted. | `docs/STAGE9_RESIDUALS.md` |
 | WP3 Composition | H1–H12 passed on `0024a2b`. Not a full threat-model pass. | `tests/test_stage9_composition.py` |
 | WP4 Consent | Partial matrix for `server/owner_product.py` only. | `docs/STAGE9_CONSENT_MATRIX.md` |
 | WP5 Migration | Not started. No schema change. | |
@@ -27,11 +27,13 @@ That result covers the census, H1–H12, and the single-writer checks that were 
 ## Exit blockers that remain
 
 1. 150 inventoried routes are not classified one by one.
-2. T1.1 Emergency Stop split-brain is still true in code (`docs/STAGE9_RESIDUALS.md` R2).
-3. Consent matrix does not cover control API, connectors, voice, cloud, or companions.
-4. `iphone_pwa_router` still defaults `include_legacy_runtime_routes=True`.
+2. Consent matrix does not cover control API, connectors, voice, cloud, or companions.
+3. Legacy handlers still exist for an explicit opt-in. They are not the default.
+4. Emergency Stop still has two stored flags. Official writers now keep them equal and the read path stops if either is set. That is not a deleted store.
 5. C6, D5, and F4 stay deferred.
-6. A later commit than `0024a2b` is not exact-head green until its own six families pass.
+6. This commit is not exact-head green until its own six families pass. `560937f` does not cover it.
+
+No Stage 9 freeze in this commit.
 
 ## Non-claims
 

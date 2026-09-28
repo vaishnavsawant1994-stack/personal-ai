@@ -289,6 +289,12 @@ class SecureCloudRelay:
         tools = getattr(self.executor, 'tools', None)
         if tools is not None and hasattr(tools, 'set_emergency_stop'):
             tools.set_emergency_stop(enabled)
+        session_on = self.sessions.emergency_stopped() if hasattr(self.sessions, 'emergency_stopped') else None
+        tool_on = getattr(tools, 'emergency_stop', None) if tools is not None and hasattr(tools, 'set_emergency_stop') else None
+        if session_on is not None and bool(session_on) != bool(enabled):
+            return RelayResult(503, {'error': 'emergency_stop_diverged'})
+        if tool_on is not None and bool(tool_on) != bool(enabled):
+            return RelayResult(503, {'error': 'emergency_stop_diverged'})
         if enabled and hasattr(self.executor, 'invalidate_pending_approvals'):
             self.executor.invalidate_pending_approvals()
         if enabled and hasattr(self.executor, 'cancel_active_turns'):

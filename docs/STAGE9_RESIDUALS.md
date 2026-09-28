@@ -17,24 +17,25 @@ The census has 191 decorators and 7 duplicate method+path keys. Every duplicate 
 | GET | `/iphone/api/conversations` | `conversation_voice_api.py`, `iphone_pwa.py` |
 | GET | `/iphone/api/conversations/{conversation_id}` | `conversation_voice_api.py`, `iphone_pwa.py` |
 
-Production `server/cloud_app.py` mounts `iphone_pwa_router(..., include_legacy_runtime_routes=False)`, which removes those seven PWA routes. No other duplicate key exists in the census.
+Production `server/cloud_app.py` mounts `iphone_pwa_router(..., include_legacy_runtime_routes=False)`. The router default is now **False**, so a caller that omits the flag does not mount the seven historical routes. Isolated P3 tests pass `include_legacy_runtime_routes=True` on purpose. That opt-in is not the production cloud app.
 
-Tests still mount the legacy router on purpose. That is not a second production authority.
+**Remaining:** those handlers still exist for the opt-in. They are not mounted beside the canonical routers unless a caller asks for them.
 
-**Not closed:** a future entrypoint that calls `iphone_pwa_router` with the default `include_legacy_runtime_routes=True` together with the canonical routers would recreate the dual path. The default remains `True`.
+## R2 — Emergency Stop stores are mirrored, not deleted
 
-## R2 — Emergency Stop is still two stores (blocks Stage 9 exit)
+Threat T1.1 is reconciled, not erased. One store was not deleted.
 
-Threat T1.1 is not closed.
+Canonical durable flag: `ToolRegistry` → `runtime-controls.sqlite3`.
 
-`cloud_runtime/relay.py` `set_emergency_stop` writes both:
+Cloud session `cloud_state.emergency_stop` is a mirror:
 
-- `CloudSessionStore.set_emergency_stop` → `cloud_state` key `emergency_stop`
-- `tools.set_emergency_stop` → `runtime-controls.sqlite3` plus an approval-epoch advance
+- `cloud_runtime/relay.py` writes the mirror and the tool flag, and returns `emergency_stop_diverged` (503) if they disagree.
+- `server/owner_product.py` writes the tool flag and, when `cloud_sessions` is on the runtime, the mirror. It returns 503 if either does not match the requested value.
+- Reads in the relay stop if **either** flag is set. A stale mirror cannot reopen a stopped tool path, and a tool stop cannot be missed by the relay.
 
-`server/owner_product.py` `/iphone/api/system/emergency-stop` calls only `runtime['tools'].set_emergency_stop`. It does not write the cloud session flag.
+Isolated tests that have no tool registry still stop on the session mirror alone. That is fail-closed, not a second production writer.
 
-One owner action can therefore stop tools without setting the cloud flag, and a cloud stop sets both only when it goes through the relay. This is an open split. It is not patched in this pass. No simulated device result is offered as proof.
+This does not claim a single sqlite table. It claims the two official writers no longer leave the flags diverged on success.
 
 ## R3 — Approval class is single; openers are several
 

@@ -729,6 +729,13 @@ def owner_product_router(runtime):
         if not body.enabled:
             require_fresh_reauthentication()
         runtime['tools'].set_emergency_stop(body.enabled)
+        sessions = runtime.get('cloud_sessions')
+        if sessions is not None and hasattr(sessions, 'set_emergency_stop'):
+            sessions.set_emergency_stop(body.enabled)
+            if hasattr(sessions, 'emergency_stopped') and bool(sessions.emergency_stopped()) != bool(body.enabled):
+                raise HTTPException(503, 'Emergency Stop did not converge on the cloud session mirror')
+        if bool(getattr(runtime['tools'], 'emergency_stop', False)) != bool(body.enabled):
+            raise HTTPException(503, 'Emergency Stop did not converge on the tool authority')
         # ToolRegistry is the canonical E-stop authority and advances the
         # security epoch. Also cancel active canonical turns so this owner
         # surface converges with the cloud owner E-stop semantics.

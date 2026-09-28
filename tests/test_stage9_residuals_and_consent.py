@@ -30,18 +30,25 @@ def test_stage9_only_legacy_routes_are_duplicated():
     assert 'include_legacy_runtime_routes=False' in cloud
 
 
-def test_stage9_emergency_stop_dual_store_is_still_open():
-    """T1.1 stays open until one store is the only writer. Do not delete this assertion to look closed."""
+def test_stage9_legacy_pwa_routes_are_off_unless_opted_in():
+    source = (ROOT / 'server' / 'iphone_pwa.py').read_text(encoding='utf-8')
+    assert 'include_legacy_runtime_routes: bool = False' in source
+    cloud = (ROOT / 'server' / 'cloud_app.py').read_text(encoding='utf-8')
+    assert 'include_legacy_runtime_routes=False' in cloud
+
+
+def test_stage9_emergency_stop_writers_converge():
+    """Official writers set both stores. A mismatch is not reported as success."""
     relay = (ROOT / 'cloud_runtime' / 'relay.py').read_text(encoding='utf-8')
-    registry = (ROOT / 'tools' / 'registry.py').read_text(encoding='utf-8')
     owner = (ROOT / 'server' / 'owner_product.py').read_text(encoding='utf-8')
     assert 'self.sessions.set_emergency_stop(enabled)' in relay
     assert 'tools.set_emergency_stop(enabled)' in relay
-    assert "VALUES('emergency_stop'" in registry
-    assert "runtime['tools'].set_emergency_stop(body.enabled)" in owner
+    assert "emergency_stop_diverged" in relay
+    assert "runtime.get('cloud_sessions')" in owner
+    assert 'sessions.set_emergency_stop(body.enabled)' in owner
     note = (ROOT / 'docs' / 'STAGE9_RESIDUALS.md').read_text(encoding='utf-8')
-    assert 'blocks Stage 9 exit' in note
-    assert 'Not closed' in note or 'not closed' in note.lower()
+    assert 'R2' in note
+    assert 'One store was not deleted' in note
 
 
 def test_stage9_consent_matrix_rows_match_owner_product_source():

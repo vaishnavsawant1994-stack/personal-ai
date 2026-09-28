@@ -544,6 +544,7 @@ def test_stage8_owner_emergency_stop_blocks_established_cloud_command(tmp_path):
     client, runtime, device = make_client(tmp_path)
     sessions = CloudSessionStore(tmp_path / 'real-cloud-sessions.sqlite3', ttl_seconds=600)
     runtime['executor'].tools = runtime['tools']
+    runtime['cloud_sessions'] = sessions
     relay = SecureCloudRelay(
         executor=runtime['executor'],
         memory=runtime['memory'],
@@ -562,6 +563,7 @@ def test_stage8_owner_emergency_stop_blocks_established_cloud_command(tmp_path):
 
     assert stopped.status_code == 200
     assert runtime['tools'].emergency_stop is True
+    assert sessions.emergency_stopped() is True
     blocked = relay.command(session, 'must not execute', 'abcdef0123456789')
     assert blocked.status == 423
     assert blocked.payload == {'error': 'emergency_stop_active'}
