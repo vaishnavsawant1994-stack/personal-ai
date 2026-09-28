@@ -565,3 +565,5 @@ def test_stage8_owner_emergency_stop_blocks_established_cloud_command(tmp_path):
     blocked = relay.command(session, 'must not execute', 'abcdef0123456789')
     assert blocked.status == 423
     assert blocked.payload == {'error': 'emergency_stop_active'}
+    assert relay.approval(session, 'approval-1', 'approve').status == 423
+    assert relay.status(session).payload['emergency_stop'] is True
