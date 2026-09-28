@@ -321,3 +321,24 @@ def test_stage8_backup_create_name_cannot_escape_backup_directory(tmp_path, name
 
     assert not (tmp_path / 'absolute-escape.paibackup').exists()
     assert not (tmp_path / 'traversal-escape.paibackup').exists()
+
+
+def test_stage8_backup_create_rejects_symlinked_parent_escape(tmp_path):
+    if not hasattr(os, 'symlink'):
+        pytest.skip('symlink unsupported')
+    data = tmp_path / 'data'
+    data.mkdir()
+    (data / 'note.txt').write_text('owner data')
+    svc = service(data)
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    link = svc.backup_dir / 'escape'
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip('symlink creation not permitted')
+
+    with pytest.raises(BackupError, match='unsafe backup path'):
+        svc.create('escape/linked.paibackup')
+
+    assert not (outside / 'linked.paibackup').exists()
