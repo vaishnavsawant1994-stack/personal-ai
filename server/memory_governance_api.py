@@ -16,7 +16,7 @@ def memory_governance_router(runtime):
             raise HTTPException(401, 'Trusted owner session required')
         if not registry.is_active(context.device_id):
             raise HTTPException(401, 'Trusted device is revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(context.device_id, scope):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(context.device_id, scope):
             raise HTTPException(403, f'This device is not permitted to use {scope}')
         return context
 
