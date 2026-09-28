@@ -2182,7 +2182,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 227,
+    "line": 228,
     "method": "GET",
     "path": "/iphone/api/preferences",
     "handler": "preferences_get",
@@ -2198,7 +2198,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 232,
+    "line": 233,
     "method": "PUT",
     "path": "/iphone/api/preferences",
     "handler": "preferences_update",
@@ -2214,7 +2214,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 263,
+    "line": 264,
     "method": "GET",
     "path": "/iphone/api/memory",
     "handler": "memory_list",
@@ -2230,7 +2230,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 274,
+    "line": 275,
     "method": "GET",
     "path": "/iphone/api/memory/graph",
     "handler": "memory_graph",
@@ -2246,7 +2246,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 282,
+    "line": 283,
     "method": "GET",
     "path": "/iphone/api/memory/tree",
     "handler": "memory_tree",
@@ -2262,7 +2262,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 287,
+    "line": 288,
     "method": "GET",
     "path": "/iphone/api/memory/export",
     "handler": "memory_export",
@@ -2278,7 +2278,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 299,
+    "line": 300,
     "method": "POST",
     "path": "/iphone/api/memory/retention",
     "handler": "memory_retention",
@@ -2294,7 +2294,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 316,
+    "line": 317,
     "method": "POST",
     "path": "/iphone/api/memory",
     "handler": "memory_create",
@@ -2310,7 +2310,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 344,
+    "line": 345,
     "method": "GET",
     "path": "/iphone/api/memory/{memory_id}",
     "handler": "memory_detail",
@@ -2326,7 +2326,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 352,
+    "line": 353,
     "method": "PATCH",
     "path": "/iphone/api/memory/{memory_id}",
     "handler": "memory_update",
@@ -2342,7 +2342,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 373,
+    "line": 374,
     "method": "DELETE",
     "path": "/iphone/api/memory/{memory_id}",
     "handler": "memory_delete",
@@ -2360,7 +2360,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 391,
+    "line": 392,
     "method": "GET",
     "path": "/iphone/api/knowledge",
     "handler": "knowledge_list",
@@ -2376,7 +2376,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 401,
+    "line": 402,
     "method": "GET",
     "path": "/iphone/api/knowledge/search",
     "handler": "knowledge_search",
@@ -2392,7 +2392,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 411,
+    "line": 412,
     "method": "GET",
     "path": "/iphone/api/knowledge/export",
     "handler": "knowledge_export",
@@ -2408,7 +2408,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 417,
+    "line": 418,
     "method": "POST",
     "path": "/iphone/api/knowledge",
     "handler": "knowledge_upload",
@@ -2424,7 +2424,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 447,
+    "line": 450,
     "method": "GET",
     "path": "/iphone/api/knowledge/{document_id}",
     "handler": "knowledge_detail",
@@ -2440,7 +2440,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 455,
+    "line": 458,
     "method": "PATCH",
     "path": "/iphone/api/knowledge/{document_id}",
     "handler": "knowledge_update",
@@ -2456,7 +2456,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 480,
+    "line": 485,
     "method": "DELETE",
     "path": "/iphone/api/knowledge/{document_id}",
     "handler": "knowledge_delete",
@@ -2474,7 +2474,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 498,
+    "line": 503,
     "method": "GET",
     "path": "/iphone/api/activities",
     "handler": "activities",
@@ -2492,7 +2492,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 508,
+    "line": 513,
     "method": "GET",
     "path": "/iphone/api/devices",
     "handler": "devices",
@@ -2508,7 +2508,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 513,
+    "line": 518,
     "method": "PATCH",
     "path": "/iphone/api/devices/{target_device_id}/permissions",
     "handler": "device_permissions",
@@ -2524,7 +2524,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 543,
+    "line": 548,
     "method": "POST",
     "path": "/iphone/api/devices/{target_device_id}/revoke",
     "handler": "device_revoke",
@@ -2542,7 +2542,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 586,
+    "line": 591,
     "method": "GET",
     "path": "/iphone/api/workflows",
     "handler": "workflows",
@@ -2558,7 +2558,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 597,
+    "line": 602,
     "method": "POST",
     "path": "/iphone/api/workflows",
     "handler": "workflow_create",
@@ -2576,7 +2576,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 612,
+    "line": 617,
     "method": "POST",
     "path": "/iphone/api/workflows/{workflow_id}/run",
     "handler": "workflow_run",
@@ -2592,7 +2592,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 631,
+    "line": 636,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/cancel",
     "handler": "workflow_cancel",
@@ -2608,7 +2608,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 645,
+    "line": 650,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/recovery/link",
     "handler": "workflow_recovery_link",
@@ -2624,7 +2624,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 654,
+    "line": 659,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/recovery/refresh",
     "handler": "workflow_recovery_refresh",
@@ -2640,7 +2640,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 661,
+    "line": 666,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/resume",
     "handler": "workflow_resume",
@@ -2656,7 +2656,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 675,
+    "line": 680,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/approve",
     "handler": "workflow_approve",
@@ -2674,7 +2674,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 702,
+    "line": 707,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/reject",
     "handler": "workflow_reject",
@@ -2692,7 +2692,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 726,
+    "line": 731,
     "method": "POST",
     "path": "/iphone/api/system/emergency-stop",
     "handler": "emergency_stop",
@@ -2710,7 +2710,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 754,
+    "line": 759,
     "method": "GET",
     "path": "/iphone/api/qualification",
     "handler": "qualification_status",
@@ -2726,7 +2726,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 759,
+    "line": 764,
     "method": "POST",
     "path": "/iphone/api/qualification/stages",
     "handler": "qualification_start",
@@ -2742,7 +2742,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 778,
+    "line": 783,
     "method": "POST",
     "path": "/iphone/api/qualification/sessions/{session_id}/trials",
     "handler": "qualification_trial",
@@ -2758,7 +2758,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 801,
+    "line": 806,
     "method": "POST",
     "path": "/iphone/api/qualification/sessions/{session_id}/finish",
     "handler": "qualification_finish",
@@ -2774,7 +2774,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 816,
+    "line": 821,
     "method": "GET",
     "path": "/iphone/api/system/status",
     "handler": "system_status",
@@ -2790,7 +2790,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 831,
+    "line": 836,
     "method": "POST",
     "path": "/iphone/api/system/model-evaluation",
     "handler": "run_model_evaluation",

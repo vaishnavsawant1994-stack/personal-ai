@@ -1065,7 +1065,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 227,
+    "line": 228,
     "method": "GET",
     "path": "/iphone/api/preferences",
     "status": "canonical",
@@ -1073,7 +1073,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 232,
+    "line": 233,
     "method": "PUT",
     "path": "/iphone/api/preferences",
     "status": "canonical",
@@ -1081,7 +1081,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 263,
+    "line": 264,
     "method": "GET",
     "path": "/iphone/api/memory",
     "status": "canonical",
@@ -1089,7 +1089,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 274,
+    "line": 275,
     "method": "GET",
     "path": "/iphone/api/memory/graph",
     "status": "canonical",
@@ -1097,7 +1097,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 282,
+    "line": 283,
     "method": "GET",
     "path": "/iphone/api/memory/tree",
     "status": "canonical",
@@ -1105,7 +1105,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 287,
+    "line": 288,
     "method": "GET",
     "path": "/iphone/api/memory/export",
     "status": "canonical",
@@ -1113,7 +1113,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 299,
+    "line": 300,
     "method": "POST",
     "path": "/iphone/api/memory/retention",
     "status": "canonical",
@@ -1121,7 +1121,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 316,
+    "line": 317,
     "method": "POST",
     "path": "/iphone/api/memory",
     "status": "canonical",
@@ -1129,7 +1129,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 344,
+    "line": 345,
     "method": "GET",
     "path": "/iphone/api/memory/{memory_id}",
     "status": "canonical",
@@ -1137,7 +1137,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 352,
+    "line": 353,
     "method": "PATCH",
     "path": "/iphone/api/memory/{memory_id}",
     "status": "canonical",
@@ -1145,7 +1145,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 373,
+    "line": 374,
     "method": "DELETE",
     "path": "/iphone/api/memory/{memory_id}",
     "status": "canonical",
@@ -1153,7 +1153,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 391,
+    "line": 392,
     "method": "GET",
     "path": "/iphone/api/knowledge",
     "status": "canonical",
@@ -1161,7 +1161,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 401,
+    "line": 402,
     "method": "GET",
     "path": "/iphone/api/knowledge/search",
     "status": "canonical",
@@ -1169,7 +1169,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 411,
+    "line": 412,
     "method": "GET",
     "path": "/iphone/api/knowledge/export",
     "status": "canonical",
@@ -1177,7 +1177,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 417,
+    "line": 418,
     "method": "POST",
     "path": "/iphone/api/knowledge",
     "status": "canonical",
@@ -1185,7 +1185,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 447,
+    "line": 450,
     "method": "GET",
     "path": "/iphone/api/knowledge/{document_id}",
     "status": "canonical",
@@ -1193,7 +1193,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 455,
+    "line": 458,
     "method": "PATCH",
     "path": "/iphone/api/knowledge/{document_id}",
     "status": "canonical",
@@ -1201,7 +1201,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 480,
+    "line": 485,
     "method": "DELETE",
     "path": "/iphone/api/knowledge/{document_id}",
     "status": "canonical",
@@ -1209,7 +1209,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 498,
+    "line": 503,
     "method": "GET",
     "path": "/iphone/api/activities",
     "status": "canonical",
@@ -1217,7 +1217,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 508,
+    "line": 513,
     "method": "GET",
     "path": "/iphone/api/devices",
     "status": "canonical",
@@ -1225,7 +1225,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 513,
+    "line": 518,
     "method": "PATCH",
     "path": "/iphone/api/devices/{target_device_id}/permissions",
     "status": "canonical",
@@ -1233,7 +1233,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 543,
+    "line": 548,
     "method": "POST",
     "path": "/iphone/api/devices/{target_device_id}/revoke",
     "status": "canonical",
@@ -1241,7 +1241,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 586,
+    "line": 591,
     "method": "GET",
     "path": "/iphone/api/workflows",
     "status": "canonical",
@@ -1249,7 +1249,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 597,
+    "line": 602,
     "method": "POST",
     "path": "/iphone/api/workflows",
     "status": "canonical",
@@ -1257,7 +1257,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 612,
+    "line": 617,
     "method": "POST",
     "path": "/iphone/api/workflows/{workflow_id}/run",
     "status": "canonical",
@@ -1265,7 +1265,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 631,
+    "line": 636,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/cancel",
     "status": "canonical",
@@ -1273,7 +1273,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 645,
+    "line": 650,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/recovery/link",
     "status": "canonical",
@@ -1281,7 +1281,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 654,
+    "line": 659,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/recovery/refresh",
     "status": "canonical",
@@ -1289,7 +1289,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 661,
+    "line": 666,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/resume",
     "status": "canonical",
@@ -1297,7 +1297,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 675,
+    "line": 680,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/approve",
     "status": "canonical",
@@ -1305,7 +1305,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 702,
+    "line": 707,
     "method": "POST",
     "path": "/iphone/api/workflows/runs/{run_id}/reject",
     "status": "canonical",
@@ -1313,7 +1313,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 726,
+    "line": 731,
     "method": "POST",
     "path": "/iphone/api/system/emergency-stop",
     "status": "canonical",
@@ -1321,7 +1321,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 754,
+    "line": 759,
     "method": "GET",
     "path": "/iphone/api/qualification",
     "status": "canonical",
@@ -1329,7 +1329,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 759,
+    "line": 764,
     "method": "POST",
     "path": "/iphone/api/qualification/stages",
     "status": "canonical",
@@ -1337,7 +1337,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 778,
+    "line": 783,
     "method": "POST",
     "path": "/iphone/api/qualification/sessions/{session_id}/trials",
     "status": "canonical",
@@ -1345,7 +1345,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 801,
+    "line": 806,
     "method": "POST",
     "path": "/iphone/api/qualification/sessions/{session_id}/finish",
     "status": "canonical",
@@ -1353,7 +1353,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 816,
+    "line": 821,
     "method": "GET",
     "path": "/iphone/api/system/status",
     "status": "canonical",
@@ -1361,7 +1361,7 @@
   },
   {
     "file": "server/owner_product.py",
-    "line": 831,
+    "line": 836,
     "method": "POST",
     "path": "/iphone/api/system/model-evaluation",
     "status": "canonical",
