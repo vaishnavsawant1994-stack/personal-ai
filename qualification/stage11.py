@@ -140,9 +140,10 @@ def blank_register() -> dict:
         "production_ready": False,
         "owner_environment": {
             "recorded": "2026-09-28",
-            "hardware": "unavailable",
-            "statement": "Owner has no physical phone, laptop, microphone, or other hardware available.",
-            "effect": "Rows stay pending. This is not a pass, not a fail, and not a Stage 11 freeze.",
+            "hardware": "iphone-only",
+            "apple_developer_account": "absent",
+            "statement": "Owner has a physical iPhone and no Apple Developer account. No laptop or Android phone was reported. No Stage 11 session was run.",
+            "effect": "Native iOS install stays blocked on signing. The Safari PWA does not need that account, but no phone session was captured. Every row stays pending. This is not a pass or a Stage 11 freeze.",
         },
         "cases": [
             {
