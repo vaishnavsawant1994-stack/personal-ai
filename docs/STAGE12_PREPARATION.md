@@ -2,7 +2,7 @@
 
 **Stage 12 is not open.** This page is not a Stage 12 freeze, not a production deploy, and not a Stage 11 pass.
 
-Stage 8 stays `b17c5051772b5e82b7a6a208903bb0300bf1e405`. Stage 9 stays `ddd53d17d60db2e5e5438cf29e2d704a9ba69af0`. Stage 10 stays `cd558936276aece705fa46032e3bab6453c7f014`. The current Stage 11 software candidate stays `08b2616c11d1433760eb711db4ca7f82e5a01a2c` until a later exact-head 6/6 note says otherwise. `main` stays `c1cd8b7f2e507befb7f4cad37de6208d75a75a72`. PR #2 stays a draft.
+Stage 8 stays `b17c5051772b5e82b7a6a208903bb0300bf1e405`. Stage 9 stays `ddd53d17d60db2e5e5438cf29e2d704a9ba69af0`. Stage 10 stays `cd558936276aece705fa46032e3bab6453c7f014`. The current Stage 11 software candidate is `93d26a5de3e928a61866d2d78728ec33270120d9`. `08b2616c11d1433760eb711db4ca7f82e5a01a2c` is the earlier candidate. A note that only records a green run does not move the candidate. `main` stays `c1cd8b7f2e507befb7f4cad37de6208d75a75a72`. PR #2 stays a draft.
 
 Nothing below was executed against a live production or qualification host.
 
