@@ -1,7 +1,8 @@
 # Stage 11 status
 
 **Status:** Open. Not frozen. Not physical proof. Not production-ready.  
-**Contract:** `docs/STAGE11_CONTRACT.md`  
+**Contract:** `e70136cbb145fe9e12f7f9edf2f3b8c875d110a6`  
+**Infrastructure checkpoint:** `95a9b6a362923c68162a3b13114403fc626062d2` — exact-head 6/6 for the collector only. See `docs/STAGE11_INFRA_CHECKPOINT.md`. This is not the Stage 11 freeze.  
 **Register:** `docs/stage11_register.json`
 
 All 15 matrix rows are `PENDING_PHYSICAL`, `PENDING_OWNER`, or both. The collector rejects a simulated, emulated, or GitHub-hosted packet. No owner attestation is present.
