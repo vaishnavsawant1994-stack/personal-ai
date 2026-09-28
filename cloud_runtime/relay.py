@@ -141,13 +141,19 @@ class SecureCloudRelay:
             return None
         return current
 
+    def _emergency_stopped(self):
+        if self.sessions.emergency_stopped():
+            return True
+        tools = getattr(self.executor, 'tools', None)
+        return bool(getattr(tools, 'emergency_stop', False))
+
     def command(self, session, text: str, nonce: str):
         session = self._live_session(session)
         if session is None:
             return RelayResult(401, {'error': 'session_expired_or_revoked'})
         if not self._device_scope_allowed(session.device_id, 'ai:chat'):
             return RelayResult(403, {'error': 'device_permission_denied'})
-        if self.sessions.emergency_stopped():
+        if self._emergency_stopped():
             return RelayResult(423, {'error': 'emergency_stop_active'})
         text = (text or '').strip()
         if not text:
@@ -213,7 +219,7 @@ class SecureCloudRelay:
     def status(self, session):
         return RelayResult(200, {
             'state': self._state,
-            'emergency_stop': self.sessions.emergency_stopped(),
+            'emergency_stop': self._emergency_stopped(),
             'device_id': session.device_id,
             'reauthenticated_at': session.reauthenticated_at,
         })
