@@ -317,9 +317,22 @@ class BackupService:
 
     def create(self, name: str | None = None) -> Path:
         stamp = time.strftime('%Y%m%d-%H%M%S')
-        target = self.backup_dir / (name or f'personal-ai-{stamp}.paibackup')
-        if target.suffix != '.paibackup':
-            target = target.with_suffix('.paibackup')
+        candidate = Path(name or f'personal-ai-{stamp}.paibackup')
+        if candidate.suffix != '.paibackup':
+            candidate = candidate.with_suffix('.paibackup')
+        rel = self._safe_rel(candidate.as_posix())
+        target = self.backup_dir / rel
+        root = self.backup_dir.resolve()
+        resolved = target.resolve(strict=False)
+        if resolved != root and root not in resolved.parents:
+            raise BackupError('unsafe backup path')
+        current = self.backup_dir
+        for part in rel.parts[:-1]:
+            current = current / part
+            if current.exists() and current.is_symlink():
+                raise BackupError('unsafe backup path')
+        if target.exists() and target.is_symlink():
+            raise BackupError('unsafe backup path')
 
         handle = tempfile.NamedTemporaryFile(
             prefix='personal-ai-backup-payload-', suffix='.zip', delete=False
