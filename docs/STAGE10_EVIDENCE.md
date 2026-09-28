@@ -17,7 +17,7 @@ The candidate SHA is the commit that adds `requirements-3.12.lock` and this reco
 | `requirements-3.12.lock` sha256 | `50c7306b260a58fed84d8d6afb4a64bb566b7d7e2e04c3c1ec9b575b9b1ae361` |
 | Second environment | A new 3.12.14 venv installed from the lock with pip. `pip check` passed. `pip freeze` matched the lock pins. |
 
-`requirements.txt` ranges were not edited. CI still installs the ranges. The lock is the reproducible pin.
+`requirements.txt` ranges were not edited. The six Python-using families install `requirements-3.12.lock` from the commit that changes those workflows. `01a67a2` contains the lock but its CI still installed the ranges, so it is not the Stage 10 freeze.
 
 ## Other inputs
 
