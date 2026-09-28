@@ -256,15 +256,15 @@ class ContinuityService:
             self.set_active(device_id, latest['id'], authority_guard=authority_guard)
         return latest
 
-    def resume(self, device_id: str, *, thread_id: str | None = None, event_limit: int = 30):
-        thread = self.thread(thread_id) if thread_id else self.active_for_device(device_id)
+    def resume(self, device_id: str, *, thread_id: str | None = None, event_limit: int = 30, authority_guard=None):
+        thread = self.thread(thread_id) if thread_id else self.active_for_device(device_id, authority_guard=authority_guard)
         if thread is not None and thread.get('closed_at'):
             raise KeyError('continuity thread is archived')
         if thread is None:
             created = self.create_thread('Current context', device_id=device_id)
             thread = self.thread(created)
         else:
-            self.set_active(device_id, thread['id'])
+            self.set_active(device_id, thread['id'], authority_guard=authority_guard)
         events = self.events_for_thread(thread['id'], limit=event_limit)
         memory_context = []
         query = str(thread['context'].get('topic') or thread['title'])
@@ -333,8 +333,8 @@ class ContinuityService:
                 )
         return {'thread': thread, 'events': events, 'after_sequence': after}
 
-    def handoff(self, thread_id: str, *, from_device: str | None, to_device: str):
-        bundle = self.resume(to_device, thread_id=thread_id, event_limit=50)
+    def handoff(self, thread_id: str, *, from_device: str | None, to_device: str, authority_guard=None):
+        bundle = self.resume(to_device, thread_id=thread_id, event_limit=50, authority_guard=authority_guard)
         self.append(
             thread_id,
             device_id=from_device,
