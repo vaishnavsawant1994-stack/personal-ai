@@ -31,6 +31,8 @@ class Registry:
         return self.tokens.get(device_id) == token
     def is_active(self, device_id):
         return device_id in self.active
+    def authorize(self, device_id, scope):
+        return device_id in self.active
 
 
 class Executor:
