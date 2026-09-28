@@ -230,7 +230,7 @@ class SecureCloudRelay:
             return RelayResult(401, {'error': 'session_expired_or_revoked'})
         if not self._device_scope_allowed(session.device_id, 'approval:write'):
             return RelayResult(403, {'error': 'device_permission_denied'})
-        if self.sessions.emergency_stopped():
+        if self._emergency_stopped():
             return RelayResult(423, {'error': 'emergency_stop_active'})
         try:
             if decision == 'approve':
