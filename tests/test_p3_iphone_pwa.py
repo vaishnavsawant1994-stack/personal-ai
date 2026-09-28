@@ -633,6 +633,13 @@ def test_plain_http_enrollment_fails_closed(tmp_path):
     client = TestClient(app, base_url='http://testserver')
     response = client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     assert response.status_code == 400
+    forged = client.post(
+        '/iphone/api/enroll',
+        json={'code': 'this-is-a-long-owner-code'},
+        headers={'x-forwarded-proto': 'https'},
+    )
+    assert forged.status_code == 400
+    assert runtime['device_registry'].active == set()
 
 
 def test_conversation_survives_reload_and_continues_across_trusted_browsers(tmp_path):

@@ -86,6 +86,12 @@ def test_durability_requires_a_real_mount_and_stays_non_production():
     assert ephemeral['durable'] is False
     missing = qualification_durability(Path('/data/stage11/owner'), Path('/data'), [Path('/')])
     assert missing['reason'] == 'no_durable_mount'
+    private_tmp = qualification_durability(Path('/private/tmp/stage11'), Path('/private/tmp'), [Path('/private/tmp')])
+    assert private_tmp['durable'] is False
+    with pytest.raises(ValueError, match='refusing_production_host'):
+        qualification_process(source_sha='d' * 40, data_dir=Path('/data/stage11/owner'), host='personal-ai-runtime-production.up.railway.app:443')
+    from qualification.stage11_environment import stable_endpoint
+    assert stable_endpoint({'PERSONAL_AI_QUALIFICATION_PUBLIC_HOST': 'personal-ai-runtime-production.up.railway.app.'}) is False
     with pytest.raises(ValueError, match='refusing_unqualified_host'):
         qualification_process(source_sha='d' * 40, data_dir=Path('/data/stage11/owner'), host='name.trycloudflare.com')
 

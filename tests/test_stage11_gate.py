@@ -74,6 +74,42 @@ def test_stage11_rejects_simulated_and_hosted_passes():
         submit(register, packet)
     assert register["cases"][2]["status"] == "PENDING_PHYSICAL"
     assert register["cases"][2]["actual"] is None
+    packet["device_id"] = "mic-1"
+    packet["actual"] = "simulated"
+    with pytest.raises(Stage11Rejection, match="not_a_physical_environment"):
+        submit(register, packet)
+    packet["actual"] = "spoke"
+    packet["device_id"] = "emul\u200bator-1"
+    with pytest.raises(Stage11Rejection, match="not_a_physical_environment"):
+        submit(register, packet)
+    packet["device_id"] = "handset"
+    packet["runner"] = "github hosted"
+    with pytest.raises(Stage11Rejection, match="not_a_physical_environment"):
+        submit(register, packet)
+    assert register["cases"][2]["status"] == "PENDING_PHYSICAL"
+
+
+def test_stage11_emergency_stop_pass_requires_the_owner():
+    register = blank_register()
+    packet = {
+        "case_id": "S11-ESTOP-01",
+        "verdict": "PASS",
+        "evidence_class": "real_device",
+        "form": "physical",
+        "runner": "owner-phone",
+        "source_sha": "c" * 40,
+        "captured_at": "2026-09-28T12:00:00+00:00",
+        "platform": "iPhone",
+        "os_version": "18",
+        "device_id": "iphone-1",
+        "operation_id": "op-estop",
+        "expected": "stop holds",
+        "actual": "stop held",
+        "audit_ref": "audit-1",
+    }
+    with pytest.raises(Stage11Rejection, match="owner_gate_open"):
+        submit(register, packet)
+    assert register["cases"][4]["status"] == "PENDING_PHYSICAL"
 
 
 def test_stage11_owner_gate_stays_closed_without_an_owner():

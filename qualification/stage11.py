@@ -194,14 +194,16 @@ def submit(register: dict, packet: dict) -> dict:
     row = next((item for item in register["cases"] if item["id"] == case_id), None)
     if row is None:
         raise Stage11Rejection("unknown_case")
-    blob = json.dumps(packet, sort_keys=True).lower()
-    for word in _FORBIDDEN:
-        if word in blob:
-            raise Stage11Rejection("not_a_physical_environment")
     if packet.get("evidence_class") not in {"real_device", "production_like"}:
         raise Stage11Rejection("evidence_class_is_not_physical")
     if packet.get("form") != "physical":
         raise Stage11Rejection("form_is_not_physical")
+    blob = json.dumps(packet, sort_keys=True, ensure_ascii=False).lower()
+    blob = re.sub(r"[\u200b\u200c\u200d\ufeff]|\\u200[bcd]|\\ufeff", "", blob)
+    compact = re.sub(r"[\s._-]+", "", blob)
+    forbidden = tuple(re.sub(r"[\s._-]+", "", word) for word in (*_FORBIDDEN, "emulated", "simulated", "github actions", "github-actions"))
+    if any(word in compact for word in forbidden) or re.search(r"ubuntu\d|macos\d|windows20\d\d", compact):
+        raise Stage11Rejection("not_a_physical_environment")
     runner = _require(packet, "runner").lower()
     if runner in _HOSTED_RUNNERS or "github-hosted" in runner:
         raise Stage11Rejection("hosted_runner_is_not_physical")
@@ -218,8 +220,9 @@ def submit(register: dict, packet: dict) -> dict:
     _require(packet, "expected")
     actual = _require(packet, "actual")
     audit_ref = _require(packet, "audit_ref")
-    if "PENDING_OWNER" in row["status"] and packet.get("owner_attestation") != "present":
-        raise Stage11Rejection("owner_gate_open")
+    if "PENDING_OWNER" in row["status"] or case_id == "S11-ESTOP-01":
+        if packet.get("owner_attestation") != "present":
+            raise Stage11Rejection("owner_gate_open")
     if packet.get("owner_attestation") == "present" and not _require(packet, "owner_actor"):
         raise Stage11Rejection("missing_owner_actor")
     row["status"] = verdict

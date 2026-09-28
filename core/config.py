@@ -70,6 +70,7 @@ class Settings:
     cloud_allowed_origins:tuple[str,...]=tuple(x.strip().rstrip('/') for x in os.getenv('CLOUD_ALLOWED_ORIGINS','').split(',') if x.strip())
     iphone_owner_enrollment_code:str=os.getenv('PERSONAL_AI_IPHONE_ENROLLMENT_CODE','').strip()
     iphone_pwa_allow_insecure:bool=env_bool('PERSONAL_AI_IPHONE_ALLOW_INSECURE',False)
+    iphone_trust_forwarded_proto:bool=env_bool('PERSONAL_AI_TRUST_FORWARDED_PROTO',False)
     iphone_device_cookie_days:int=int(os.getenv('PERSONAL_AI_DEVICE_COOKIE_DAYS','365'))
     google_signin_client_id:str=os.getenv('GOOGLE_SIGNIN_CLIENT_ID',os.getenv('GOOGLE_CLIENT_ID','')).strip()
     owner_google_email:str=os.getenv('PERSONAL_AI_OWNER_GOOGLE_EMAIL','').strip().casefold()

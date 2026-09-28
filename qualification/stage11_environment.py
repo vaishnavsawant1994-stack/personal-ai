@@ -14,6 +14,7 @@ from qualification.stage11_identity import PRODUCTION_HOST, QUALIFICATION, SHA
 DEFAULT_DATA_NAME = '.stage11-qualification-data'
 EPHEMERAL_ROOTS = (
     Path('/tmp'),
+    Path('/private/tmp'),
     Path('/var/tmp'),
     Path('/dev'),
     Path('/dev/shm'),
@@ -23,15 +24,21 @@ EPHEMERAL_ROOTS = (
 )
 
 
-def assert_separate_from_production(host: str) -> None:
-    name = host.split(',')[0].strip().split('://')[-1].split('/')[0].lower()
+def public_host_name(host: str) -> str:
+    name = host.split(',')[0].strip().lower().split('://')[-1].split('/')[0]
     if name.startswith('['):
-        name = name.split(']')[0].strip('[')
-    elif name.count(':') == 1:
+        end = name.find(']')
+        name = name[1:end] if end != -1 else name.strip('[]')
+    else:
         name = name.split(':', 1)[0]
+    return name.rstrip('.')
+
+
+def assert_separate_from_production(host: str) -> None:
+    name = public_host_name(host)
     if name == PRODUCTION_HOST:
         raise ValueError('refusing_production_host')
-    if name.endswith('.trycloudflare.com'):
+    if name == 'trycloudflare.com' or name.endswith('.trycloudflare.com'):
         raise ValueError('refusing_unqualified_host')
 
 
@@ -109,7 +116,7 @@ def model_configured(environ: dict | None = None) -> bool:
 
 def stable_endpoint(environ: dict | None = None) -> bool:
     env = os.environ if environ is None else environ
-    host = str(env.get('PERSONAL_AI_QUALIFICATION_PUBLIC_HOST', '')).strip().lower()
-    if not host or 'trycloudflare.com' in host or host == PRODUCTION_HOST:
+    host = public_host_name(str(env.get('PERSONAL_AI_QUALIFICATION_PUBLIC_HOST', '')))
+    if not host or host == PRODUCTION_HOST or host == 'trycloudflare.com' or host.endswith('.trycloudflare.com'):
         return False
     return True

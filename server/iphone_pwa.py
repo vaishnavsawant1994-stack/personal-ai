@@ -153,17 +153,23 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
             max_age=60 * 60 * 24 * cookie_days,
         )
 
+    def forwarded_proto(request: Request) -> str:
+        if not getattr(settings, 'iphone_trust_forwarded_proto', False):
+            return ''
+        return request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
+
     def require_https(request: Request):
-        forwarded = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
-        scheme = forwarded or request.url.scheme.lower()
+        scheme = forwarded_proto(request) or request.url.scheme.lower()
         if scheme != 'https' and not getattr(settings, 'iphone_pwa_allow_insecure', False):
             raise HTTPException(400, 'iPhone owner enrollment requires HTTPS')
 
     def request_identity(request: Request):
-        forwarded_host = request.headers.get('x-forwarded-host', '').split(',')[0].strip()
+        forwarded_host = ''
+        if getattr(settings, 'iphone_trust_forwarded_proto', False):
+            forwarded_host = request.headers.get('x-forwarded-host', '').split(',')[0].strip()
         host = forwarded_host or request.headers.get('host', '').strip()
-        forwarded_proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
-        proto = forwarded_proto or request.url.scheme.lower()
+        forwarded_proto_value = forwarded_proto(request)
+        proto = forwarded_proto_value or request.url.scheme.lower()
         if not host or proto != 'https':
             raise HTTPException(400, 'Secure HTTPS origin required')
         rp_id = host.rsplit(':', 1)[0] if host.count(':') == 1 else host.strip('[]')
