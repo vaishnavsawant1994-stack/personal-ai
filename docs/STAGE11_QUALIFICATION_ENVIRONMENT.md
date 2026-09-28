@@ -17,7 +17,7 @@ The process sets `PERSONAL_AI_ENVIRONMENT=stage11-qualification` and `PERSONAL_A
 
 `GET /iphone/api/stage11/identity` returns the SHA. `production` stays false. `durable` is true only when that mount proof succeeds. `ready_for_physical` is true only when the mount proof, a model credential in the environment, and `PERSONAL_AI_QUALIFICATION_PUBLIC_HOST` are all present. The host must not be the public p2 site or a quick tunnel. The payload never includes the model credential. `rows_passed` stays 0. This process does not write `docs/stage11_register.json`.
 
-`87d86d9eb74b50ed8f307ad8b90aefdafc4449bc` is the exact-head 6/6 software candidate. It is not a Stage 11 freeze. A later change that only records or tightens this gate does not move that candidate and does not pass a physical row.
+`08b2616c11d1433760eb711db4ca7f82e5a01a2c` is the current exact-head 6/6 software candidate. `87d86d9eb74b50ed8f307ad8b90aefdafc4449bc` remains the previous one. Neither is a Stage 11 freeze. A later note that only records this page does not move `08b2616` and does not pass a physical row.
 
 ## What an iPhone session may use
 
