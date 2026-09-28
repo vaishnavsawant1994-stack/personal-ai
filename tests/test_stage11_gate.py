@@ -39,6 +39,9 @@ def test_stage11_register_is_pending_and_matches_the_catalog():
     for case in CASES:
         assert case["id"] in matrix
         assert case["id"] in procedures
+        section = procedures.split(f"## {case['id']}", 1)[1].split("\n## ", 1)[0]
+        for heading in ("**Preconditions.**", "**Steps.**", "**Expected result.**", "**Evidence.**", "**Failure handling.**"):
+            assert heading in section
 
 
 def test_stage11_rejects_simulated_and_hosted_passes():
