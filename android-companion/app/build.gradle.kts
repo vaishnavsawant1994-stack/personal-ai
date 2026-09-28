@@ -16,3 +16,6 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:core-ktx:1.7.0")
 }
+dependencyLocking {
+    lockAllConfigurations()
+}
