@@ -1,11 +1,23 @@
-from browser.controller import BrowserController
 from tools.registry import Tool, Risk
 
+
+def _disabled(_params):
+    raise PermissionError('legacy browser controller is disabled; use the governed browser/computer authority')
+
+
 def register(reg):
-    ctl=BrowserController(headless=False)
-    reg.register(Tool("browser_navigate","Controlled browser navigation; params: url",
-                      lambda p:ctl.navigate(str(p["url"])),Risk.EXTERNAL_SIDE_EFFECT))
-    reg.register(Tool("browser_extract_text","Read page body through controlled browser; params: url",
-                      lambda p:ctl.extract_text(str(p["url"])),Risk.READ_ONLY))
-    reg.register(Tool("browser_click_text","Click visible text; params: url,text",
-                      lambda p:ctl.click_text(str(p["url"]),str(p["text"])),Risk.EXTERNAL_SIDE_EFFECT))
+    # Compatibility-only names retained for old metadata. These legacy tools
+    # must never provide a parallel execution path beside the governed W7
+    # operator/runtime.
+    reg.register(Tool(
+        "browser_navigate", "Legacy browser navigation (disabled)", _disabled,
+        Risk.EXTERNAL_SIDE_EFFECT, prohibited=True,
+    ))
+    reg.register(Tool(
+        "browser_extract_text", "Legacy browser extraction (disabled)", _disabled,
+        Risk.READ_ONLY, prohibited=True,
+    ))
+    reg.register(Tool(
+        "browser_click_text", "Legacy browser click (disabled)", _disabled,
+        Risk.EXTERNAL_SIDE_EFFECT, prohibited=True,
+    ))

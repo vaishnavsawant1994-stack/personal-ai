@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.txt pip-audit
       - run: pip-audit -r requirements.txt
-      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models security server tools ui updates vision voice packaging
+      - run: python -m compileall -q app agent automation browser core dashboard desktop devices future_intelligence integrations knowledge memory models security server tools ui updates vision voice packaging
       - run: pytest -q
 
   soak:

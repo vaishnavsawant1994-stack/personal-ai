@@ -26,6 +26,9 @@ class VoiceQualificationSummary:
     p95_transcript_to_reply_ms: float | None
     p50_barge_to_listening_ms: float | None
     p95_barge_to_listening_ms: float | None
+    tts_started: int
+    tts_completed: int
+    tts_errors: int
     errors: int
     passed: bool
     failed_gates: list[str]
@@ -50,7 +53,11 @@ class VoiceQualificationRecorder:
         self._barge_started_at = None
         self._init_db()
         if events:
-            for name in ('voice.transcript', 'voice.reply', 'voice.barge_in', 'voice.turn.cancelled', 'voice.error', 'state'):
+            for name in (
+                'voice.transcript', 'voice.reply', 'voice.barge_in', 'voice.turn.cancelled',
+                'voice.client.tts_started', 'voice.client.tts_completed', 'voice.client.tts_error',
+                'voice.error', 'state',
+            ):
                 events.subscribe(name, self._on_event)
 
     def _con(self):
@@ -87,7 +94,7 @@ class VoiceQualificationRecorder:
         normalized = str(evidence_class).strip().lower()
         if normalized not in self.EVIDENCE_CLASSES:
             raise ValueError('invalid evidence class')
-        if self.session_id:
+        if self.active_session():
             raise RuntimeError('voice qualification session already active')
         session_id = str(uuid.uuid4())
         with self._con() as con:
@@ -100,6 +107,25 @@ class VoiceQualificationRecorder:
         self._barge_started_at = None
         return session_id
 
+    def active_session(self):
+        """Return the active session metadata so trusted clients can reconnect safely."""
+        with self._con() as con:
+            if self.session_id:
+                row = con.execute(
+                    'SELECT * FROM voice_qualification_sessions WHERE id=? AND completed_at IS NULL',
+                    (self.session_id,),
+                ).fetchone()
+            else:
+                row = con.execute(
+                    'SELECT * FROM voice_qualification_sessions WHERE completed_at IS NULL ORDER BY started_at DESC LIMIT 1'
+                ).fetchone()
+        if not row:
+            return None
+        self.session_id = row['id']
+        item = dict(row)
+        item['environment'] = json.loads(item.pop('environment_json') or '{}')
+        return item
+
     def stop_session(self):
         if not self.session_id:
             raise RuntimeError('no active voice qualification session')
@@ -110,6 +136,25 @@ class VoiceQualificationRecorder:
         self._turn = None
         self._barge_started_at = None
         return self.summary(session_id)
+
+    def close_active_sessions(self, *, reason: str = 'Owner-confirmed trusted-device takeover'):
+        """Close every unfinished session without deleting its retained evidence."""
+        completed_at = now()
+        with self._con() as con:
+            rows = con.execute(
+                'SELECT id,notes FROM voice_qualification_sessions WHERE completed_at IS NULL ORDER BY started_at'
+            ).fetchall()
+            for row in rows:
+                existing = str(row['notes'] or '').strip()
+                note = f'{existing}\n{reason}'.strip()
+                con.execute(
+                    'UPDATE voice_qualification_sessions SET completed_at=?,notes=? WHERE id=?',
+                    (completed_at, note, row['id']),
+                )
+        self.session_id = None
+        self._turn = None
+        self._barge_started_at = None
+        return [row['id'] for row in rows]
 
     def _record(self, event: str, payload: dict):
         if not self.session_id:
@@ -123,6 +168,13 @@ class VoiceQualificationRecorder:
 
     def _on_event(self, event: dict):
         if not self.session_id:
+            return
+        active = self.active_session()
+        if not active:
+            return
+        expected_device = active.get('environment', {}).get('device_id')
+        event_device = event.get('device_id')
+        if expected_device and event_device and event_device != expected_device:
             return
         name = str(event.get('event', ''))
         payload = {key: value for key, value in event.items() if key != 'event'}
@@ -180,6 +232,9 @@ class VoiceQualificationRecorder:
         barge_successes = sum(1 for event in events if event['event'] == 'qualification.barge_success')
         transcript_reply = [float(event['payload']['latency_ms']) for event in events if event['event'] == 'qualification.transcript_to_reply']
         barge_listening = [float(event['payload']['latency_ms']) for event in events if event['event'] == 'qualification.barge_to_listening']
+        tts_started = sum(1 for event in events if event['event'] == 'voice.client.tts_started')
+        tts_completed = sum(1 for event in events if event['event'] == 'voice.client.tts_completed')
+        tts_errors = sum(1 for event in events if event['event'] == 'voice.client.tts_error')
         errors = sum(1 for event in events if event['event'] == 'voice.error')
         success_rate = round(barge_successes / barge_trials, 4) if barge_trials else None
         p95_reply = self._percentile(transcript_reply, 0.95)
@@ -215,6 +270,9 @@ class VoiceQualificationRecorder:
             p95_transcript_to_reply_ms=p95_reply,
             p50_barge_to_listening_ms=self._percentile(barge_listening, 0.50),
             p95_barge_to_listening_ms=p95_barge,
+            tts_started=tts_started,
+            tts_completed=tts_completed,
+            tts_errors=tts_errors,
             errors=errors,
             passed=not failed,
             failed_gates=failed,

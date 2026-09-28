@@ -13,8 +13,26 @@ jobs:
         with: {python-version: '3.12'}
       - run: pip install -r requirements.txt pip-audit
       - run: pip-audit -r requirements.txt
-      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models security server tools ui updates vision voice packaging
+      - run: python -m compileall -q app agent automation browser capabilities core dashboard desktop devices future_intelligence integrations knowledge memory models proactive security server tools ui updates vision voice packaging
+      - name: P7 focused qualification
+        run: pytest -q tests/test_p7_multimodal_core.py tests/test_p7_security_e2e.py tests/test_p7_performance_recovery.py
+      - name: P7 performance measurements
+        run: pytest -q -s tests/test_p7_performance_recovery.py::test_p7_performance_envelope_is_bounded_and_reported
+      - name: P8 focused qualification
+        run: pytest -q tests/test_p8_cross_device_continuity.py tests/test_p8_security_e2e.py tests/test_p8_e2e.py tests/test_p8_performance_recovery.py
+      - name: P8 performance measurements
+        run: pytest -q -s tests/test_p8_performance_recovery.py::test_p8_performance_envelope_is_bounded_and_reported
+      - name: P9 focused and adversarial qualification
+        run: pytest -q tests/test_p9_hybrid_ai.py tests/test_p9_adversarial.py tests/test_p9_e2e.py tests/test_p9_performance_recovery.py
+      - name: P9 performance measurements
+        run: pytest -q -s tests/test_p9_performance_recovery.py::test_p9_performance_envelope_is_bounded_and_reported
+      - name: P10 focused adversarial E2E and durability qualification
+        run: pytest -q tests/test_p10_advanced_autonomy.py tests/test_p10_adversarial.py tests/test_p10_e2e.py tests/test_p10_performance_recovery.py
+      - name: P10 performance measurements
+        run: pytest -q -s tests/test_p10_performance_recovery.py::test_p10_performance_envelope_is_bounded_and_reported
       - run: pytest -q
+      - name: Isolated encrypted backup/restore qualification
+        run: pytest -q tests/test_isolated_recovery.py tests/test_v10_recovery.py tests/test_p7_performance_recovery.py::test_p7_encrypted_backup_restore_preserves_governed_observation_state tests/test_p8_performance_recovery.py::test_p8_encrypted_backup_restore_preserves_sync_identity_and_revocation tests/test_p9_performance_recovery.py::test_p9_encrypted_backup_restore_contains_no_runtime_credentials tests/test_p10_performance_recovery.py::test_p10_encrypted_backup_restore_preserves_durable_state
   soak:
     runs-on: ubuntu-latest
     steps:
@@ -22,4 +40,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install -r requirements.txt psutil
-      - run: python tests/soak_runtime.py --seconds ${{ github.event_name == 'schedule' && '1800' || '45' }}
+      - name: Existing runtime soak
+        run: python tests/soak_runtime.py --seconds ${{ github.event_name == 'schedule' && '1800' || '45' }}
+      - name: P9 Hybrid AI soak
+        run: python tests/p9_soak.py --seconds ${{ github.event_name == 'schedule' && '1800' || '45' }}
+      - name: P10 Advanced Autonomy soak
+        run: python tests/p10_soak.py --seconds ${{ github.event_name == 'schedule' && '1800' || '45' }}

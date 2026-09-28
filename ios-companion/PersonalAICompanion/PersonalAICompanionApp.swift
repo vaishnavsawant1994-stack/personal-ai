@@ -40,6 +40,12 @@ struct PersonalAICompanionApp: App {
         WindowGroup {
             NavigationStack {
                 Form {
+                    Section("Personal AI cloud") {
+                        Link(destination:URL(string:"https://personal-ai-runtime-production.up.railway.app/iphone/")!) {
+                            Label("Open Personal AI",systemImage:"sparkles")
+                        }
+                        Text("Uses Safari so Google sign-in, trusted-device cookies, microphone access and conversation continuity work correctly.").font(.caption).foregroundStyle(.secondary)
+                    }
                     Section("Personal AI computer") {
                         TextField("https://your-computer:8766",text:$store.baseURL).textInputAutocapitalization(.never).keyboardType(.URL)
                         Toggle("Allow insecure local development",isOn:$store.allowInsecureDevelopment)

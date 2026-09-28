@@ -2,6 +2,13 @@
 
 The iOS companion is the primary real-device companion for the owner's current setup.
 
+The app also includes a cloud-first **Open Personal AI** route. It hands off to
+Safari so the same Google sign-in, trusted-device cookie, microphone permissions,
+voice experience and persistent conversations are shared with the web and desktop
+surfaces. This repository can build and test an unsigned iOS Simulator artifact
+without an Apple account. Installation on a physical iPhone and TestFlight still
+require an Apple Developer team and Apple-issued signing assets.
+
 ## Implemented foundation
 
 - SwiftUI iPhone app foundation (iOS 17+)

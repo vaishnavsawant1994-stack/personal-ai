@@ -44,3 +44,10 @@ def test_permission_gated_tool_remains_external_side_effect():
     registry=ToolRegistry(SimpleNamespace(autonomy_mode='ask'));register(registry,APNsProvider(settings(),client=Client(Response())))
     tool=registry.get('notify_device');assert tool.risk==Risk.EXTERNAL_SIDE_EFFECT
     assert not registry.authorize(tool,confirmed=False).allowed
+
+def test_unconfigured_apns_does_not_open_network_client():
+    empty=SimpleNamespace(apns_team_id='',apns_key_id='',apns_topic='',apns_private_key_b64='',apns_environment='development')
+    provider=APNsProvider(empty)
+    assert provider.client is None
+    assert provider.send_token('token','title','body').reason=='not_configured'
+    assert provider.client is None

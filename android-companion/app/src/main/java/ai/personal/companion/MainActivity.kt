@@ -1,12 +1,18 @@
 package ai.personal.companion
 
 import android.content.Intent
+import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -21,6 +27,10 @@ import org.json.JSONObject
 import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val PERSONAL_AI_CLOUD_URL = "https://personal-ai-runtime-production.up.railway.app/iphone/"
+    }
+
     private val client = OkHttpClient()
     private lateinit var status: TextView
     private lateinit var base: EditText
@@ -44,22 +54,84 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
+            setPadding(40, 52, 40, 40)
+            setBackgroundColor(Color.rgb(3, 6, 13))
+        }
+        val brand = TextView(this).apply {
+            text = "P E R S O N A L   A I"
+            textSize = 25f
+            setTextColor(Color.WHITE)
+            setPadding(0, 0, 0, 16)
+        }
+        val description = TextView(this).apply {
+            text = "Your owner-controlled intelligence"
+            textSize = 16f
+            setTextColor(Color.rgb(148, 163, 184))
+            setPadding(0, 0, 0, 40)
+        }
+        val openCloud = Button(this).apply {
+            text = "Open Personal AI"
+            contentDescription = "Open the secure Personal AI cloud experience"
+        }
+        val continuity = TextView(this).apply {
+            text = "Voice, Google sign-in, memory and conversations continue securely in your trusted browser."
+            textSize = 14f
+            setTextColor(Color.rgb(148, 163, 184))
+            setPadding(4, 18, 4, 36)
+        }
+        val advanced = Button(this).apply { text = "Advanced device pairing" }
+        val pairingBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
         }
         base = EditText(this).apply {
             hint = "http://PC:8766"
             setText(prefs.getString("base", "") ?: "")
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         }
-        pairToken = EditText(this).apply { hint = "Pairing token from desktop" }
-        code = EditText(this).apply { hint = "6-digit code" }
-        status = TextView(this).apply { text = "Not paired" }
+        pairToken = EditText(this).apply {
+            hint = "Pairing token from desktop"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        code = EditText(this).apply {
+            hint = "6-digit code"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        }
+        status = TextView(this).apply {
+            text = "Device companion is not paired"
+            setTextColor(Color.rgb(148, 163, 184))
+            setPadding(0, 14, 0, 0)
+        }
         val pair = Button(this).apply { text = "Pair" }
         val connect = Button(this).apply { text = "Start background connection" }
-        listOf(base, pairToken, code, pair, connect, status).forEach(box::addView)
+        listOf(base, pairToken, code, pair, connect, status).forEach(pairingBox::addView)
+        listOf(brand, description, openCloud, continuity, advanced, pairingBox).forEach(box::addView)
         setContentView(box)
+        openCloud.setOnClickListener { openPersonalAI() }
+        advanced.setOnClickListener {
+            val show = pairingBox.visibility != View.VISIBLE
+            pairingBox.visibility = if (show) View.VISIBLE else View.GONE
+            advanced.text = if (show) "Hide device pairing" else "Advanced device pairing"
+        }
         pair.setOnClickListener { pairDevice() }
         connect.setOnClickListener { startDeviceService() }
         if (prefs.getString("device", null) != null) startDeviceService()
+    }
+
+    private fun openPersonalAI() {
+        val colors = CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(Color.rgb(3, 6, 13))
+            .setNavigationBarColor(Color.rgb(3, 6, 13))
+            .build()
+        val customTab = CustomTabsIntent.Builder()
+            .setDefaultColorSchemeParams(colors)
+            .setShowTitle(false)
+            .build()
+        try {
+            customTab.launchUrl(this, Uri.parse(PERSONAL_AI_CLOUD_URL))
+        } catch (_: Exception) {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PERSONAL_AI_CLOUD_URL)))
+        }
     }
 
     private fun pairDevice() {

@@ -8,9 +8,12 @@ class FakeMemory:
     def audit(self,*args):self.audit_rows.append(args)
     def search(self,q,limit=20):return list(self.rows)
 class FakeDevices:
-    def __init__(self):self.active=True
+    def __init__(self):
+        self.active=True
+        self.scopes={'ai:chat','device:read','memory:read'}
     def authenticate(self,device_id,token):return self.active and device_id=='dev1' and token=='device-secret'
     def is_active(self,device_id):return self.active and device_id=='dev1'
+    def authorize(self,device_id,scope):return self.is_active(device_id) and scope in self.scopes
 class FakeExecutor:
     def chat(self,text):return 'reply:'+text
     def approve(self,approval_id):return 'approved'
@@ -81,3 +84,72 @@ def test_web_companion_never_embeds_privileged_secret():
 def test_cloud_runtime_defaults_fail_closed():
     from core.config import Settings
     s=Settings();assert s.cloud_runtime_enabled is False
+
+
+def test_stage7_emergency_stop_converges_tool_and_approval_guards():
+    from pathlib import Path
+    source = Path('cloud_runtime/relay.py').read_text(encoding='utf-8')
+    assert "tools.set_emergency_stop(enabled)" in source
+    assert "if enabled and hasattr(self.executor, 'invalidate_pending_approvals')" in source
+    assert "if enabled and hasattr(self.executor, 'cancel_active_turns')" in source
+    assert "self.events.emit('emergency.stop', enabled=enabled)" in source
+
+
+def test_stage7_cloud_approval_reconnect_projects_canonical_identity():
+    from pathlib import Path
+    source = Path('server/api.py').read_text(encoding='utf-8')
+    assert "@app.get('/cloud/approval/{approval_id}')" in source
+    assert "cloud_auth(authorization, 'approval:read')" in source
+    assert "executor.approval_context(approval_id)" in source
+    assert "context.get('device_id') not in (None, session.device_id)" in source
+    assert "'approval_id','execution_id','device_id','conversation_id','tool','expires_at','security_epoch','destination','data_classification'" in source
+
+
+def test_stage7_cloud_activities_preserve_canonical_execution_identities():
+    from pathlib import Path
+    source = Path('server/api.py').read_text(encoding='utf-8')
+    assert "@app.get('/cloud/activities')" in source
+    assert "cloud_auth(authorization, 'status:read')" in source
+    assert "('execution_id','run_id','approval_id')" in source
+    assert "'activity_id': f'{identity_kind}:{identity}'" in source
+    assert "('execution_id','run_id','approval_id','tool','status','verified','failure_code')" in source
+
+
+def test_stage7_command_and_approval_revalidate_live_session_at_use_time():
+    from pathlib import Path
+    source = Path('cloud_runtime/relay.py').read_text(encoding='utf-8')
+    assert 'def _live_session(self, session):' in source
+    assert "lookup = getattr(self.sessions, 'session', None)" in source
+    assert 'current = lookup(session.id) if callable(lookup) else session' in source
+    assert 'self.device_registry.is_active(current.device_id)' in source
+    assert "return RelayResult(401, {'error': 'session_expired_or_revoked'})" in source
+    command = source.index('def command(self, session, text: str, nonce: str):')
+    approval = source.index('def approval(self, session, approval_id: str, decision: str):')
+    assert 'session = self._live_session(session)' in source[command:command+500]
+    assert 'session = self._live_session(session)' in source[approval:approval+500]
+
+
+def test_stage8_cloud_scope_is_revalidated_against_live_device_permissions(tmp_path):
+    r=relay(tmp_path)
+    issued=r.issue_session('dev1','device-secret')
+    token=issued.payload['session_token']
+    error,session=r.authenticate(token,'ai:chat')
+    assert error is None and session is not None
+
+    r.device_registry.scopes.remove('ai:chat')
+    error,session=r.authenticate(token,'ai:chat')
+    assert session is None
+    assert error.status==403
+    assert error.payload['error']=='device_permission_denied'
+
+    error,memory_session=r.authenticate(token,'memory:read')
+    assert error is None and memory_session is not None
+    assert r.sessions.authenticate(token) is not None
+
+
+def test_stage8_new_cloud_session_does_not_grant_revoked_device_scopes(tmp_path):
+    r=relay(tmp_path)
+    r.device_registry.scopes={'device:read','memory:read'}
+    issued=r.issue_session('dev1','device-secret')
+    assert issued.status==200
+    assert set(issued.payload['scopes'])=={'status:read','memory:read'}

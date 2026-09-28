@@ -11,6 +11,7 @@ DEFAULTS={
     'reduce_motion':False,
     'high_contrast':False,
     'autonomy_mode':'ask',
+    'model_privacy_mode':'local_preferred',
 }
 
 class Preferences:

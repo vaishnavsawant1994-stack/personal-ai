@@ -25,8 +25,11 @@ class APNsProvider:
     """Token-authenticated Apple Push Notification service provider over HTTP/2."""
     def __init__(self,settings,device_registry=None,events=None,client:Any=None):
         self.settings=settings;self.device_registry=device_registry;self.events=events
-        self.client=client or httpx.Client(http2=True,timeout=15.0)
+        self.client=client
         self._jwt='';self._jwt_issued=0
+    def _client(self):
+        if self.client is None:self.client=httpx.Client(http2=True,timeout=15.0)
+        return self.client
     @property
     def configured(self)->bool:
         return bool(self.settings.apns_team_id and self.settings.apns_key_id and self.settings.apns_private_key_b64 and self.settings.apns_topic)
@@ -64,7 +67,7 @@ class APNsProvider:
         if not token:return APNsResult(False,0,'missing_device_token')
         headers={'authorization':f'bearer {self.provider_token()}','apns-topic':self.settings.apns_topic,'apns-push-type':'alert','apns-priority':'10'}
         if collapse_id:headers['apns-collapse-id']=collapse_id[:64]
-        try:r=self.client.post(f'{self.base_url}/3/device/{token}',headers=headers,json=self._payload(title,body,data=data,badge=badge,sound=sound))
+        try:r=self._client().post(f'{self.base_url}/3/device/{token}',headers=headers,json=self._payload(title,body,data=data,badge=badge,sound=sound))
         except (httpx.TimeoutException,httpx.NetworkError) as e:return APNsResult(False,0,type(e).__name__,retryable=True)
         reason=''
         try:reason=(r.json() or {}).get('reason','') if r.content else ''
@@ -87,5 +90,5 @@ class APNsProvider:
             try:self.events.publish(name,payload)
             except Exception:pass
     def close(self):
-        close=getattr(self.client,'close',None)
+        close=getattr(self.client,'close',None) if self.client is not None else None
         if close:close()

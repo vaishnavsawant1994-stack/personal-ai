@@ -28,8 +28,8 @@ class CompetitiveScenarioSuite:
         if not tools:
             return False
         try:
-            tools.get(name)
-            return True
+            tool = tools.get(name)
+            return not bool(getattr(tool, 'prohibited', False))
         except Exception:
             return False
 
@@ -38,16 +38,19 @@ class CompetitiveScenarioSuite:
         if not tools or not getattr(tools, 'permissions', None):
             return False
         try:
-            tool = tools.get('launch_app')
-            decision = tools.authorize(tool, confirmed=False)
-            return hasattr(decision, 'allowed') and hasattr(decision, 'requires_confirmation')
+            tool = tools.get('desktop_file_act')
+            return (
+                not bool(getattr(tool, 'prohibited', False))
+                and bool(getattr(tool, 'requires_trusted_context', False))
+                and bool(getattr(tool, 'requires_reauth', False))
+            )
         except Exception:
             return False
 
     def _build(self):
         return {
             'open_an_app': [
-                ScenarioCheck('governed app-launch tool exists', lambda: self._tool_exists('launch_app')),
+                ScenarioCheck('governed desktop action authority exists', lambda: self._tool_exists('desktop_file_act')),
                 ScenarioCheck('external actions pass centralized permission policy', self._external_tool_governed),
             ],
             'inspect_the_screen': [

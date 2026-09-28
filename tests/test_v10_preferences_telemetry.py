@@ -11,6 +11,12 @@ def test_preferences_persist_and_reject_unknown(tmp_path):
 def test_corrupt_preferences_fall_back_to_safe_defaults(tmp_path):
     path=tmp_path/'prefs.json';path.write_text('{broken');p=Preferences(path);assert p.get('autonomy_mode')=='ask';assert p.get('onboarding_complete') is False
 
+def test_model_privacy_preference_is_persistent(tmp_path):
+    path=tmp_path/'prefs.json';prefs=Preferences(path)
+    assert prefs.get('model_privacy_mode')=='local_preferred'
+    prefs.set('model_privacy_mode','local_only')
+    assert Preferences(path).get('model_privacy_mode')=='local_only'
+
 def test_telemetry_is_local_and_reports_distribution(tmp_path):
     path=tmp_path/'telemetry.json';t=Telemetry(path);t.observe('latency',10);t.observe('latency',20);t.increment('errors');snap=t.persist();assert snap['metrics']['latency']['count']==2;assert snap['counters']['errors']==1
     on_disk=json.loads(path.read_text());assert on_disk['metrics']['latency']['max']==20.0

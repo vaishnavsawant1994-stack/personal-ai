@@ -14,35 +14,36 @@ from core.security import PairingManager
 
 
 class PairConfirm(BaseModel):
-    token: str
-    code: str
-    name: str = 'Device'
-    platform: str = 'unknown'
+    token: str = Field(min_length=16, max_length=256)
+    code: str = Field(min_length=4, max_length=32)
+    name: str = Field(default='Device', max_length=120)
+    platform: str = Field(default='unknown', max_length=80)
 
 
 class PairedCommand(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=8000)
+    request_id: str = Field(min_length=16, max_length=160)
 
 
 class SessionStart(BaseModel):
-    device_id: str
-    device_token: str
+    device_id: str = Field(min_length=1, max_length=200)
+    device_token: str = Field(min_length=16, max_length=512)
 
 
 class CloudCommand(BaseModel):
-    text: str
-    nonce: str
+    text: str = Field(min_length=1, max_length=8000)
+    nonce: str = Field(min_length=16, max_length=256)
 
 
 class MemoryQuery(BaseModel):
-    query: str = ''
+    query: str = Field(default='', max_length=2000)
     include_sensitive: bool = False
 
 
 class ApprovalDecision(BaseModel):
-    approval_id: str
-    decision: str
-    nonce: str
+    approval_id: str = Field(min_length=1, max_length=200)
+    decision: str = Field(min_length=1, max_length=32)
+    nonce: str = Field(min_length=16, max_length=256)
 
 
 class EmergencyStopBody(BaseModel):
@@ -50,42 +51,43 @@ class EmergencyStopBody(BaseModel):
 
 
 class ContinuityResumeBody(BaseModel):
-    thread_id: str | None = None
+    thread_id: str | None = Field(default=None, max_length=200)
     event_limit: int = Field(default=30, ge=1, le=200)
 
 
 class ContinuityAppendBody(BaseModel):
-    thread_id: str
-    kind: str
+    thread_id: str = Field(min_length=1, max_length=200)
+    kind: str = Field(min_length=1, max_length=80)
     payload: dict = Field(default_factory=dict)
 
 
 class ContinuityContextBody(BaseModel):
-    thread_id: str
+    thread_id: str = Field(min_length=1, max_length=200)
     patch: dict = Field(default_factory=dict)
 
 
 class ContinuityHandoffBody(BaseModel):
-    thread_id: str
-    to_device: str
+    thread_id: str = Field(min_length=1, max_length=200)
+    to_device: str = Field(min_length=1, max_length=200)
 
 
 class ProactiveConsiderBody(BaseModel):
-    source: str
+    source: str = Field(min_length=1, max_length=120)
     payload: dict = Field(default_factory=dict)
     context: dict = Field(default_factory=dict)
 
 
 class WorkflowCreateBody(BaseModel):
-    title: str
+    title: str = Field(min_length=1, max_length=240)
     trigger: dict = Field(default_factory=dict)
-    steps: list[dict]
+    steps: list[dict] = Field(min_length=1, max_length=50)
     next_run_at: str | None = None
     interval_seconds: int | None = Field(default=None, ge=1)
 
 
 class WorkflowRunBody(BaseModel):
-    workflow_id: str
+    workflow_id: str = Field(min_length=1, max_length=200)
+    idempotency_key: str = Field(min_length=16, max_length=160)
 
 
 class WorkflowPauseBody(BaseModel):
@@ -157,18 +159,54 @@ def create_app(
         runtime['cloud_sessions'] = sessions
         runtime['cloud_relay'] = cloud
 
-    def auth_device(authorization, device_id):
+    def auth_device(authorization, device_id, scope='ai:chat'):
         if not device_registry or not device_id:
             raise HTTPException(401, 'Device identity required')
         token = (authorization or '').removeprefix('Bearer ').strip()
         if not token or not device_registry.authenticate(device_id, token):
             raise HTTPException(401, 'Unauthorized')
+        if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, scope):
+            raise HTTPException(403, f'Device is not permitted to use {scope}')
         return device_id
 
     def require_runtime(name: str):
         value = runtime.get(name) if runtime else None
         if value is None:
             raise HTTPException(503, f'{name} unavailable')
+        return value
+
+    def bounded_mapping(value, *, max_bytes=65536, max_depth=8, max_items=256, max_string=12000):
+        if not isinstance(value, dict):
+            raise HTTPException(422, 'Expected a JSON object')
+        nodes = 0
+        stack = [(value, 0)]
+        while stack:
+            current, depth = stack.pop()
+            if depth > max_depth:
+                raise HTTPException(413, 'JSON object nesting exceeds limit')
+            if isinstance(current, dict):
+                if len(current) > max_items:
+                    raise HTTPException(413, 'JSON object contains too many fields')
+                for key, child in current.items():
+                    if len(str(key)) > 256:
+                        raise HTTPException(413, 'JSON object key is too long')
+                    stack.append((child, depth + 1))
+            elif isinstance(current, list):
+                if len(current) > max_items:
+                    raise HTTPException(413, 'JSON collection contains too many items')
+                for child in current:
+                    stack.append((child, depth + 1))
+            elif isinstance(current, str) and len(current) > max_string:
+                raise HTTPException(413, 'JSON string exceeds limit')
+            nodes += 1
+            if nodes > 4096:
+                raise HTTPException(413, 'JSON object is too complex')
+        try:
+            encoded = json.dumps(value, separators=(',', ':'), ensure_ascii=False, allow_nan=False).encode('utf-8')
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(422, 'JSON object contains unsupported values') from exc
+        if len(encoded) > max_bytes:
+            raise HTTPException(413, 'JSON object exceeds maximum size')
         return value
 
     def require_loopback(request):
@@ -196,13 +234,21 @@ def create_app(
 
     @app.get('/health')
     def health():
+        models = runtime.get('models') if runtime else None
         return {
             'ok': True,
             'service': 'personal-ai',
             'version': 'p2',
             'cloud_runtime': cloud is not None,
             'capability_superiority': bool(runtime and runtime.get('benchmark')),
+            'model': models.status() if models else {'state': 'unavailable'},
         }
+
+    @app.get('/health/model')
+    def model_health():
+        models = require_runtime('models')
+        status = models.status(probe=True)
+        return JSONResponse(status_code=200 if status['state'] == 'available' else 503, content=status)
 
     @app.post('/pair/start')
     def pair_start(request: Request):
@@ -244,7 +290,7 @@ def create_app(
         x_device_id: str | None = Header(default=None),
     ):
         device_id = auth_device(authorization, x_device_id)
-        return {'reply': executor.chat(body.text, device_id=device_id)}
+        return {'reply': executor.chat(body.text, device_id=device_id, request_id=body.request_id)}
 
     # ------------------------------------------------------------------
     # P2 trusted-device capability API
@@ -262,11 +308,12 @@ def create_app(
     @app.get('/continuity/sync')
     def continuity_sync(
         limit: int = 200,
+        after_sequence: int | None = None,
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
         device_id = auth_device(authorization, x_device_id)
-        return require_runtime('continuity').sync(device_id, limit=max(1, min(int(limit), 500)))
+        return require_runtime('continuity').sync(device_id, limit=max(1, min(int(limit), 500)), after_sequence=after_sequence)
 
     @app.post('/continuity/append')
     def continuity_append(
@@ -279,7 +326,8 @@ def create_app(
         active = service.active_for_device(device_id)
         if active and active['id'] != body.thread_id:
             raise HTTPException(403, 'Device is not active in the requested continuity thread')
-        return service.append(body.thread_id, device_id=device_id, kind=body.kind, payload=body.payload)
+        payload = bounded_mapping(body.payload)
+        return service.append(body.thread_id, device_id=device_id, kind=body.kind, payload=payload)
 
     @app.post('/continuity/context')
     def continuity_context(
@@ -292,7 +340,8 @@ def create_app(
         active = service.active_for_device(device_id)
         if not active or active['id'] != body.thread_id:
             raise HTTPException(403, 'Device is not active in the requested continuity thread')
-        return {'thread_id': body.thread_id, 'context': service.update_context(body.thread_id, body.patch)}
+        patch = bounded_mapping(body.patch)
+        return {'thread_id': body.thread_id, 'context': service.update_context(body.thread_id, patch)}
 
     @app.post('/continuity/handoff')
     def continuity_handoff(
@@ -303,6 +352,8 @@ def create_app(
         device_id = auth_device(authorization, x_device_id)
         if not device_registry.is_active(body.to_device):
             raise HTTPException(404, 'Target device is not trusted/active')
+        if hasattr(device_registry, 'authorize') and not device_registry.authorize(body.to_device, 'ai:chat'):
+            raise HTTPException(403, 'Target device is not permitted to receive continuity handoff')
         service = require_runtime('continuity')
         active = service.active_for_device(device_id)
         if not active or active['id'] != body.thread_id:
@@ -316,8 +367,9 @@ def create_app(
         x_device_id: str | None = Header(default=None),
     ):
         device_id = auth_device(authorization, x_device_id)
-        context = {**body.context, 'device_id': device_id}
-        return require_runtime('proactive').consider(body.source, body.payload, context=context).__dict__
+        payload = bounded_mapping(body.payload)
+        context = {**bounded_mapping(body.context), 'device_id': device_id}
+        return require_runtime('proactive').consider(body.source, payload, context=context).__dict__
 
     @app.get('/proactive/history')
     def proactive_history(
@@ -333,7 +385,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        auth_device(authorization, x_device_id, 'workflow:read')
         return require_runtime('automations').workflows()
 
     @app.get('/workflows/runs')
@@ -343,8 +395,27 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
-        return require_runtime('automations').runs(workflow_id, max(1, min(int(limit), 500)))
+        device_id = auth_device(authorization, x_device_id, 'workflow:read')
+        engine = require_runtime('automations')
+        rows = engine.runs(workflow_id, max(1, min(int(limit), 500)))
+        binding_reader = getattr(engine, 'run_binding', None)
+        if not callable(binding_reader):
+            return rows
+        visible = []
+        for row in rows:
+            binding = binding_reader(row.get('id'))
+            if not binding:
+                continue
+            if binding.get('owner_id') not in (None, 'owner'):
+                continue
+            if binding.get('device_id') not in (None, device_id):
+                continue
+            # This legacy bearer-token transport has no browser session
+            # authority. Never expose a run that is explicitly session-bound.
+            if binding.get('session_id') is not None:
+                continue
+            visible.append(row)
+        return visible
 
     @app.post('/workflows/create')
     def workflow_create(
@@ -352,11 +423,13 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        auth_device(authorization, x_device_id, 'workflow:write')
+        trigger = bounded_mapping(body.trigger)
+        steps = [bounded_mapping(step, max_bytes=32768) for step in body.steps]
         workflow_id = require_runtime('automations').create_workflow(
             body.title,
-            body.trigger,
-            body.steps,
+            trigger,
+            steps,
             next_run_at=body.next_run_at,
             interval_seconds=body.interval_seconds,
         )
@@ -368,8 +441,14 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
-        run_id = require_runtime('automations').run_workflow(body.workflow_id, background=True)
+        device_id = auth_device(authorization, x_device_id, 'workflow:write')
+        run_id = require_runtime('automations').run_workflow(
+            body.workflow_id,
+            background=True,
+            owner_id='owner',
+            device_id=device_id,
+            idempotency_key=body.idempotency_key,
+        )
         return {'run_id': run_id}
 
     @app.post('/workflows/pause')
@@ -378,7 +457,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        auth_device(authorization, x_device_id, 'workflow:write')
         return require_runtime('automations').pause_workflow(body.workflow_id, body.paused)
 
     @app.post('/workflows/approval')
@@ -387,13 +466,23 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        device_id = auth_device(authorization, x_device_id, 'workflow:approve')
         engine = require_runtime('automations')
         decision = body.decision.strip().lower()
         if decision == 'approve':
-            return engine.approve_run(body.run_id, body.approval_id)
+            return engine.approve_run(
+                body.run_id,
+                body.approval_id,
+                owner_id='owner',
+                device_id=device_id,
+            )
         if decision == 'reject':
-            return engine.reject_run(body.run_id, body.approval_id)
+            return engine.reject_run(
+                body.run_id,
+                body.approval_id,
+                owner_id='owner',
+                device_id=device_id,
+            )
         raise HTTPException(400, 'decision must be approve or reject')
 
     @app.get('/benchmark')
@@ -401,7 +490,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        auth_device(authorization, x_device_id, 'qualification:read')
         benchmark = require_runtime('benchmark')
         return {'capabilities': benchmark.latest(), 'tasks': benchmark.task_matrix()}
 
@@ -411,7 +500,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id)
+        auth_device(authorization, x_device_id, 'qualification:record')
         benchmark = require_runtime('benchmark')
         if body.capability.strip().lower() == 'all':
             return benchmark.run_all()
@@ -494,10 +583,18 @@ def create_app(
                 initial = relay.status(session).payload
                 yield f"data: {json.dumps({'event': 'status', **initial}, separators=(',', ':'))}\n\n"
                 while not await request.is_disconnected():
+                    # A long-lived stream must not outlive the canonical session or
+                    # trusted-device authority that opened it.
+                    if relay._live_session(session) is None:
+                        break
                     try:
                         item = await asyncio.to_thread(event_queue.get, True, 15)
+                        if relay._live_session(session) is None:
+                            break
                         yield f"data: {json.dumps(item, separators=(',', ':'))}\n\n"
                     except queue.Empty:
+                        if relay._live_session(session) is None:
+                            break
                         yield ': keepalive\n\n'
             finally:
                 for unsubscribe in unsubscribers:
@@ -511,6 +608,38 @@ def create_app(
             media_type='text/event-stream',
             headers={'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no'},
         )
+
+    @app.get('/cloud/activities')
+    def cloud_activities(limit: int = 100, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'status:read')
+        rows = require_runtime('memory').audit_entries(limit=max(1, min(int(limit), 200)))
+        output = []
+        seen = set()
+        for entry in rows:
+            payload = entry.get('payload') or {}
+            identity_kind = next((key for key in ('execution_id','run_id','approval_id') if payload.get(key)), None)
+            if not identity_kind:
+                continue
+            identity = str(payload[identity_kind])[:200]
+            key = (identity_kind, identity, entry.get('category'), entry.get('action'))
+            if key in seen:
+                continue
+            seen.add(key)
+            safe_payload = {key: payload.get(key) for key in ('execution_id','run_id','approval_id','tool','status','verified','failure_code') if key in payload}
+            output.append({'activity_id': f'{identity_kind}:{identity}', 'identity_kind': identity_kind, 'identity': identity, 'category': str(entry.get('category') or '')[:80], 'action': str(entry.get('action') or '')[:80], 'created_at': entry.get('created_at'), 'payload': safe_payload})
+            if len(output) >= max(1, min(int(limit), 200)):
+                break
+        return {'activities': output}
+
+    @app.get('/cloud/approval/{approval_id}')
+    def cloud_approval_status(approval_id: str, authorization: str | None = Header(default=None)):
+        relay, session = cloud_auth(authorization, 'approval:read')
+        context = executor.approval_context(approval_id) if hasattr(executor, 'approval_context') else None
+        if not context:
+            raise HTTPException(404, 'approval unavailable')
+        if context.get('device_id') not in (None, session.device_id):
+            raise HTTPException(403, 'approval device mismatch')
+        return {key: context.get(key) for key in ('approval_id','execution_id','device_id','conversation_id','tool','expires_at','security_epoch','destination','data_classification')}
 
     @app.post('/cloud/approval')
     def cloud_approval(body: ApprovalDecision, authorization: str | None = Header(default=None)):
@@ -530,6 +659,9 @@ def create_app(
         if not device_registry or not token or not device_registry.authenticate(device_id, token):
             await ws.close(code=4401)
             return
+        if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, 'ai:chat'):
+            await ws.close(code=4403)
+            return
         await ws.accept()
         if device_gateway:
             device_gateway.connect(device_id, ws)
@@ -539,6 +671,19 @@ def create_app(
         try:
             while True:
                 message = await ws.receive_json()
+                # WebSocket authentication is not durable authority. A device can be
+                # revoked after the transport is established, so revalidate trust
+                # before processing any message that could mutate canonical state.
+                if not device_registry or not device_registry.is_active(device_id):
+                    if device_gateway:
+                        device_gateway.disconnect(device_id)
+                    await ws.close(code=4401)
+                    break
+                if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, 'ai:chat'):
+                    if device_gateway:
+                        device_gateway.disconnect(device_id)
+                    await ws.close(code=4403)
+                    break
                 if message.get('type') == 'push_registration' and message.get('provider') == 'apns' and message.get('token'):
                     device_registry.set_metadata(device_id, 'push.apns.token', str(message['token']).strip())
                     if message.get('environment'):
@@ -550,11 +695,12 @@ def create_app(
                 if message.get('type') == 'continuity_event' and continuity:
                     thread = continuity.active_for_device(device_id)
                     if thread:
+                        payload = bounded_mapping(dict(message.get('payload') or {}))
                         continuity.append(
                             thread['id'],
                             device_id=device_id,
-                            kind=str(message.get('kind', 'device_event')),
-                            payload=dict(message.get('payload') or {}),
+                            kind=str(message.get('kind', 'device_event'))[:80],
+                            payload=payload,
                         )
                 if device_gateway:
                     device_gateway.receive(device_id, message)
