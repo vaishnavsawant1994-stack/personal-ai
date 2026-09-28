@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,24 +47,21 @@ def test_stage9_emergency_stop_writers_converge():
     assert 'sessions.set_emergency_stop(body.enabled)' in owner
     note = (ROOT / 'docs' / 'STAGE9_RESIDUALS.md').read_text(encoding='utf-8')
     assert 'R2' in note
-    assert 'One store was not deleted' in note
+    assert 'One sqlite table was not deleted' in note
 
 
-def test_stage9_consent_matrix_rows_match_owner_product_source():
+def test_stage9_consent_matrix_matches_classification():
     matrix = (ROOT / 'docs' / 'STAGE9_CONSENT_MATRIX.md').read_text(encoding='utf-8')
-    source = (ROOT / 'server' / 'owner_product.py').read_text(encoding='utf-8')
-    rows = []
-    for line in matrix.splitlines():
-        if not line.startswith('| ') or '---' in line or 'Scope' in line:
+    facts = json.loads((ROOT / 'docs' / 'stage9_route_classification.json').read_text(encoding='utf-8'))
+    assert 'not a Stage 9 freeze' in matrix
+    assert 'GET /capabilities/api/status' in matrix
+    assert 'POST /iphone/api/logout' in matrix
+    for row in facts:
+        if row['method'] == 'GET' and row['status'] == 'surface-specific-ok':
             continue
-        cells = [cell.strip() for cell in line.strip('|').split('|')]
-        if len(cells) != 4:
-            continue
-        rows.append(cells)
-    assert len(rows) >= 15
-    for route, scope, _authority, filename in rows:
-        assert filename == 'server/owner_product.py'
-        assert re.search(r"authenticate\([^)]*" + re.escape(scope), source)
-        assert scope in source
-        assert 'not done' in matrix.lower() or 'not done' in matrix
-    assert 'knowledge:private' not in {row[1] for row in rows}
+        assert f"| {row['method']} | {row['path']} |" in matrix
+        if row['evidence']:
+            source = (ROOT / row['file']).read_text(encoding='utf-8')
+            assert row['evidence'] in source
+    assert sum(1 for row in facts if row['status'] == 'gap') == 3
+    assert sum(1 for row in facts if row['status'] == 'legacy-opt-in') == 7

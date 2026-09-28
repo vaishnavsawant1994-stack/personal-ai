@@ -21,21 +21,13 @@ Production `server/cloud_app.py` mounts `iphone_pwa_router(..., include_legacy_r
 
 **Remaining:** those handlers still exist for the opt-in. They are not mounted beside the canonical routers unless a caller asks for them.
 
-## R2 — Emergency Stop stores are mirrored, not deleted
+## R2 — Emergency Stop durable authority is the tool registry
 
-Threat T1.1 is reconciled, not erased. One store was not deleted.
+`ToolRegistry` persists the flag in `runtime-controls.sqlite3`. A new process reading that file stays stopped. `tests/test_stage9_emergency_stop_authority.py` shows a fresh cloud session row does not clear that stop, and a cloud owner write updates the tool row.
 
-Canonical durable flag: `ToolRegistry` → `runtime-controls.sqlite3`.
+The cloud `cloud_state` value is still written by the official setters so the two flags cannot disagree on success. It is not a second way to turn the stop off. One sqlite table was not deleted.
 
-Cloud session `cloud_state.emergency_stop` is a mirror:
-
-- `cloud_runtime/relay.py` writes the mirror and the tool flag, and returns `emergency_stop_diverged` (503) if they disagree.
-- `server/owner_product.py` writes the tool flag and, when `cloud_sessions` is on the runtime, the mirror. It returns 503 if either does not match the requested value.
-- Reads in the relay stop if **either** flag is set. A stale mirror cannot reopen a stopped tool path, and a tool stop cannot be missed by the relay.
-
-Isolated tests that have no tool registry still stop on the session mirror alone. That is fail-closed, not a second production writer.
-
-This does not claim a single sqlite table. It claims the two official writers no longer leave the flags diverged on success.
+`GET /capabilities/api/status` and `POST /iphone/api/logout` are recorded gaps, not Emergency Stop authorities.
 
 ## R3 — Approval class is single; openers are several
 
