@@ -18,7 +18,7 @@ def activities_router(runtime):
             raise HTTPException(401, 'Trusted owner session required')
         if not registry.is_active(context.device_id):
             raise HTTPException(401, 'Trusted device is revoked')
-        if not hasattr(registry, 'authorize') or not registry.authorize(context.device_id, 'activities:read'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(context.device_id, 'activities:read'):
             raise HTTPException(403, 'This device is not permitted to read Activities')
         return context
 
