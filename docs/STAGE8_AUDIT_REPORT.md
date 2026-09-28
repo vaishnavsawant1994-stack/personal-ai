@@ -1,9 +1,9 @@
 # Stage-8 Formal Audit Report
 
 **Branch:** `fix/connector-scope-auth-fail-closed`  
-**Head baseline:** `94626b41cdbb33b103466255e5ea8cd9555f6482` (+ this audit commit)  
+**Head baseline:** `b17c5051772b5e82b7a6a208903bb0300bf1e405`  
 **Date:** 28 September 2026  
-**Auditor posture:** Hostile / fail-closed; no Stage-8 freeze without exact-head evidence
+**Auditor posture:** Hostile / fail-closed. Stage 8 is frozen only at the evidence SHA in `docs/STAGE8_FREEZE.md`.
 
 ---
 
@@ -11,11 +11,11 @@
 
 | Question | Answer |
 | --- | --- |
-| Is Stage 8 **frozen**? | **No** |
+| Is Stage 8 **frozen**? | **Yes, at `b17c505` only** — see `docs/STAGE8_FREEZE.md`. A later commit is not that freeze. |
 | Is the control plane intact? | **Yes** — `server/api.py` full (workflows, cloud, device WS, binding fail-closed) |
-| Are high-severity recovery/auth/Knowledge defects addressed in code + tests? | **Yes** — pending CI promotion |
-| Remaining OPEN items | Product-intent or lower-severity; explicit deferrals below |
-| Stage 9 ready to execute? | **Not until** Stage 8 freeze SHA + 6/6 green |
+| Are high-severity recovery/auth/Knowledge defects addressed in code + tests? | **Yes** — promoted CLOSED on exact-head 6/6 |
+| Remaining OPEN items | Explicit deferrals only (C6, D5, F4, physical) |
+| Stage 9 ready to execute? | **Entered, not exited.** See `docs/STAGE9_STATUS.md`. |
 
 ---
 
@@ -50,17 +50,13 @@
 
 ### CLOSED
 
-A1, A2, A6, A7, B1–B4, C1–C5, D1 (partial), D4, E1–E3, F1–F3, G1 (partial), H1–H3
+A1, A2, A3, A4, A5, A6, A7, B1–B6, C1–C5, C7, C8, D1 (partial), D2, D3, D4, E1–E3, F1–F3, G1 (partial), G2, G3, H1–H3
 
-### REPAIRED_PENDING_GATE (need exact-head 6/6)
+Promoted from `REPAIRED_PENDING_GATE` on exact-head 6/6 at `b17c5051772b5e82b7a6a208903bb0300bf1e405`: A3–A5, B5–B6, C7–C8, D2–D3, G2–G3.
 
-| ID | Item |
-| --- | --- |
-| A3–A5 | Restore TOCTOU, rollback, residue |
-| B5–B6 | Auth parity; security epoch |
-| C7–C8 | never_store; Sheets parity |
-| D2–D3 | run_binding 503; step kind laundering |
-| G2–G3 | verified=false retention; safe BackupError |
+### REPAIRED_PENDING_GATE
+
+None. The gate was the 6/6 run recorded in `docs/STAGE8_FREEZE.md`.
 
 ### Explicitly DEFERRED
 
@@ -82,23 +78,23 @@ A1, A2, A6, A7, B1–B4, C1–C5, D1 (partial), D4, E1–E3, F1–F3, G1 (partia
 | Recovery symlink containment | Pass (code) |
 | Stage 9 docs | Present |
 | Stage 8 inventory | Present |
-| Exact-head CI 6/6 | **Not verified in this session** |
+| Exact-head CI 6/6 | **Pass on `b17c505`** — CI, Reliability and Security, P3 iPhone PWA, Android, Package, iOS. See `docs/STAGE8_FREEZE.md`. |
 
 ---
 
 ## 6. Required sequence (proper / project rules)
 
-1. Green exact-head: full pytest + Reliability & Security + six workflow families.
-2. Promote `REPAIRED_PENDING_GATE` → `CLOSED` only with that evidence.
-3. Publish Stage-8 freeze SHA.
-4. Enter Stage 9 per `docs/STAGE9_THREAT_MODEL_AND_PLAN.md`.
-5. Do not claim Stages 10–12 or production readiness.
+1. Exact-head 6/6 recorded at `b17c505`. Done.
+2. `REPAIRED_PENDING_GATE` promoted to `CLOSED` with that evidence. Done.
+3. Stage-8 freeze SHA published in `docs/STAGE8_FREEZE.md`. Done.
+4. Stage 9 may proceed per `docs/STAGE9_THREAT_MODEL_AND_PLAN.md`. It is **not** exited.
+5. Do not claim Stages 10–12 or production readiness. Do not merge on this note alone.
 
 ---
 
 ## 7. Honesty constraints
 
-- Stage 8 is **not** complete without CI.
+- Stage 8 is frozen **only** at `b17c505`, not at whatever HEAD is after this note.
 - The product is **not** 100% ready (Stage 11 physical gates are owner-controlled).
 - Model/agent/connector are never authority.
 

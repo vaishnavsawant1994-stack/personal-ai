@@ -21,9 +21,9 @@ An item is closed only when a hostile regression exists **and** the production p
 | --- | --- | --- | --- |
 | A1 | Backup create path escape | CLOSED | |
 | A2 | Restore destination existing symlink | CLOSED | |
-| A3 | Restore parent-symlink TOCTOU | REPAIRED_PENDING_GATE | |
-| A4 | Rollback vs data-root checks | REPAIRED_PENDING_GATE | |
-| A5 | Failed restore external residue | REPAIRED_PENDING_GATE | |
+| A3 | Restore parent-symlink TOCTOU | CLOSED | Exact-head 6/6 at `b17c505` |
+| A4 | Rollback vs data-root checks | CLOSED | Exact-head 6/6 at `b17c505` |
+| A5 | Failed restore external residue | CLOSED | Exact-head 6/6 at `b17c505` |
 | A6 | Security authority non-restorable | CLOSED | |
 | A7 | Symlinked sources excluded from backup | CLOSED | |
 
@@ -35,8 +35,8 @@ An item is closed only when a hostile regression exists **and** the production p
 | B2 | Connector APIs require callable authorizer | CLOSED | |
 | B3 | Continuity handoff revalidation | CLOSED | |
 | B4 | Device authorize implies is_active | CLOSED | |
-| B5 | Auth parity modern vs legacy | REPAIRED_PENDING_GATE | Fail-closed authorize predicate parity test |
-| B6 | Stale approval after security epoch | REPAIRED_PENDING_GATE | Epoch invalidates pending/approved; approve/consume/dispatch fail closed |
+| B5 | Auth parity modern vs legacy | CLOSED | Exact-head 6/6 at `b17c505` |
+| B6 | Stale approval after security epoch | CLOSED | Exact-head 6/6 at `b17c505` |
 
 ## C. Connector → Knowledge
 
@@ -44,18 +44,18 @@ An item is closed only when a hostile regression exists **and** the production p
 | --- | --- | --- | --- |
 | C1–C5 | write/private/approved/dedupe/authorize | CLOSED | |
 | C6 | Per-source min sensitivity | DEFERRED_ARCH | |
-| C7 | never_store end-to-end | REPAIRED_PENDING_GATE | |
-| C8 | Sheets parity with Drive | REPAIRED_PENDING_GATE | |
+| C7 | never_store end-to-end | CLOSED | Exact-head 6/6 at `b17c505` |
+| C8 | Sheets parity with Drive | CLOSED | Exact-head 6/6 at `b17c505` |
 
 ## D. Workflow / automation authority
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
 | D1 | Run visibility binding | CLOSED (partial) | |
-| D2 | Missing run_binding fails closed | REPAIRED_PENDING_GATE | 503 in api.py |
-| D3 | Tool/shell step laundering | REPAIRED_PENDING_GATE | Only condition/set/emit/prompt; other kinds fail |
+| D2 | Missing run_binding fails closed | CLOSED | HTTP 503. Exact-head 6/6 at `b17c505` |
+| D3 | Tool/shell step laundering | CLOSED | Exact-head 6/6 at `b17c505` |
 | D4 | E-stop blocks workflow | CLOSED | |
-| D5 | Workflow list unfiltered | OPEN | Product intent for single-owner |
+| D5 | Workflow list unfiltered | DEFERRED_ARCH | Single-owner product intent |
 
 ## E. Emergency Stop
 
@@ -68,15 +68,15 @@ An item is closed only when a hostile regression exists **and** the production p
 | ID | Status |
 | --- | --- |
 | F1–F3 | CLOSED |
-| F4 Browser operator redirect | OPEN |
+| F4 Browser operator redirect | DEFERRED_ARCH | Stage 9 census. Not closed. |
 
 ## G. Audit / leakage
 
 | ID | Status |
 | --- | --- |
 | G1 | CLOSED (partial) |
-| G2 False-success | OPEN |
-| G3 Error path leakage | OPEN |
+| G2 False-success | CLOSED | Exact-head 6/6 at `b17c505` |
+| G3 Error path leakage | CLOSED | Exact-head 6/6 at `b17c505` |
 
 ## H. Continuity / devices
 
@@ -88,10 +88,14 @@ An item is closed only when a hostile regression exists **and** the production p
 
 ## Queue to freeze Stage 8
 
-1. Exact-head 6/6 green on current branch head.
-2. Promote all REPAIRED_PENDING_GATE → CLOSED with CI evidence.
-3. Resolve or DEFER D5, F4, G2, G3 with owner-visible rationale.
-4. Formal Stage-8 freeze SHA + handoff to Stage 9 charter (`docs/STAGE9_*`).
+Done for `b17c505`:
+
+1. Exact-head 6/6 green.
+2. `REPAIRED_PENDING_GATE` promoted to CLOSED.
+3. D5 and F4 deferred with rationale. G2 and G3 closed on the same evidence.
+4. Freeze note: `docs/STAGE8_FREEZE.md`.
+
+Stage 9 is entered and not exited (`docs/STAGE9_STATUS.md`). Stages 10–12 are not open.
 
 ## Closure rule
 
