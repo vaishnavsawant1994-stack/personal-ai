@@ -236,3 +236,31 @@ def test_stage8_connector_scope_authorization_fails_closed_when_unavailable(tmp_
         'chunks': 0,
     }
     assert list(store.object_dir.iterdir()) == []
+
+
+def test_stage8_private_connector_ingest_cannot_reuse_less_restricted_checksum_duplicate(tmp_path):
+    client, knowledge, drive, store = make_client(
+        tmp_path / 'classification-dedupe',
+        {'knowledge:write', 'knowledge:private'},
+    )
+    existing = knowledge.ingest(
+        filename='existing-owner.txt',
+        data=SENTINEL.encode(),
+        source='owner-upload',
+        access_class='owner',
+    )
+    assert existing['access_class'] == 'owner'
+
+    response = client.post(
+        '/iphone/api/connectors/drive/files/private-file/knowledge',
+        json={'approved': True, 'access_class': 'private'},
+    )
+
+    assert response.status_code == 200
+    document = response.json()
+    assert document['id'] != existing['id']
+    assert document['access_class'] == 'private'
+    assert knowledge.detail(document['id'])['access_class'] == 'private'
+    assert knowledge.search(SENTINEL, access_classes={'owner'})[0]['document_id'] == existing['id']
+    private_hits = knowledge.search(SENTINEL, access_classes={'private'})
+    assert private_hits and private_hits[0]['document_id'] == document['id']
