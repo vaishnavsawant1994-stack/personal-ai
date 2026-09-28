@@ -160,7 +160,7 @@ def owner_product_router(runtime):
     def authenticate(device_id: str | None, token: str | None, scope: str):
         if not device_id or not token or not registry.authenticate(device_id, token):
             raise HTTPException(401, 'This browser is not trusted or its session was revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, scope):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, scope):
             raise HTTPException(403, f'This device is not permitted to use {scope}')
         return device_id
 
@@ -209,7 +209,7 @@ def owner_product_router(runtime):
 
     def knowledge_access(device_id: str):
         classes = {'owner', 'trusted-devices'}
-        if not hasattr(registry, 'authorize') or registry.authorize(device_id, 'knowledge:private'):
+        if callable(getattr(registry, 'authorize', None)) and registry.authorize(device_id, 'knowledge:private'):
             classes.add('private')
         return classes
 
@@ -243,7 +243,7 @@ def owner_product_router(runtime):
         return value
 
     def can_read_sensitive_memory(device_id: str):
-        return not hasattr(registry, 'authorize') or registry.authorize(device_id, 'memory:sensitive')
+        return callable(getattr(registry, 'authorize', None)) and registry.authorize(device_id, 'memory:sensitive')
 
     def filter_memories(rows, device_id: str):
         if can_read_sensitive_memory(device_id):
