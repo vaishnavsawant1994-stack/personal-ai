@@ -44,6 +44,8 @@ def test_stage10_lock_covers_every_direct_requirement():
     assert direct <= locked
     assert "fastapi" in locked
     assert "pyqt6" in locked
+    text = (ROOT / "requirements-3.12.lock").read_text(encoding="utf-8")
+    assert 'uvloop==0.22.1 ; sys_platform != "win32"' in text
 
 
 def test_stage10_clean_data_directory_restarts_without_manual_repair(tmp_path: Path):

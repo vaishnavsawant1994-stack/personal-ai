@@ -14,8 +14,9 @@ The candidate SHA is the commit that adds `requirements-3.12.lock` and this reco
 | Resolver | uv 0.12.19, then `python -m pip freeze` |
 | `pip check` | no broken requirements |
 | `requirements.txt` sha256 | `24c0a234837bdc15b82e14263905337dc8ec857ee095570046873ea2869bd4fb` |
-| `requirements-3.12.lock` sha256 | `50c7306b260a58fed84d8d6afb4a64bb566b7d7e2e04c3c1ec9b575b9b1ae361` |
-| Second environment | A new 3.12.14 venv installed from the lock with pip. `pip check` passed. `pip freeze` matched the lock pins. |
+| `requirements-3.12.lock` sha256 | `67e61b0895b6925666bcc65007d23d3a43bc1474f40534b4dd48a3910e7ed13d` |
+| Second environment | A new 3.12.14 Linux venv installed from the lock with pip. `pip check` passed. |
+| Windows | `uvloop==0.22.1` is pinned only when `sys_platform != "win32"`. uvloop has no Windows build. `e326a45` failed Package Validation on Windows for that reason and is not the freeze. |
 
 `requirements.txt` ranges were not edited. The six Python-using families install `requirements-3.12.lock` from the commit that changes those workflows. `01a67a2` contains the lock but its CI still installed the ranges, so it is not the Stage 10 freeze.
 
