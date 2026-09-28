@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from automation.engine import AutomationEngine
+from cloud_runtime.relay import SecureCloudRelay
+from cloud_runtime.security import CloudSessionStore, OwnerAuthenticator
 from devices.registry import DeviceRegistry
 from knowledge.store import KnowledgeStore
 from memory.second_brain import SecondBrain
@@ -537,30 +539,29 @@ def test_stage8_owner_workflow_approval_state_hidden_from_foreign_device(tmp_pat
     assert 'not waiting' in own.text.lower()
 
 
-class EmergencyStopStoreProbe:
-    def __init__(self):
-        self.enabled = False
 
-    def set_emergency_stop(self, enabled):
-        self.enabled = bool(enabled)
-
-    def emergency_stopped(self):
-        return self.enabled
-
-
-def test_stage8_owner_emergency_stop_converges_cloud_stop_state(tmp_path):
-    client, runtime, _ = make_client(tmp_path)
-    cloud_sessions = EmergencyStopStoreProbe()
-    runtime['cloud_sessions'] = cloud_sessions
+def test_stage8_owner_emergency_stop_blocks_established_cloud_command(tmp_path):
+    client, runtime, device = make_client(tmp_path)
+    sessions = CloudSessionStore(tmp_path / 'real-cloud-sessions.sqlite3', ttl_seconds=600)
+    runtime['executor'].tools = runtime['tools']
+    relay = SecureCloudRelay(
+        executor=runtime['executor'],
+        memory=runtime['memory'],
+        second_brain=runtime['second_brain'],
+        device_registry=runtime['device_registry'],
+        sessions=sessions,
+        owner=OwnerAuthenticator('x' * 40),
+    )
+    issued = relay.issue_session(device['id'], client.cookies.get('pa_token'))
+    assert issued.status == 200
+    session = sessions.authenticate(issued.payload['session_token'], 'ai:chat')
+    assert session is not None
+    assert relay.command(session, 'before stop', '0123456789abcdef').status == 200
 
     stopped = client.post('/iphone/api/system/emergency-stop', json={'enabled': True})
 
     assert stopped.status_code == 200
     assert runtime['tools'].emergency_stop is True
-    assert cloud_sessions.emergency_stopped() is True
-
-    resumed = client.post('/iphone/api/system/emergency-stop', json={'enabled': False})
-
-    assert resumed.status_code == 200
-    assert runtime['tools'].emergency_stop is False
-    assert cloud_sessions.emergency_stopped() is False
+    blocked = relay.command(session, 'must not execute', 'abcdef0123456789')
+    assert blocked.status == 423
+    assert blocked.payload == {'error': 'emergency_stop_active'}
