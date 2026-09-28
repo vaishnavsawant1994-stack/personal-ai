@@ -16,7 +16,7 @@ def recovery_visibility_router(runtime):
         context=current_trusted_request()
         if context is None:raise HTTPException(401,'Trusted owner session required')
         if not registry.is_active(context.device_id):raise HTTPException(401,'Trusted device is revoked')
-        if hasattr(registry,'authorize') and not registry.authorize(context.device_id,'ai:chat'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(context.device_id,'ai:chat'):
             raise HTTPException(403,'This device is not permitted to inspect execution state')
         return context
 
