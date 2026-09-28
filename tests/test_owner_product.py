@@ -535,3 +535,32 @@ def test_stage8_owner_workflow_approval_state_hidden_from_foreign_device(tmp_pat
     own = client.post(f'/iphone/api/workflows/runs/{run_id}/approve')
     assert own.status_code == 409
     assert 'not waiting' in own.text.lower()
+
+
+class EmergencyStopStoreProbe:
+    def __init__(self):
+        self.enabled = False
+
+    def set_emergency_stop(self, enabled):
+        self.enabled = bool(enabled)
+
+    def emergency_stopped(self):
+        return self.enabled
+
+
+def test_stage8_owner_emergency_stop_converges_cloud_stop_state(tmp_path):
+    client, runtime, _ = make_client(tmp_path)
+    cloud_sessions = EmergencyStopStoreProbe()
+    runtime['cloud_sessions'] = cloud_sessions
+
+    stopped = client.post('/iphone/api/system/emergency-stop', json={'enabled': True})
+
+    assert stopped.status_code == 200
+    assert runtime['tools'].emergency_stop is True
+    assert cloud_sessions.emergency_stopped() is True
+
+    resumed = client.post('/iphone/api/system/emergency-stop', json={'enabled': False})
+
+    assert resumed.status_code == 200
+    assert runtime['tools'].emergency_stop is False
+    assert cloud_sessions.emergency_stopped() is False
