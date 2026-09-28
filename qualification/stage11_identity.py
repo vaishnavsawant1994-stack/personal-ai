@@ -35,7 +35,11 @@ def public_identity() -> tuple[dict, int]:
         return {**_CLOSED, 'error': 'not_stage11_qualification', 'environment': environment or 'unset'}, 404
     source_sha = os.getenv('PERSONAL_AI_SOURCE_SHA', '').strip().lower()
     if not SHA.fullmatch(source_sha):
-        return {**_CLOSED, 'error': 'source_sha_not_exact', 'environment': QUALIFICATION}, 503
+        return {**_CLOSED, 'error': 'source_sha_not_exact', 'environment': QUALIFICATION, 'durable': False, 'ready_for_physical': False}, 503
+    from qualification.stage11_environment import durability_from_environ, model_configured, stable_endpoint
+    durable = durability_from_environ()
+    has_model = model_configured()
+    stable = stable_endpoint()
     return {
         'ok': True,
         'environment': QUALIFICATION,
@@ -51,4 +55,8 @@ def public_identity() -> tuple[dict, int]:
         'public_p2_is_this_environment': False,
         'rows_passed': 0,
         'candidate_only': True,
+        'durable': durable['durable'],
+        'model_configured': has_model,
+        'stable_endpoint': stable,
+        'ready_for_physical': bool(durable['durable'] and has_model and stable),
     }, 200

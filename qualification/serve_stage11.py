@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from qualification.stage11_environment import DEFAULT_DATA_NAME, qualification_process
+from qualification.stage11_environment import DEFAULT_DATA_NAME, durability_from_environ, qualification_process
 
 
 def _git(args: list[str]) -> str:
@@ -36,6 +36,10 @@ def main() -> int:
     host = os.environ.get('STAGE11_BIND_HOST', '127.0.0.1')
     port = int(os.environ.get('STAGE11_PORT', '8766'))
     os.environ.update(qualification_process(source_sha=sha, data_dir=data_dir, host=host))
+    proof = durability_from_environ()
+    if not proof['durable']:
+        print(proof['reason'], file=sys.stderr)
+        return 3
     import uvicorn
     print(f'stage11-qualification source_sha={sha} pwa=http://{host}:{port}/iphone/', flush=True)
     uvicorn.run('server.cloud_app:app', host=host, port=port, log_level='info')

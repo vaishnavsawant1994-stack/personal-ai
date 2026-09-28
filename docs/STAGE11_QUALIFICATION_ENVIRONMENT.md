@@ -13,9 +13,11 @@ The qualified post-Stage-10 recovery checkpoint stays `b22fbb58179aa3f1974ded4cb
 - the bind host is not `personal-ai-runtime-production.up.railway.app`
 - the data directory is not `~/.personal_ai`
 
-The process sets `PERSONAL_AI_ENVIRONMENT=stage11-qualification` and `PERSONAL_AI_SOURCE_SHA` to that exact `HEAD`. `GET /iphone/api/stage11/identity` returns that SHA. If those variables are absent, the route returns 404 and does not invent a SHA. A production label returns 404. A missing or movable SHA returns 503.
+The process sets `PERSONAL_AI_ENVIRONMENT=stage11-qualification` and `PERSONAL_AI_SOURCE_SHA` to that exact `HEAD`. It then refuses to listen unless `PERSONAL_AI_DATA_DIR` is on a non-ephemeral mount beneath `PERSONAL_AI_QUALIFICATION_DURABLE_ROOT`. `/tmp`, the default `~/.personal_ai` directory, the public p2 host, and a `trycloudflare.com` host are refused.
 
-`rows_passed` in that payload is always 0. This process does not write `docs/stage11_register.json`.
+`GET /iphone/api/stage11/identity` returns the SHA. `production` stays false. `durable` is true only when that mount proof succeeds. `ready_for_physical` is true only when the mount proof, a model credential in the environment, and `PERSONAL_AI_QUALIFICATION_PUBLIC_HOST` are all present. The host must not be the public p2 site or a quick tunnel. The payload never includes the model credential. `rows_passed` stays 0. This process does not write `docs/stage11_register.json`.
+
+`87d86d9eb74b50ed8f307ad8b90aefdafc4449bc` is the exact-head 6/6 software candidate. It is not a Stage 11 freeze. A later change that only records or tightens this gate does not move that candidate and does not pass a physical row.
 
 ## What an iPhone session may use
 

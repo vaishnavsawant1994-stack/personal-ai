@@ -75,3 +75,46 @@ def test_identity_is_readable_before_sign_in():
     assert all(row['actual'] is None and row['source_sha'] is None for row in register['cases'])
     text = (ROOT / 'server' / 'iphone_pwa.py').read_text(encoding='utf-8')
     assert "/api/stage11/identity" in text
+
+
+def test_durability_requires_a_real_mount_and_stays_non_production():
+    from qualification.stage11_environment import qualification_durability
+    mounted = qualification_durability(Path('/data/stage11/owner'), Path('/data'), [Path('/data')])
+    assert mounted['durable'] is True
+    assert mounted['mount_point'] == '/data'
+    ephemeral = qualification_durability(Path('/tmp/stage11'), Path('/tmp'), [Path('/tmp')])
+    assert ephemeral['durable'] is False
+    missing = qualification_durability(Path('/data/stage11/owner'), Path('/data'), [Path('/')])
+    assert missing['reason'] == 'no_durable_mount'
+    with pytest.raises(ValueError, match='refusing_unqualified_host'):
+        qualification_process(source_sha='d' * 40, data_dir=Path('/data/stage11/owner'), host='name.trycloudflare.com')
+
+
+def test_identity_is_not_ready_for_a_physical_pass_without_every_gate(monkeypatch):
+    monkeypatch.setenv('PERSONAL_AI_ENVIRONMENT', 'stage11-qualification')
+    monkeypatch.setenv('PERSONAL_AI_PRODUCTION', 'false')
+    monkeypatch.setenv('PERSONAL_AI_SOURCE_SHA', 'e' * 40)
+    monkeypatch.setenv('PERSONAL_AI_DATA_DIR', '/data/stage11/owner')
+    monkeypatch.setenv('PERSONAL_AI_QUALIFICATION_DURABLE_ROOT', '/data')
+    for name in ('GEMINI_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'SELF_HOSTED_AI_API_KEY'):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv('PERSONAL_AI_QUALIFICATION_PUBLIC_HOST', 'name.trycloudflare.com')
+    body, code = public_identity()
+    assert code == 200
+    assert body['production'] is False
+    assert body['ready_for_physical'] is False
+    assert body['rows_passed'] == 0
+    monkeypatch.setenv('GEMINI_API_KEY', 'not-for-git')
+    monkeypatch.setenv('PERSONAL_AI_QUALIFICATION_PUBLIC_HOST', 'stage11.example.test')
+    monkeypatch.setattr(
+        'qualification.stage11_environment.durability_from_environ',
+        lambda environ=None, mount_points=None: {'durable': True, 'reason': 'mounted', 'mount_point': '/data'},
+    )
+    body, code = public_identity()
+    assert 'not-for-git' not in json.dumps(body)
+    assert body['model_configured'] is True
+    assert body['stable_endpoint'] is True
+    assert body['durable'] is True
+    assert body['ready_for_physical'] is True
+    assert body['rows_passed'] == 0
+    assert body['stage11_freeze'] is False
