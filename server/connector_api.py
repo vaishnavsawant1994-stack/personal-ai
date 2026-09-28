@@ -17,7 +17,11 @@ def connector_router(runtime):
     router=APIRouter(prefix='/iphone/api/connectors',tags=['connectors']); devices=runtime['device_registry']; integrations=runtime['integrations']; oauth=runtime.get('oauth'); providers=runtime.get('oauth_providers') or {}
     def auth(device_id,token,scope):
         if not device_id or not token or not devices.authenticate(device_id,token):raise HTTPException(401,'This browser is not trusted or its session was revoked')
-        if hasattr(devices,'authorize') and not devices.authorize(device_id,scope):raise HTTPException(403,f'This device is not permitted to use {scope}')
+        authorize = getattr(devices, 'authorize', None)
+        if not callable(authorize):
+            raise HTTPException(503, 'Device scope authorization is unavailable')
+        if not authorize(device_id, scope):
+            raise HTTPException(403, f'This device is not permitted to use {scope}')
         ctx=current_trusted_request()
         if ctx is None or ctx.device_id!=device_id:raise HTTPException(401,'An authenticated browser session is required')
         return ctx
