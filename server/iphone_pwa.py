@@ -302,6 +302,14 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
     def service_worker():
         return Response((web_dir / 'sw.js').read_text(encoding='utf-8'), media_type='application/javascript', headers={'Cache-Control': 'no-cache'})
 
+    @router.get('/api/stage11/identity')
+    def stage11_identity():
+        from qualification.stage11_identity import public_identity
+        body, code = public_identity()
+        if code != 200:
+            raise HTTPException(code, body)
+        return body
+
     @router.get('/api/status')
     def status(
         response: Response,

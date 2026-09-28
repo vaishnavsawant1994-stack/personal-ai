@@ -6,6 +6,7 @@ venv/
 data/
 *.log
 .pytest_cache/
+.stage11-qualification-data/
 dist/
 build/
 *.egg-info/

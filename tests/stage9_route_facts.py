@@ -46,6 +46,7 @@ STATIC_OK = {
     '/iphone/manifest.webmanifest',
     '/iphone/sw.js',
     '/iphone/api/access/options',
+    '/iphone/api/stage11/identity',
 }
 
 

@@ -715,13 +715,21 @@
     "file": "server/iphone_pwa.py",
     "line": 305,
     "method": "GET",
+    "path": "/iphone/api/stage11/identity",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 313,
+    "method": "GET",
     "path": "/iphone/api/status",
     "status": "canonical",
     "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 350,
+    "line": 358,
     "method": "GET",
     "path": "/iphone/api/access/options",
     "status": "surface-specific-ok",
@@ -729,7 +737,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 363,
+    "line": 371,
     "method": "GET",
     "path": "/iphone/api/access/security",
     "status": "canonical",
@@ -737,7 +745,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 379,
+    "line": 387,
     "method": "POST",
     "path": "/iphone/api/access/google/login",
     "status": "canonical",
@@ -745,7 +753,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 406,
+    "line": 414,
     "method": "POST",
     "path": "/iphone/api/access/password/setup",
     "status": "canonical",
@@ -753,7 +761,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 421,
+    "line": 429,
     "method": "POST",
     "path": "/iphone/api/access/password/login",
     "status": "canonical",
@@ -761,7 +769,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 435,
+    "line": 443,
     "method": "POST",
     "path": "/iphone/api/access/recovery/regenerate",
     "status": "canonical",
@@ -769,7 +777,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 446,
+    "line": 454,
     "method": "POST",
     "path": "/iphone/api/access/recovery/login",
     "status": "canonical",
@@ -777,7 +785,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 458,
+    "line": 466,
     "method": "POST",
     "path": "/iphone/api/access/passkey/register/options",
     "status": "canonical",
@@ -785,7 +793,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 491,
+    "line": 499,
     "method": "POST",
     "path": "/iphone/api/access/passkey/register/complete",
     "status": "canonical",
@@ -793,7 +801,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 528,
+    "line": 536,
     "method": "POST",
     "path": "/iphone/api/access/passkey/login/options",
     "status": "canonical",
@@ -801,7 +809,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 546,
+    "line": 554,
     "method": "POST",
     "path": "/iphone/api/access/passkey/login/complete",
     "status": "canonical",
@@ -809,7 +817,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 581,
+    "line": 589,
     "method": "POST",
     "path": "/iphone/api/enroll",
     "status": "canonical",
@@ -817,7 +825,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 596,
+    "line": 604,
     "method": "POST",
     "path": "/iphone/api/logout",
     "status": "canonical",
@@ -825,7 +833,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 612,
+    "line": 620,
     "method": "POST",
     "path": "/iphone/api/voice/turn",
     "status": "legacy-opt-in",
@@ -833,7 +841,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 730,
+    "line": 738,
     "method": "POST",
     "path": "/iphone/api/approval/{approval_id}/approve",
     "status": "legacy-opt-in",
@@ -841,7 +849,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 764,
+    "line": 772,
     "method": "POST",
     "path": "/iphone/api/approval/{approval_id}/reject",
     "status": "legacy-opt-in",
@@ -849,7 +857,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 788,
+    "line": 796,
     "method": "GET",
     "path": "/iphone/api/conversations",
     "status": "legacy-opt-in",
@@ -857,7 +865,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 804,
+    "line": 812,
     "method": "POST",
     "path": "/iphone/api/conversations",
     "status": "canonical",
@@ -865,7 +873,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 816,
+    "line": 824,
     "method": "GET",
     "path": "/iphone/api/conversations/{conversation_id}",
     "status": "legacy-opt-in",
@@ -873,7 +881,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 829,
+    "line": 837,
     "method": "POST",
     "path": "/iphone/api/conversations/{conversation_id}/activate",
     "status": "canonical",
@@ -881,7 +889,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 842,
+    "line": 850,
     "method": "PATCH",
     "path": "/iphone/api/conversations/{conversation_id}",
     "status": "canonical",
@@ -889,7 +897,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 853,
+    "line": 861,
     "method": "POST",
     "path": "/iphone/api/voice/barge",
     "status": "legacy-opt-in",
@@ -897,7 +905,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 867,
+    "line": 875,
     "method": "POST",
     "path": "/iphone/api/voice/client-event",
     "status": "legacy-opt-in",
@@ -905,7 +913,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 879,
+    "line": 887,
     "method": "POST",
     "path": "/iphone/api/qualification/start",
     "status": "canonical",
@@ -913,7 +921,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 932,
+    "line": 940,
     "method": "POST",
     "path": "/iphone/api/qualification/stop",
     "status": "canonical",
@@ -921,7 +929,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 953,
+    "line": 961,
     "method": "POST",
     "path": "/iphone/api/qualification/takeover",
     "status": "canonical",
@@ -929,7 +937,7 @@
   },
   {
     "file": "server/iphone_pwa.py",
-    "line": 996,
+    "line": 1004,
     "method": "GET",
     "path": "/iphone/api/qualification/sessions",
     "status": "canonical",

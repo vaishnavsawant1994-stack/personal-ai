@@ -1,0 +1,42 @@
+# Stage 11 qualification environment
+
+Not production. Not Stage 12. Not a Stage 11 freeze. Not the public p2 site.
+
+The qualified post-Stage-10 recovery checkpoint stays `b22fbb58179aa3f1974ded4cb4c881f92f972d31`. Procedure preparation stays `d45212499497c0662c147f7b021c2ac7fa07fc13`. Neither SHA is replaced by a later note.
+
+## What runs
+
+`python -m qualification.serve_stage11` starts `server.cloud_app` only when:
+
+- the git tree matches `HEAD`
+- `HEAD` is a 40-character SHA
+- the bind host is not `personal-ai-runtime-production.up.railway.app`
+- the data directory is not `~/.personal_ai`
+
+The process sets `PERSONAL_AI_ENVIRONMENT=stage11-qualification` and `PERSONAL_AI_SOURCE_SHA` to that exact `HEAD`. `GET /iphone/api/stage11/identity` returns that SHA. If those variables are absent, the route returns 404 and does not invent a SHA. A production label returns 404. A missing or movable SHA returns 503.
+
+`rows_passed` in that payload is always 0. This process does not write `docs/stage11_register.json`.
+
+## What an iPhone session may use
+
+Safari can open `/iphone/` on this process. An Apple Developer account is not required for that path. It is required for a signed native companion, which this environment does not provide.
+
+The old site `https://personal-ai-runtime-production.up.railway.app/iphone/` is a different host. A visit there is not evidence for this SHA.
+
+## First batch, still pending
+
+Do not mark these passed from this document. Run them on a physical iPhone against the SHA from `/iphone/api/stage11/identity`, one packet each:
+
+1. `S11-IOS-01`
+2. `S11-VOICE-01`
+3. `S11-FAIL-01`, then `S11-FAIL-03`
+4. `S11-FAIL-02`
+5. `S11-FAIL-04`
+6. `S11-FAIL-05`
+7. `S11-FAIL-07`
+
+Stop if `S11-IOS-01` fails. Keep the evidence. Do not continue on a broken trusted-device journey.
+
+`S11-OAUTH-01` and `S11-FAIL-06` wait for a real provider login on this same SHA. `S11-ESTOP-01`, `S11-FAIL-08`, and `S11-FAIL-10` wait for a live stop on this runtime. `S11-ANDROID-01` and `S11-FAIL-09` stay pending until another physical handset exists.
+
+PR #2 stays a draft. `main` stays `c1cd8b7f2e507befb7f4cad37de6208d75a75a72`.
