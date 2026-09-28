@@ -10,6 +10,7 @@ from typing import Literal
 from fastapi import APIRouter, Cookie, HTTPException
 from pydantic import BaseModel, Field
 
+from knowledge.classification import is_connector_source
 from knowledge.store import KnowledgeError
 from memory.second_brain import MemoryCandidate
 from security.request_context import current_trusted_request
@@ -423,6 +424,8 @@ def owner_product_router(runtime):
         device_id = authenticate(pa_device, pa_token, 'knowledge:write')
         if body.access_class == 'private' and 'private' not in knowledge_access(device_id):
             raise HTTPException(403, 'This device cannot create private knowledge')
+        if is_connector_source(body.source):
+            raise HTTPException(400, 'Connector knowledge must be ingested from the connector read')
         try:
             if body.content_base64 is not None:
                 data = base64.b64decode(body.content_base64, validate=True)
@@ -465,6 +468,8 @@ def owner_product_router(runtime):
             raise HTTPException(404, 'Knowledge document not found')
         if body.access_class == 'private' and 'private' not in knowledge_access(device_id):
             raise HTTPException(403, 'This device cannot mark knowledge private')
+        if body.source is not None and is_connector_source(body.source) and body.source != existing.get('source'):
+            raise HTTPException(400, 'Connector knowledge must be ingested from the connector read')
         try:
             changes = body.model_dump(exclude_none=True)
             if 'metadata' in changes:

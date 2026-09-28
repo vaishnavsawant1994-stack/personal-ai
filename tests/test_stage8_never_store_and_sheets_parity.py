@@ -60,6 +60,7 @@ class Drive:
                 'modified_time': '2026-09-19T00:00:00Z',
                 'checksum': 'fixture-drive-checksum',
                 'source_reference': 'https://drive.invalid/file-1',
+                'source_classification': 'owner',
             },
         }
 
@@ -80,6 +81,7 @@ class Sheets:
             'retrieval_time': '2026-09-19T00:00:00Z',
             'values': [[SENTINEL]],
             'value_mode': ctx.get('value_mode') or 'formatted',
+            'source_classification': 'owner',
         }
 
 

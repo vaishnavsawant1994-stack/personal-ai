@@ -6,6 +6,6 @@
 
 The classification, legacy-route default, Emergency Stop restart proof, consent matrix, and H1–H12 are on that SHA, which is exact-head 6/6.
 
-Three API gaps recorded at the Stage 9 freeze were closed later on this branch: `GET /workflows`, `GET /capabilities/api/status`, and `POST /iphone/api/logout`. F4 browser redirects are now rejected before the browser moves. The freeze SHA `ddd53d1` was not moved. C6 stays deferred. Physical proof is Stage 11.
+Three API gaps recorded at the Stage 9 freeze were closed later on this branch: `GET /workflows`, `GET /capabilities/api/status`, and `POST /iphone/api/logout`. F4 browser redirects are rejected before the browser moves. C6 refuses a Knowledge class below the connector source classification. The freeze SHA `ddd53d1` was not moved. Physical proof is Stage 11.
 
 Stage 10 is not started. Stages 11 and 12 are not started. PR #2 is not merged.

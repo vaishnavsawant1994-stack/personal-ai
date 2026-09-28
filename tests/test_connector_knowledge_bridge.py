@@ -7,11 +7,11 @@ class K:
 class Drive:
  def __init__(self):self.events=[];self.n=0
  def audit(self,event_type,**kw):self.events.append((event_type,kw))
- def read_file(self,file_id,**ctx):self.n+=1;return {'filename':'x.txt','content':('v'+str(self.n)).encode(),'media_type':'text/plain','provenance':{'connector_id':'drive','provider':'google','provider_file_id':file_id,'version':str(self.n),'modified_time':'t'+str(self.n),'checksum':'c'+str(self.n),'source_reference':'https://drive/x'}}
+ def read_file(self,file_id,**ctx):self.n+=1;return {'filename':'x.txt','content':('v'+str(self.n)).encode(),'media_type':'text/plain','provenance':{'connector_id':'drive','provider':'google','provider_file_id':file_id,'version':str(self.n),'modified_time':'t'+str(self.n),'checksum':'c'+str(self.n),'source_reference':'https://drive/x','source_classification':'owner'}}
 class Sheets:
  def __init__(self):self.events=[]
  def audit(self,event_type,**kw):self.events.append((event_type,kw))
- def read_values(self,sid,rng,**ctx):return {'spreadsheet_id':sid,'range':rng,'values':[['=BAD','ok'],['1','2']],'value_mode':ctx.get('value_mode','formatted'),'bounds':{'start_row':1,'end_row':2,'start_column':1,'end_column':2},'retrieval_time':1.0}
+ def read_values(self,sid,rng,**ctx):return {'spreadsheet_id':sid,'range':rng,'values':[['=BAD','ok'],['1','2']],'value_mode':ctx.get('value_mode','formatted'),'bounds':{'start_row':1,'end_row':2,'start_column':1,'end_column':2},'retrieval_time':1.0,'source_classification':'owner'}
 
 def auth():return dict(approved=True,owner_id='owner',device_id='d',session_id='s')
 def test_drive_requires_explicit_approval():

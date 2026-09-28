@@ -56,6 +56,7 @@ class Drive:
                 'modified_time': '2026-09-19T00:00:00Z',
                 'checksum': 'fixture-checksum',
                 'source_reference': 'https://drive.invalid/file-1',
+                'source_classification': 'owner',
             },
         }
 

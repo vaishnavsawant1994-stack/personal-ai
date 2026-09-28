@@ -150,6 +150,28 @@ def test_owner_api_refuses_to_create_or_mark_durable_never_store_memory(tmp_path
     assert runtime['memory'].get(memory_id)['sensitivity'] == 'normal'
 
 
+def test_owner_upload_cannot_impersonate_a_connector_read(tmp_path):
+    client, runtime, _ = make_client(tmp_path)
+    forged = client.post('/iphone/api/knowledge', json={
+        'filename': 'x.txt',
+        'text': 'not a connector read',
+        'source': 'google-drive:file-1',
+        'access_class': 'owner',
+        'metadata': {'source_minimum_classification': 'owner'},
+    })
+    assert forged.status_code == 400
+    assert runtime['knowledge'].list() == []
+    created = client.post('/iphone/api/knowledge', json={
+        'filename': 'mine.txt',
+        'text': 'Owner written note',
+        'source': 'owner-upload',
+    })
+    assert created.status_code == 200
+    relabel = client.patch(f"/iphone/api/knowledge/{created.json()['id']}", json={'source': 'connector:mail:1'})
+    assert relabel.status_code == 400
+    assert runtime['knowledge'].detail(created.json()['id'])['source'] == 'owner-upload'
+
+
 def test_owner_knowledge_lifecycle_and_citations(tmp_path):
     client, _, _ = make_client(tmp_path)
     created = client.post('/iphone/api/knowledge', json={

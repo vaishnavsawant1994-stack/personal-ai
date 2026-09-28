@@ -35,7 +35,7 @@ The cloud `cloud_state` value is still written by the official setters so the tw
 
 ## R4 — Still deferred from Stage 8
 
-C6 per-source sensitivity map, D5 unfiltered `GET /workflows`, F4 browser-operator URLs. Unchanged at the Stage 9 freeze. D5 and F4 were closed by later commits. C6 remains deferred.
+C6 per-source sensitivity map, D5 unfiltered `GET /workflows`, F4 browser-operator URLs. Unchanged at the Stage 9 freeze. D5, F4, and C6 were implemented by later commits on this branch. Those commits do not move the freeze SHA.
 
 ## R5 — Not physical
 
