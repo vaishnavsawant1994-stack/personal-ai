@@ -2,28 +2,37 @@
 
 **Entered:** after Stage 8 freeze `b17c5051772b5e82b7a6a208903bb0300bf1e405`.  
 **Date:** 28 September 2026  
-**Exit:** **No.** Stage 10 is not open. Stages 11 and 12 are not started.
+**Exit:** **No.** Do not write a Stage 9 freeze. Stage 10 is not open. Stages 11 and 12 are not started.
+
+## Exact-head gate on the Stage 9 start commit
+
+`0024a2b28231fac73c9641e53b80896645db3938` is 6/6. Record: `docs/STAGE9_EXACT_HEAD_0024a2b.md`.
+
+That result covers the census, H1–H12, and the single-writer checks that were in that commit. It does not cover later commits. It does not replace the Stage 8 freeze SHA.
 
 ## Work packages
 
 | WP | State | Evidence |
 | --- | --- | --- |
-| WP0 Branch hygiene | Done for the freeze SHA | Control API intact. 6/6 on `b17c505`. See `docs/STAGE8_FREEZE.md`. |
-| WP1 Authority map | Map already in `docs/STAGE9_THREAT_MODEL_AND_PLAN.md`. Single-definition lint added. | `tests/test_stage9_single_writers.py` |
-| WP2 Entrypoint census | Inventory complete. Per-route authority audit is not. | `docs/stage9_entrypoint_census.json` (191 decorators). One control-plane gap remains: `GET /workflows` (D5, deferred). Seven legacy PWA routes are stripped when `include_legacy_runtime_routes=False`. |
-| WP3 Composition harness | H1–H12 automated on this branch. Not yet exact-head CI. | `tests/test_stage9_composition.py` |
-| WP4 Consent matrix | Not started | |
-| WP5 Migration kit | Not started. No schema change in this pass. | |
-| WP6 Audit schema freeze | Not a new schema. G2 behavior is Stage 8 CLOSED; no second activity schema. | |
-| WP7 Stage 9 freeze | **Not done** | Exit criteria 3 and 4 are not met as a frozen SHA. 150 routes are `inventoried`, not individually classified. |
+| WP0 | Done for Stage 8 | `docs/STAGE8_FREEZE.md` |
+| WP1 Authority map | Map published. Single class per concept. Openers of `ApprovalManager` are several; the class is one. | `tests/test_stage9_single_writers.py` |
+| WP2 Census | 191 decorators listed. 150 remain `inventoried`, not individually classified. | `docs/stage9_entrypoint_census.json` |
+| WP2 residuals | Only seven duplicate routes, and production strips them. Emergency Stop still has two stores. That split blocks exit. | `docs/STAGE9_RESIDUALS.md` |
+| WP3 Composition | H1–H12 passed on `0024a2b`. Not a full threat-model pass. | `tests/test_stage9_composition.py` |
+| WP4 Consent | Partial matrix for `server/owner_product.py` only. | `docs/STAGE9_CONSENT_MATRIX.md` |
+| WP5 Migration | Not started. No schema change. | |
+| WP6 Audit schema | Not a new schema. | |
+| WP7 Stage 9 freeze | **Not allowed yet.** | Exit criteria unmet |
 
-## Explicit non-claims
+## Exit blockers that remain
 
-- Residual routes were **not** deleted in this pass. Deleting them without a parity proof would add risk.
-- Companion minimum versions are not set. That is Stage 11 (owner devices).
-- F4 browser-operator URLs are not closed.
-- No merge. No production-ready claim.
+1. 150 inventoried routes are not classified one by one.
+2. T1.1 Emergency Stop split-brain is still true in code (`docs/STAGE9_RESIDUALS.md` R2).
+3. Consent matrix does not cover control API, connectors, voice, cloud, or companions.
+4. `iphone_pwa_router` still defaults `include_legacy_runtime_routes=True`.
+5. C6, D5, and F4 stay deferred.
+6. A later commit than `0024a2b` is not exact-head green until its own six families pass.
 
-## Next legal step
+## Non-claims
 
-Exact-head 6/6 on the commit that contains the Stage 9 tests. That re-proves the freeze code plus the new tests. It does **not** by itself exit Stage 9, and it does not open Stage 10.
+No merge. PR #2 stays draft. `main` is unchanged. No physical or live proof. No production readiness.
