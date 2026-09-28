@@ -66,7 +66,9 @@ def test_process_refuses_the_public_site_and_the_default_data_dir(tmp_path):
     assert env['PERSONAL_AI_SOURCE_SHA'] == 'd' * 40
 
 
-def test_register_stays_pending_beside_the_identity_route():
+def test_identity_is_readable_before_sign_in():
+    from server.pwa_session_middleware import PUBLIC_PATHS
+    assert '/iphone/api/stage11/identity' in PUBLIC_PATHS
     register = json.loads((ROOT / 'docs' / 'stage11_register.json').read_text(encoding='utf-8'))
     assert register['frozen'] is False
     assert register['production_ready'] is False
