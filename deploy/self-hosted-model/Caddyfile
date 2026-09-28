@@ -1,0 +1,18 @@
+{$MODEL_DOMAIN} {
+    encode zstd gzip
+
+    @missing_auth not header Authorization "Bearer {$MODEL_API_KEY}"
+    respond @missing_auth "Unauthorized" 401
+
+    reverse_proxy inference:8000 {
+        transport http {
+            read_timeout 10m
+            response_header_timeout 10m
+        }
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

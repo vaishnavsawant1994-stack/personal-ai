@@ -1,0 +1,58 @@
+services:
+  inference:
+    image: ${VLLM_IMAGE:?Set VLLM_IMAGE to a reviewed vLLM image tag or digest}
+    restart: unless-stopped
+    user: "2000:0"
+    ipc: host
+    gpus: all
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      HF_HOME: /home/vllm/.cache/huggingface
+      VLLM_CACHE_ROOT: /home/vllm/.cache/vllm
+    volumes:
+      - huggingface-cache:/home/vllm/.cache/huggingface
+      - vllm-cache:/home/vllm/.cache/vllm
+    command:
+      - --model
+      - ${MODEL_ID:?Set MODEL_ID}
+      - --served-model-name
+      - ${SERVED_MODEL_NAME:?Set SERVED_MODEL_NAME}
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --max-model-len
+      - ${MAX_MODEL_LEN:-32768}
+      - --gpu-memory-utilization
+      - ${GPU_MEMORY_UTILIZATION:-0.90}
+      - --enable-prefix-caching
+      - --disable-log-requests
+    networks:
+      - private-model
+
+  gateway:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      - inference
+    environment:
+      MODEL_DOMAIN: ${MODEL_DOMAIN:?Set MODEL_DOMAIN}
+      MODEL_API_KEY: ${MODEL_API_KEY:?Set a strong random MODEL_API_KEY}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - private-model
+
+networks:
+  private-model:
+
+volumes:
+  huggingface-cache:
+  vllm-cache:
+  caddy-data:
+  caddy-config:

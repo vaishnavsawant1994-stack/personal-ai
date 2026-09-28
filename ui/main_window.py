@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import html
 
-from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, QThread, QTimer, Qt, pyqtSignal
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, QThread, QTimer, Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -72,6 +73,15 @@ class MainWindow(QMainWindow):
         "error": ("Interrupted", "Something prevented me from completing this."),
         "background": ("Background", "I am available without demanding attention."),
     }
+    CLOUD_URL = "https://personal-ai-runtime-production.up.railway.app/iphone/"
+
+    # EventBus callbacks may originate on voice/runtime worker threads. PyQt
+    # signals marshal these payloads back onto the MainWindow GUI thread.
+    _state_event = pyqtSignal(object)
+    _voice_transcript_event = pyqtSignal(object)
+    _voice_reply_event = pyqtSignal(object)
+    _voice_session_stopped_event = pyqtSignal(object)
+    _voice_wake_event = pyqtSignal(object)
 
     def __init__(self, *, events, executor, memory, runtime=None):
         super().__init__()
@@ -258,16 +268,18 @@ class MainWindow(QMainWindow):
 
         self._show_page("Home", close_menu=False)
 
-        events.subscribe("state", self.on_state)
-        events.subscribe("voice.transcript", self._on_voice_transcript)
-        events.subscribe("voice.reply", self._on_voice_reply)
-        events.subscribe(
-            "voice.wake",
-            lambda event: self._append_chat(
-                "System",
-                f"Wake phrase detected: {event.get('phrase', 'Hey Personal')}",
-            ),
-        )
+        self._state_event.connect(self.on_state)
+        self._voice_transcript_event.connect(self._on_voice_transcript)
+        self._voice_reply_event.connect(self._on_voice_reply)
+        self._voice_session_stopped_event.connect(self._on_voice_session_stopped)
+        self._voice_wake_event.connect(self._on_voice_wake)
+        self._event_unsubscribers = [
+            events.subscribe("state", self._state_event.emit),
+            events.subscribe("voice.transcript", self._voice_transcript_event.emit),
+            events.subscribe("voice.reply", self._voice_reply_event.emit),
+            events.subscribe("voice.session.stopped", self._voice_session_stopped_event.emit),
+            events.subscribe("voice.wake", self._voice_wake_event.emit),
+        ]
 
     def _build_top_nav(self):
         nav = QHBoxLayout()
@@ -281,6 +293,12 @@ class MainWindow(QMainWindow):
         self.dashboard_btn.setCheckable(True)
         self.dashboard_btn.clicked.connect(lambda _checked=False: self._show_page("Dashboard"))
         nav.addWidget(self.dashboard_btn)
+
+        self.cloud_btn = QPushButton("Cloud Personal AI  ↗")
+        self.cloud_btn.setObjectName("navAction")
+        self.cloud_btn.setToolTip("Open your shared conversations, voice and trusted cloud session")
+        self.cloud_btn.clicked.connect(self.open_cloud)
+        nav.addWidget(self.cloud_btn)
 
         self.menu_btn = QPushButton("Main Menu  ☰")
         self.menu_btn.setObjectName("navAction")
@@ -758,6 +776,19 @@ class MainWindow(QMainWindow):
     def open_memory(self):
         MemoryPanel(self.memory, self).exec()
 
+    def open_cloud(self):
+        """Open the shared cloud surface in the system browser.
+
+        Browser handoff preserves Google authentication, secure device cookies,
+        microphone permissions and cross-device conversation continuity.
+        """
+        if not QDesktopServices.openUrl(QUrl(self.CLOUD_URL)):
+            QMessageBox.warning(
+                self,
+                "Personal AI cloud",
+                f"Could not open your browser. Open this address manually:\n{self.CLOUD_URL}",
+            )
+
     def open_control(self):
         if self.runtime:
             ControlPanel(self.runtime, self).exec()
@@ -780,14 +811,13 @@ class MainWindow(QMainWindow):
         voice = self.runtime.get("voice")
         if not voice:
             return
-        if self.voice_running:
+        running = bool(getattr(voice, "running", self.voice_running))
+        if running:
             voice.stop()
-            self.voice_running = False
-            self._set_state("idle")
         else:
             voice.start()
-            self.voice_running = True
-            self._set_state("active")
+        self.voice_running = bool(getattr(voice, "running", not running))
+        self._set_state("active" if self.voice_running else "idle")
         self._update_voice_buttons()
 
     def _set_state(self, state):
@@ -818,6 +848,16 @@ class MainWindow(QMainWindow):
             self._append_chat("AI", text)
             self._set_state("speaking")
             QTimer.singleShot(1000, lambda: self._set_state("idle"))
+
+    def _on_voice_wake(self, event):
+        self._append_chat(
+            "System",
+            f"Wake phrase detected: {event.get('phrase', 'Hey Personal')}",
+        )
+
+    def _on_voice_session_stopped(self, event):
+        self.voice_running = False
+        self._update_voice_buttons()
 
     def _append_chat(self, who, text):
         if not text:
@@ -901,3 +941,13 @@ class MainWindow(QMainWindow):
                 self._set_state("idle"),
             ),
         )
+
+
+    def closeEvent(self, event):
+        for unsubscribe in getattr(self, "_event_unsubscribers", []):
+            try:
+                unsubscribe()
+            except Exception:
+                pass
+        self._event_unsubscribers = []
+        super().closeEvent(event)

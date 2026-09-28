@@ -34,7 +34,7 @@ jobs:
         with: {python-version: '3.12'}
       - run: pip install -r requirements.txt psutil pip-audit
       - run: pip check
-      - run: python -m compileall -q app agent automation browser core dashboard desktop devices integrations memory models notifications security server tools ui updates vision voice
+      - run: python -m compileall -q app agent automation browser core dashboard desktop devices future_intelligence integrations knowledge memory models notifications security server tools ui updates vision voice
       - run: pytest -q
       - run: pip-audit
 

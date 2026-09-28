@@ -1,0 +1,56 @@
+name: P3 iPhone PWA
+
+on:
+  push:
+    branches:
+      - qualification/p3-iphone-first-20260908
+  pull_request:
+    paths:
+      - 'server/iphone_pwa.py'
+      - 'server/cloud_app.py'
+      - 'pwa/**'
+      - 'tests/test_p3_iphone_pwa.py'
+      - 'core/config.py'
+      - '.env.example'
+      - '.github/workflows/p3-iphone-pwa.yml'
+      - 'future_intelligence/**'
+      - 'tests/test_p10_*.py'
+      - 'tests/p10_soak.py'
+      - 'docs/P10_*.md'
+      - 'docs/CAPABILITY_MATRIX.md'
+      - 'docs/MISSING_PARTIAL_STUB_MATRIX.md'
+      - 'docs/TEST_MATRIX.md'
+
+permissions:
+  contents: read
+
+jobs:
+  pwa-security-and-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pip check
+      - name: Compile changed Python surfaces
+        run: python -m compileall -q server core tests
+      - name: iPhone PWA integration tests
+        run: pytest -q tests/test_p3_iphone_pwa.py tests/test_p3_voice_qualification.py
+      - name: Fail closed if insecure production default is introduced
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          config=Path('core/config.py').read_text()
+          assert "iphone_pwa_allow_insecure:bool=env_bool('PERSONAL_AI_IPHONE_ALLOW_INSECURE',False)" in config
+          page=Path('pwa/index.html').read_text()
+          assert 'localStorage' not in page
+          assert 'sessionStorage' not in page
+          assert 'OPENAI_API_KEY' not in page
+          assert 'OPENROUTER_API_KEY' not in page
+          router=Path('server/iphone_pwa.py').read_text()
+          for requirement in ('httponly=True','secure=True',"samesite='strict'",'hmac.compare_digest'):
+              assert requirement in router
+          PY

@@ -55,6 +55,48 @@ def test_p21_executor_honors_pre_dispatch_cancellation(tmp_path):
         executor.chat('do not execute', cancel_event=cancelled)
 
 
+def test_p21_executor_keeps_model_context_inside_selected_conversation(tmp_path):
+    class CapturingModels:
+        def __init__(self):
+            self.calls = []
+
+        def chat(self, text, *, history=None, **kwargs):
+            self.calls.append({'text': text, 'history': list(history or [])})
+            return f'answer:{text}'
+
+    models = CapturingModels()
+    memory = MemoryStore(tmp_path / 'memory.sqlite3')
+    executor = AgentExecutor(
+        models=models,
+        tools=ToolRegistry(SimpleNamespace(autonomy_mode='ask')),
+        memory=memory,
+        events=EventBus(),
+    )
+    executor.planner = EmptyPlanner()
+
+    executor.chat('alpha one', conversation_id='alpha', device_id='phone')
+    executor.chat('beta one', conversation_id='beta', device_id='desktop')
+    executor.chat('alpha two', conversation_id='alpha', device_id='desktop')
+
+    assert models.calls[-1]['history'] == [
+        {'role': 'user', 'content': 'alpha one'},
+        {'role': 'assistant', 'content': 'answer:alpha one'},
+    ]
+
+    executor.chat(
+        'legacy follow-up',
+        conversation_id='legacy',
+        conversation_history=[
+            {'role': 'user', 'content': 'old continuity question'},
+            {'role': 'assistant', 'content': 'old continuity answer'},
+        ],
+    )
+    assert models.calls[-1]['history'] == [
+        {'role': 'user', 'content': 'old continuity question'},
+        {'role': 'assistant', 'content': 'old continuity answer'},
+    ]
+
+
 class FakeComputerModels:
     def json(self, *args, **kwargs):
         return {
@@ -218,6 +260,32 @@ def test_p26_cross_device_handoff_uses_one_thread(tmp_path):
     assert any(event['payload'].get('text') == 'Continued on desktop' for event in synced['events'])
 
 
+def test_p26_conversation_index_supports_search_rename_and_concurrent_writes(tmp_path):
+    service = ContinuityService(tmp_path / 'continuity.sqlite3')
+    thread_id = service.create_thread('Project Atlas', device_id='phone')
+
+    workers = [
+        threading.Thread(
+            target=service.append,
+            args=(thread_id,),
+            kwargs={
+                'device_id': f'device-{index % 2}',
+                'kind': 'user_message',
+                'payload': {'text': f'Atlas message {index}'},
+            },
+        )
+        for index in range(20)
+    ]
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join()
+
+    assert len(service.events_for_thread(thread_id)) == 20
+    assert service.list_threads('message 19')[0]['id'] == thread_id
+    assert service.rename_thread(thread_id, 'Atlas continuation')['title'] == 'Atlas continuation'
+
+
 class FakeToolRegistry:
     def __init__(self):
         self.permissions = object()
@@ -234,7 +302,7 @@ class FakeToolRegistry:
 
 def test_p27_benchmark_never_claims_superior_from_structure_alone(tmp_path):
     runtime = {
-        'voice': SimpleNamespace(backend=SimpleNamespace(cancel_response=lambda: None)),
+        'voice': SimpleNamespace(barge_in=lambda: {'interrupted': True}),
         'tools': FakeToolRegistry(),
         'second_brain': SimpleNamespace(temporal=lambda *a, **k: []),
         'proactive': object(),

@@ -1,6 +1,7 @@
 name: Android Companion
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "android-companion/**"
@@ -26,3 +27,12 @@ jobs:
         with:
           gradle-version: "8.9"
       - run: gradle assembleDebug --stacktrace
+      - name: Record APK checksum
+        run: sha256sum app/build/outputs/apk/debug/app-debug.apk | tee app/build/outputs/apk/debug/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: personal-ai-Android-debug
+          path: |
+            android-companion/app/build/outputs/apk/debug/app-debug.apk
+            android-companion/app/build/outputs/apk/debug/SHA256SUMS.txt
+          if-no-files-found: error

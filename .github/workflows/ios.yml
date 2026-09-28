@@ -28,3 +28,22 @@ jobs:
             -destination "platform=iOS Simulator,id=$DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
             test
+      - name: Build unsigned simulator application
+        working-directory: ios-companion
+        run: |
+          xcodebuild \
+            -project PersonalAICompanion.xcodeproj \
+            -scheme PersonalAICompanion \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/PersonalAI-iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$RUNNER_TEMP/PersonalAI-iOS/Build/Products/Release-iphonesimulator/PersonalAICompanion.app" \
+            "$RUNNER_TEMP/PersonalAI-iOS-unsigned-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: personal-ai-iOS-unsigned-simulator
+          path: ${{ runner.temp }}/PersonalAI-iOS-unsigned-simulator.zip
+          if-no-files-found: error

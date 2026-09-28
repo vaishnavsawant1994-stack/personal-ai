@@ -27,5 +27,5 @@ def test_testflight_secrets_are_not_literal_values():
 def test_ios_release_identity_is_stable():
     text = (ROOT / 'ios-companion/project.yml').read_text()
     assert 'PRODUCT_BUNDLE_IDENTIFIER: ai.personal.companion.ios' in text
-    assert 'MARKETING_VERSION: 0.1.0' in text
+    assert 'MARKETING_VERSION: 0.6.0' in text
     assert 'CURRENT_PROJECT_VERSION: 1' in text
