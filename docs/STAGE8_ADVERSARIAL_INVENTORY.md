@@ -1,6 +1,6 @@
 # Stage-8 Adversarial Inventory — Deepened (28 September 2026)
 
-Branch head at inventory time: continue from `45674032…` + follow-on patches on `fix/connector-scope-auth-fail-closed`.
+Branch head at inventory time: continue from recovery TOCTOU lineage + `d06305d8…` control API restore on `fix/connector-scope-auth-fail-closed`.
 
 This document is the living Stage-8 inventory. An item is closed only when a hostile regression exists **and** the production path fails closed under that attack, with exact-head evidence.
 
@@ -23,7 +23,7 @@ This document is the living Stage-8 inventory. An item is closed only when a hos
 | A2 | Restore destination existing symlink | CLOSED | `_safe_destination` / pre-write checks |
 | A3 | Restore parent-symlink TOCTOU after validation | REPAIRED_PENDING_GATE | Re-validate after mkdir and before open/replace; no-follow component walk |
 | A4 | Rollback copies must not inherit data-root checks | REPAIRED_PENDING_GATE | `enforce_data_root` only on restore writes into owner data |
-| A5 | Failed hostile restore leaves no external residue | OPEN | Hostile residual-file test added; confirm on exact-head |
+| A5 | Failed hostile restore leaves no external residue | REPAIRED_PENDING_GATE | Hostile residual-file test tightened; confirm on exact-head |
 | A6 | Security authority non-restorable | CLOSED | NON_RESTORABLE_SECURITY_NAMES skipped |
 | A7 | Symlinked source files excluded from backup | CLOSED | `_eligible` skips symlinks |
 
@@ -48,15 +48,15 @@ This document is the living Stage-8 inventory. An item is closed only when a hos
 | C4 | Checksum dedupe binds access_class | CLOSED | Private cannot inherit owner classification |
 | C5 | Missing authorize fails closed | CLOSED | 503 |
 | C6 | Per-source minimum sensitivity classification | DEFERRED_ARCH | No canonical source→min-class map yet; track as architecture, not auto-vuln |
-| C7 | never_store honored end-to-end | OPEN | Confirm no durable object/chunk when never_store=True |
-| C8 | Sheets path parity with Drive | OPEN | Same approval/scope rules exist; add hostile parity tests |
+| C7 | never_store honored end-to-end | REPAIRED_PENDING_GATE | Bridge raises before read; Drive+Sheets hostile tests added |
+| C8 | Sheets path parity with Drive | REPAIRED_PENDING_GATE | Hostile parity tests for scope/approval/private/never_store |
 
 ## D. Workflow / automation authority
 
 | ID | Surface | Status | Notes |
 | --- | --- | --- | --- |
 | D1 | Workflow run visibility device/session binding | CLOSED (partial) | Filters by owner/device/session when binding present |
-| D2 | Missing run_binding fails closed | REPAIRED_PENDING_GATE | Was fail-open (`return rows`); now 503 |
+| D2 | Missing run_binding fails closed | REPAIRED_PENDING_GATE | Was fail-open (`return rows`); now 503 in restored api.py |
 | D3 | Tool authority laundering via workflow step params | OPEN | Ensure step tool names cannot escalate beyond device scopes / approval policy |
 | D4 | Emergency Stop blocks workflow continuation | CLOSED (prior) | recovery_required transitions |
 | D5 | Workflow list unfiltered | OPEN | `/workflows` returns all workflows to any workflow:read device — confirm product intent for single-owner |
@@ -98,16 +98,14 @@ This document is the living Stage-8 inventory. An item is closed only when a hos
 
 ## Immediate Stage-8 work queue (priority order)
 
-1. Confirm exact-head 6/6 on recovery TOCTOU + rollback fix lineage.
-2. Land D2 fail-closed workflow binding + hostile regression.
-3. A5 residual-file assertion after TOCTOU failure.
-4. C7 never_store end-to-end hostile test.
-5. C8 Sheets parity hostile tests.
-6. B5/B6 authorization parity + epoch/session residual.
-7. D3 tool laundering via workflow steps.
-8. G2/G3 audit/false-success sampling.
-9. Exhaust OPEN items or explicitly DEFER with rationale.
-10. Final Stage-8 freeze SHA + formal closure note.
+1. Confirm exact-head 6/6 on recovery TOCTOU + api.py restore + new hostile tests.
+2. A5 residual-file assertion green on CI.
+3. C7/C8 never_store + Sheets parity green on CI.
+4. B5/B6 authorization parity + epoch/session residual.
+5. D3 tool laundering via workflow steps.
+6. G2/G3 audit/false-success sampling.
+7. Exhaust OPEN items or explicitly DEFER with rationale.
+8. Final Stage-8 freeze SHA + formal closure note.
 
 ## Closure rule (unchanged)
 

@@ -16,7 +16,9 @@ def test_stage8_restore_parent_symlink_swap_leaves_no_external_residue(tmp_path,
 
     data = tmp_path / 'data'
     data.mkdir()
-    (data / 'note.txt').write_text('owner-state', encoding='utf-8')
+    nested = data / 'docs'
+    nested.mkdir()
+    (nested / 'note.txt').write_text('owner-state', encoding='utf-8')
     outside = tmp_path / 'outside'
     outside.mkdir()
 
@@ -25,23 +27,30 @@ def test_stage8_restore_parent_symlink_swap_leaves_no_external_residue(tmp_path,
 
     target = tmp_path / 'restore-target'
     target.mkdir()
-    nested = target / 'nested'
-    nested.mkdir()
+    (target / 'docs').mkdir()
     service.data_dir = target.resolve()
     service.backup_dir = target / 'backups'
     service.backup_dir.mkdir(exist_ok=True)
 
     real_safe = service._safe_destination
+    swapped = {'done': False}
 
     def swap_then_safe(rel: Path):
         destination = real_safe(rel)
         parent = destination.parent
-        if parent != target and parent.exists() and parent.name == 'nested' and not parent.is_symlink():
-            parent.rename(target / 'nested-real')
+        if (
+            not swapped['done']
+            and parent != target
+            and parent.exists()
+            and parent.name == 'docs'
+            and not parent.is_symlink()
+        ):
+            parent.rename(target / 'docs-real')
             try:
                 parent.symlink_to(outside, target_is_directory=True)
             except OSError:
                 pytest.skip('symlink creation not permitted')
+            swapped['done'] = True
         return destination
 
     monkeypatch.setattr(service, '_safe_destination', swap_then_safe)
