@@ -9,6 +9,7 @@ from browser.observation import observe_page
 from desktop.operator_transactions import OperatorBinding, OperatorTransactionStore
 from security.policy_gateway import DecisionKind, PolicyGateway, PolicyOperation
 from security.policy_targets import TargetValidationError, canonical_path, normalize_origin, validate_file_metadata
+from security.navigation_guard import resolve_navigation
 
 INJECTION_RE = re.compile(r'ignore .*instructions|system message|grant .*permission|reveal .*secret|override .*policy|disable .*security', re.I)
 SECRET_FIELD_RE = re.compile(r'password|passwd|secret|token|otp|passcode|pin|cvv|cvc|cc-number|cc-csc|private-key|api-key', re.I)
@@ -135,6 +136,11 @@ class SafeBrowserOperator:
             permits.append(permit)
 
         target=self._target(fresh['raw'],a.target_id) if a.target_id else None
+        if a.kind in {'open_url','create_tab'} and a.url:
+            try:
+                a.parameters['_approved_final_url'] = self._approved_navigation_target(a.url)
+            except TargetValidationError as exc:
+                return self._deny(a, fresh, exc.reason_code)
         self.transactions.transition(a.transaction_id,'executing')
         row,created=self.transactions.start_action(a.transaction_id,a.sequence,kind=a.kind,parameter_hash=digest(self._safe_params(a)),
             expected_postcondition=self._expected(a,op_class),before_observation_id=fresh['observation_id'],
@@ -248,11 +254,11 @@ class SafeBrowserOperator:
 
     def _dispatch(self,a,obs):
         self.browser.start();p=self.browser.page
-        if a.kind=='open_url':p.goto(a.url,wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':p.url,'dispatch_mode':'dom_navigation'}
+        if a.kind=='open_url':p.goto(a.parameters.get('_approved_final_url') or a.url,wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':p.url,'dispatch_mode':'dom_navigation'}
         if a.kind=='back':p.go_back(wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':p.url,'dispatch_mode':'dom_navigation'}
         if a.kind=='forward':p.go_forward(wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':p.url,'dispatch_mode':'dom_navigation'}
         if a.kind=='refresh':p.reload(wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':p.url,'dispatch_mode':'dom_navigation'}
-        if a.kind=='create_tab':self.browser.page=self.browser.context.new_page();self.browser.page.goto(a.url,wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':self.browser.page.url,'dispatch_mode':'dom_navigation'}
+        if a.kind=='create_tab':self.browser.page=self.browser.context.new_page();self.browser.page.goto(a.parameters.get('_approved_final_url') or a.url,wait_until='domcontentloaded',timeout=a.timeout_ms);return {'url':self.browser.page.url,'dispatch_mode':'dom_navigation'}
         if a.kind=='select_tab':
             pages=list(self.browser.context.pages);idx=int(a.tab_index if a.tab_index is not None else -1)
             if idx<0 or idx>=len(pages):raise IndexError('tab index out of range')
@@ -351,6 +357,24 @@ class SafeBrowserOperator:
             for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
         finally:f.close()
         return h.hexdigest()
+
+    def _approved_navigation_target(self, url: str) -> str:
+        store = getattr(self.policy, 'store', None)
+        rules = []
+        if store is not None:
+            rows = store.effective_policies(
+                self.binding.owner_id,
+                device_id=self.binding.device_id,
+                session_id=self.binding.session_id,
+                security_epoch=self.binding.security_epoch,
+            )
+            rules = [row['target_identity'] for row in rows if row.get('target_type') == 'domain']
+        return resolve_navigation(
+            url,
+            rules=rules,
+            fetch=getattr(self, 'redirect_fetch', None),
+            resolve_host=getattr(self, 'resolve_host', None),
+        )
 
     def _validate(self,a):
         # Validate navigation targets before any browser/network dispatch.  Policy

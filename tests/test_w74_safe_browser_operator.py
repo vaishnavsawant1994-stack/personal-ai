@@ -60,7 +60,10 @@ def env(tmp_path, monkeypatch):
     browser=FakeBrowser(); policy=PolicyGateway(tmp_path/'policy.db'); tx=OperatorTransactionStore(tmp_path/'tx.db'); binding=OperatorBinding('owner','device','session',7)
     policy.add_policy(owner_id='owner',target_type='domain',target_identity={'scheme':'https','host':'example.com','port':443},allowed_operations=['navigate','application_input','form_submission','read','external_upload'],security_epoch=7,reauthenticated=True)
     monkeypatch.setattr(mod,'observe_page',lambda page: obs(page))
-    return browser,policy,tx,binding,SafeBrowserOperator(browser,policy,tx,binding)
+    op=SafeBrowserOperator(browser,policy,tx,binding)
+    op.redirect_fetch=lambda url: (200, None, {})
+    op.resolve_host=lambda host: ['93.184.216.34']
+    return browser,policy,tx,binding,op
 
 
 def test_extract_marks_web_content_untrusted(env,monkeypatch):
