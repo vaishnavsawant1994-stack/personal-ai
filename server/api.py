@@ -358,7 +358,28 @@ def create_app(
         active = service.active_for_device(device_id)
         if not active or active['id'] != body.thread_id:
             raise HTTPException(403, 'Source device is not active in the requested continuity thread')
-        return service.handoff(body.thread_id, from_device=device_id, to_device=body.to_device)
+        def handoff_authority_guard():
+            if not device_registry.is_active(device_id):
+                raise PermissionError('Source device is no longer trusted/active')
+            if not device_registry.is_active(body.to_device):
+                raise PermissionError('Target device is no longer trusted/active')
+            authorize = getattr(device_registry, 'authorize', None)
+            if not callable(authorize):
+                raise PermissionError('Device scope authorization is unavailable')
+            if not authorize(device_id, 'ai:chat'):
+                raise PermissionError('Source device is no longer permitted to use ai:chat')
+            if not authorize(body.to_device, 'ai:chat'):
+                raise PermissionError('Target device is no longer permitted to use ai:chat')
+
+        try:
+            return service.handoff(
+                body.thread_id,
+                from_device=device_id,
+                to_device=body.to_device,
+                authority_guard=handoff_authority_guard,
+            )
+        except PermissionError as exc:
+            raise HTTPException(403, str(exc)) from exc
 
     @app.post('/proactive/consider')
     def proactive_consider(
