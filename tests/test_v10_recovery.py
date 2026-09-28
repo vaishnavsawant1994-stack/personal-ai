@@ -303,3 +303,21 @@ def test_stage8_restore_to_empty_target_does_not_create_archived_security_author
     assert not (target / 'devices.sqlite3').exists()
     assert not (target / 'owner-access.sqlite3').exists()
     assert set(result['skipped_security_state']) >= {'devices.sqlite3', 'owner-access.sqlite3'}
+
+
+@pytest.mark.parametrize('name_factory', [
+    lambda tmp_path: str(tmp_path / 'absolute-escape.paibackup'),
+    lambda tmp_path: '../../traversal-escape.paibackup',
+])
+def test_stage8_backup_create_name_cannot_escape_backup_directory(tmp_path, name_factory):
+    data = tmp_path / 'data'
+    data.mkdir()
+    (data / 'note.txt').write_text('owner data')
+    svc = service(data)
+    name = name_factory(tmp_path)
+
+    with pytest.raises(BackupError, match='unsafe backup path'):
+        svc.create(name)
+
+    assert not (tmp_path / 'absolute-escape.paibackup').exists()
+    assert not (tmp_path / 'traversal-escape.paibackup').exists()
