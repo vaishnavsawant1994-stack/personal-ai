@@ -344,7 +344,7 @@ class KnowledgeStore:
         checksum = hashlib.sha256(data).hexdigest()
         source_value = str(source or 'owner-upload')[:500]
         with self._con() as con:
-            existing = con.execute('SELECT id FROM knowledge_documents WHERE checksum=? AND is_current=1 ORDER BY updated_at DESC LIMIT 1', (checksum,)).fetchone()
+            existing = con.execute('SELECT id FROM knowledge_documents WHERE checksum=? AND access_class=? AND is_current=1 ORDER BY updated_at DESC LIMIT 1', (checksum, access_class)).fetchone()
         if existing:
             return self.detail(existing['id'])
 
