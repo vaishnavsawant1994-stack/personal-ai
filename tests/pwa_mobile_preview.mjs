@@ -47,6 +47,7 @@ try {
     return canvas.width > 0 && canvas.height > 0;
   });
   await page.waitForTimeout(350);
+  await page.screenshot({ path: "artifacts/personal-ai-iphone-390x844.png" });
   const checkLayout = async (width, height) => {
     await page.setViewportSize({ width, height });
     await page.waitForTimeout(100);
@@ -79,8 +80,6 @@ try {
   await checkLayout(320, 568);
   await checkLayout(390, 844);
   await checkLayout(430, 932);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "artifacts/personal-ai-iphone-390x844.png" });
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
   console.log("PWA mobile layout passed at 320x568, 390x844, and 430x932.");
 } finally {
