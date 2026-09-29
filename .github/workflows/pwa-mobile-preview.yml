@@ -38,6 +38,6 @@ jobs:
         if: always()
         with:
           name: personal-ai-mobile-preview
-          path: artifacts/personal-ai-iphone-390x844.png
+          path: artifacts/*.png
           if-no-files-found: warn
           retention-days: 7
