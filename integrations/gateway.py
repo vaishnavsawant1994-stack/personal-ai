@@ -47,6 +47,10 @@ class ConnectorGateway:
         if missing:raise ConnectorError('insufficient_scope','The connector is missing a required permission scope.','insufficient_scope',403,False)
     def request(self,adapter,operation:ConnectorOperation,method,path,*,parameters=None,headers=None,json_body=None,data_body=None,params=None,timeout=30,cancelled:Callable[[],bool]|None=None,deadline:float|None=None,owner_id='owner',device_id=None,session_id=None,destination='',idempotency_key=None,response_mode='json',max_response_bytes=None,provider_account='',content_checksum=''):
         self._scope_check(adapter,operation)
+        connector_id=operation.name.split('.',1)[0]
+        current=self.state.health(connector_id)
+        if current.get('state') in {'revoked','revocation_pending'}:
+            raise ConnectorError('connector_revoked','This connector is revoked.','revoked',403,False)
         parameters=dict(parameters or {});ph=parameter_hash(parameters);consequential=operation.effect in {'write','consequential','destructive'};ledger=None
         if consequential:
             ledger,created=self.state.propose_operation(owner_id=owner_id,device_id=device_id,session_id=session_id,connector_id=operation.name.split('.',1)[0],operation_name=operation.name,parameter_hash=ph,destination=destination,idempotency_key=idempotency_key,rollback_available=operation.rollback_available,provider_account=provider_account,content_checksum=content_checksum)

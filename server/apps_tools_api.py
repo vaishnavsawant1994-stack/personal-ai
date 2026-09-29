@@ -18,7 +18,7 @@ def apps_tools_router(runtime):
             raise HTTPException(401, 'Trusted owner session required')
         if not devices.is_active(context.device_id):
             raise HTTPException(401, 'Trusted device is revoked')
-        if not hasattr(devices, 'authorize') or not devices.authorize(context.device_id, scope):
+        if not callable(getattr(devices, 'authorize', None)) or not devices.authorize(context.device_id, scope):
             raise HTTPException(403, f'This device is not permitted to use {scope}')
         return context
 

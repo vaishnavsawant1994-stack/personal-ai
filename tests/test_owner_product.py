@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from automation.engine import AutomationEngine
+from cloud_runtime.relay import SecureCloudRelay
+from cloud_runtime.security import CloudSessionStore, OwnerAuthenticator
 from devices.registry import DeviceRegistry
 from knowledge.store import KnowledgeStore
 from memory.second_brain import SecondBrain
@@ -146,6 +148,28 @@ def test_owner_api_refuses_to_create_or_mark_durable_never_store_memory(tmp_path
     )
     assert update.status_code == 409
     assert runtime['memory'].get(memory_id)['sensitivity'] == 'normal'
+
+
+def test_owner_upload_cannot_impersonate_a_connector_read(tmp_path):
+    client, runtime, _ = make_client(tmp_path)
+    forged = client.post('/iphone/api/knowledge', json={
+        'filename': 'x.txt',
+        'text': 'not a connector read',
+        'source': 'google-drive:file-1',
+        'access_class': 'owner',
+        'metadata': {'source_minimum_classification': 'owner'},
+    })
+    assert forged.status_code == 400
+    assert runtime['knowledge'].list() == []
+    created = client.post('/iphone/api/knowledge', json={
+        'filename': 'mine.txt',
+        'text': 'Owner written note',
+        'source': 'owner-upload',
+    })
+    assert created.status_code == 200
+    relabel = client.patch(f"/iphone/api/knowledge/{created.json()['id']}", json={'source': 'connector:mail:1'})
+    assert relabel.status_code == 400
+    assert runtime['knowledge'].detail(created.json()['id'])['source'] == 'owner-upload'
 
 
 def test_owner_knowledge_lifecycle_and_citations(tmp_path):
@@ -535,3 +559,35 @@ def test_stage8_owner_workflow_approval_state_hidden_from_foreign_device(tmp_pat
     own = client.post(f'/iphone/api/workflows/runs/{run_id}/approve')
     assert own.status_code == 409
     assert 'not waiting' in own.text.lower()
+
+
+
+def test_stage8_owner_emergency_stop_blocks_established_cloud_command(tmp_path):
+    client, runtime, device = make_client(tmp_path)
+    sessions = CloudSessionStore(tmp_path / 'real-cloud-sessions.sqlite3', ttl_seconds=600)
+    runtime['executor'].tools = runtime['tools']
+    runtime['cloud_sessions'] = sessions
+    relay = SecureCloudRelay(
+        executor=runtime['executor'],
+        memory=runtime['memory'],
+        second_brain=runtime['second_brain'],
+        device_registry=runtime['device_registry'],
+        sessions=sessions,
+        owner=OwnerAuthenticator('x' * 40),
+    )
+    issued = relay.issue_session(device['id'], client.cookies.get('pa_token'))
+    assert issued.status == 200
+    session = sessions.authenticate(issued.payload['session_token'], 'ai:chat')
+    assert session is not None
+    assert relay.command(session, 'before stop', '0123456789abcdef').status == 200
+
+    stopped = client.post('/iphone/api/system/emergency-stop', json={'enabled': True})
+
+    assert stopped.status_code == 200
+    assert runtime['tools'].emergency_stop is True
+    assert sessions.emergency_stopped() is True
+    blocked = relay.command(session, 'must not execute', 'abcdef0123456789')
+    assert blocked.status == 423
+    assert blocked.payload == {'error': 'emergency_stop_active'}
+    assert relay.approval(session, 'approval-1', 'approve').status == 423
+    assert relay.status(session).payload['emergency_stop'] is True

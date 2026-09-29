@@ -27,6 +27,8 @@ class IntegrationRegistry:
     def get(self,connector_id):return self._items[connector_id]
     def _health(self,x):
         state=self.state_store.health(x.id) if self.state_store else {'state':'disconnected','granted_scopes':[]}
+        if state.get('state') in {'revoked','revocation_pending'}:
+            return False,state
         healthy=None
         if x.configured and x.healthcheck:
             try:

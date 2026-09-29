@@ -141,13 +141,19 @@ class SecureCloudRelay:
             return None
         return current
 
+    def _emergency_stopped(self):
+        if self.sessions.emergency_stopped():
+            return True
+        tools = getattr(self.executor, 'tools', None)
+        return bool(getattr(tools, 'emergency_stop', False))
+
     def command(self, session, text: str, nonce: str):
         session = self._live_session(session)
         if session is None:
             return RelayResult(401, {'error': 'session_expired_or_revoked'})
         if not self._device_scope_allowed(session.device_id, 'ai:chat'):
             return RelayResult(403, {'error': 'device_permission_denied'})
-        if self.sessions.emergency_stopped():
+        if self._emergency_stopped():
             return RelayResult(423, {'error': 'emergency_stop_active'})
         text = (text or '').strip()
         if not text:
@@ -213,7 +219,7 @@ class SecureCloudRelay:
     def status(self, session):
         return RelayResult(200, {
             'state': self._state,
-            'emergency_stop': self.sessions.emergency_stopped(),
+            'emergency_stop': self._emergency_stopped(),
             'device_id': session.device_id,
             'reauthenticated_at': session.reauthenticated_at,
         })
@@ -224,7 +230,7 @@ class SecureCloudRelay:
             return RelayResult(401, {'error': 'session_expired_or_revoked'})
         if not self._device_scope_allowed(session.device_id, 'approval:write'):
             return RelayResult(403, {'error': 'device_permission_denied'})
-        if self.sessions.emergency_stopped():
+        if self._emergency_stopped():
             return RelayResult(423, {'error': 'emergency_stop_active'})
         try:
             if decision == 'approve':
@@ -283,6 +289,12 @@ class SecureCloudRelay:
         tools = getattr(self.executor, 'tools', None)
         if tools is not None and hasattr(tools, 'set_emergency_stop'):
             tools.set_emergency_stop(enabled)
+        session_on = self.sessions.emergency_stopped() if hasattr(self.sessions, 'emergency_stopped') else None
+        tool_on = getattr(tools, 'emergency_stop', None) if tools is not None and hasattr(tools, 'set_emergency_stop') else None
+        if session_on is not None and bool(session_on) != bool(enabled):
+            return RelayResult(503, {'error': 'emergency_stop_diverged'})
+        if tool_on is not None and bool(tool_on) != bool(enabled):
+            return RelayResult(503, {'error': 'emergency_stop_diverged'})
         if enabled and hasattr(self.executor, 'invalidate_pending_approvals'):
             self.executor.invalidate_pending_approvals()
         if enabled and hasattr(self.executor, 'cancel_active_turns'):

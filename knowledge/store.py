@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 
+from knowledge.classification import classification_rank, enforce_source_minimum, floor_for_source
+
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -332,7 +334,7 @@ class KnowledgeStore:
             documents = [item for item in documents if item['access_class'] in access_classes]
         return documents
 
-    def ingest(self, *, filename: str, data: bytes, title: str | None = None, media_type: str = 'application/octet-stream', source: str = 'owner-upload', access_class: str = 'owner', metadata: dict | None = None, replace_document_id: str | None = None):
+    def ingest(self, *, filename: str, data: bytes, title: str | None = None, media_type: str = 'application/octet-stream', source: str = 'owner-upload', access_class: str = 'owner', metadata: dict | None = None, replace_document_id: str | None = None, source_minimum: str | None = None):
         filename = self._safe_filename(filename)
         if not data:
             raise KnowledgeError('The uploaded file is empty')
@@ -340,11 +342,20 @@ class KnowledgeStore:
             raise KnowledgeError('The uploaded file exceeds the 10 MB limit')
         if access_class not in {'owner', 'trusted-devices', 'private'}:
             raise KnowledgeError('Invalid knowledge access class')
+        try:
+            floor = floor_for_source(source, metadata, source_minimum=source_minimum)
+        except ValueError as exc:
+            raise KnowledgeError(str(exc)) from exc
+        if floor is not None:
+            try:
+                access_class = enforce_source_minimum(access_class, floor)
+            except ValueError as exc:
+                raise KnowledgeError(str(exc)) from exc
 
         checksum = hashlib.sha256(data).hexdigest()
         source_value = str(source or 'owner-upload')[:500]
         with self._con() as con:
-            existing = con.execute('SELECT id FROM knowledge_documents WHERE checksum=? AND is_current=1 ORDER BY updated_at DESC LIMIT 1', (checksum,)).fetchone()
+            existing = con.execute('SELECT id FROM knowledge_documents WHERE checksum=? AND access_class=? AND is_current=1 ORDER BY updated_at DESC LIMIT 1', (checksum, access_class)).fetchone()
         if existing:
             return self.detail(existing['id'])
 
@@ -363,6 +374,12 @@ class KnowledgeStore:
             else:
                 previous = con.execute('SELECT * FROM knowledge_documents WHERE filename=? AND source=? AND is_current=1 ORDER BY version_number DESC LIMIT 1', (filename, source_value)).fetchone()
             if previous:
+                try:
+                    previous_floor = floor_for_source(previous['source'], json.loads(previous['metadata_json'] or '{}'), trust_recorded=True)
+                except ValueError as exc:
+                    raise KnowledgeError(str(exc)) from exc
+                if previous_floor is not None and (floor is None or classification_rank(floor) < classification_rank(previous_floor)):
+                    raise KnowledgeError('Knowledge classification cannot be lower than the source classification')
                 lineage_id = previous['lineage_id'] or previous['id']
                 version_number = int(previous['version_number'] or 1) + 1
             else:
@@ -373,6 +390,11 @@ class KnowledgeStore:
             object_path = self.object_dir / object_name
             object_path.write_bytes(stored_data)
             metadata_value = dict(metadata or {})
+            metadata_value.pop('source_minimum_classification', None)
+            metadata_value.pop('effective_access_class', None)
+            if floor is not None:
+                metadata_value['source_minimum_classification'] = floor
+                metadata_value['effective_access_class'] = access_class
             if Path(filename).suffix.lower() in self.IMAGE_EXTENSIONS:
                 metadata_value = {**metadata_value, 'source_format': Path(filename).suffix.lower().lstrip('.'), 'stored_format': 'png', 'metadata_stripped': True, 'ocr_provider': str(getattr(self.ocr_provider, 'name', 'configured-local'))}
             try:
@@ -465,6 +487,50 @@ class KnowledgeStore:
             if access_class not in {'owner', 'trusted-devices', 'private'}:
                 raise KnowledgeError('Invalid knowledge access class')
             changes['access_class'] = access_class
+        existing = self.detail(document_id)
+        if existing is None:
+            raise KeyError('Knowledge document not found')
+        next_source = changes.get('source', existing.get('source'))
+        next_class = access_class if access_class is not None else existing.get('access_class')
+        try:
+            recorded_floor = floor_for_source(existing.get('source'), existing.get('metadata') or {}, trust_recorded=True)
+        except ValueError as exc:
+            raise KnowledgeError(str(exc)) from exc
+        floor = recorded_floor
+        source_changed = source is not None and str(changes.get('source')) != str(existing.get('source'))
+        if source_changed:
+            incoming_floor = floor_for_source(next_source, None)
+            if incoming_floor is not None and (floor is None or classification_rank(incoming_floor) > classification_rank(floor)):
+                floor = incoming_floor
+        if metadata is not None or access_class is not None or source is not None:
+            if metadata is None:
+                metadata = dict(existing.get('metadata') or {})
+            else:
+                metadata = dict(metadata)
+            proposed = metadata.get('source_minimum_classification')
+            if proposed is not None and str(proposed).strip():
+                try:
+                    proposed_floor = str(proposed).strip().lower().replace('_', '-')
+                    classification_rank(proposed_floor)
+                except ValueError as exc:
+                    raise KnowledgeError(str(exc)) from exc
+                if floor is not None and classification_rank(proposed_floor) < classification_rank(str(floor)):
+                    raise KnowledgeError('Knowledge classification cannot be lower than the source classification')
+                floor = proposed_floor
+            if floor is not None:
+                try:
+                    enforced = enforce_source_minimum(str(next_class), str(floor))
+                except ValueError as exc:
+                    raise KnowledgeError(str(exc)) from exc
+                if access_class is not None:
+                    changes['access_class'] = enforced
+                metadata['source_minimum_classification'] = str(floor)
+                metadata['effective_access_class'] = enforced
+        elif floor is not None and next_class is not None:
+            try:
+                enforce_source_minimum(str(next_class), str(floor))
+            except ValueError as exc:
+                raise KnowledgeError(str(exc)) from exc
         if metadata is not None:
             changes['metadata_json'] = json.dumps(metadata, default=str)
         if not changes:

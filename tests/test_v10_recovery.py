@@ -303,3 +303,92 @@ def test_stage8_restore_to_empty_target_does_not_create_archived_security_author
     assert not (target / 'devices.sqlite3').exists()
     assert not (target / 'owner-access.sqlite3').exists()
     assert set(result['skipped_security_state']) >= {'devices.sqlite3', 'owner-access.sqlite3'}
+
+
+@pytest.mark.parametrize('name_factory', [
+    lambda tmp_path: str(tmp_path / 'absolute-escape.paibackup'),
+    lambda tmp_path: '../../traversal-escape.paibackup',
+])
+def test_stage8_backup_create_name_cannot_escape_backup_directory(tmp_path, name_factory):
+    data = tmp_path / 'data'
+    data.mkdir()
+    (data / 'note.txt').write_text('owner data')
+    svc = service(data)
+    name = name_factory(tmp_path)
+
+    with pytest.raises(BackupError, match='unsafe backup path'):
+        svc.create(name)
+
+    assert not (tmp_path / 'absolute-escape.paibackup').exists()
+    assert not (tmp_path / 'traversal-escape.paibackup').exists()
+
+
+def test_stage8_backup_create_rejects_symlinked_parent_escape(tmp_path):
+    if not hasattr(os, 'symlink'):
+        pytest.skip('symlink unsupported')
+    data = tmp_path / 'data'
+    data.mkdir()
+    (data / 'note.txt').write_text('owner data')
+    svc = service(data)
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    link = svc.backup_dir / 'escape'
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip('symlink creation not permitted')
+
+    with pytest.raises(BackupError, match='unsafe backup path'):
+        svc.create('escape/linked.paibackup')
+
+    assert not (outside / 'linked.paibackup').exists()
+
+
+def test_stage8_restore_parent_symlink_swap_after_validation_fails_closed(tmp_path, monkeypatch):
+    """A parent swapped to a symlink after validation must not redirect restore writes."""
+    if not hasattr(os, 'symlink'):
+        pytest.skip('symlink unsupported')
+
+    source = tmp_path / 'source'
+    source.mkdir()
+    nested = source / 'nested'
+    nested.mkdir()
+    (nested / 'note.txt').write_text('backup-owner-data')
+    archive = service(source).create('restore-parent-race.paibackup')
+
+    target = tmp_path / 'target'
+    target.mkdir()
+    target_nested = target / 'nested'
+    target_nested.mkdir()
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+
+    import recovery.backup as backup_module
+
+    real_copy = backup_module.BackupService._copy_fsynced
+    swapped = False
+
+    def swap_parent_before_restore_copy(self, source_path, destination_path, *, enforce_data_root: bool = False):
+        nonlocal swapped
+        destination_path = Path(destination_path)
+        if not swapped and str(destination_path).endswith('.restore'):
+            target_nested.rmdir()
+            try:
+                target_nested.symlink_to(outside, target_is_directory=True)
+            except OSError:
+                pytest.skip('symlink creation not permitted')
+            swapped = True
+        return real_copy(self, source_path, destination_path, enforce_data_root=enforce_data_root)
+
+    monkeypatch.setattr(
+        backup_module.BackupService,
+        '_copy_fsynced',
+        swap_parent_before_restore_copy,
+    )
+
+    with pytest.raises(BackupError):
+        service(target).restore(archive)
+
+    assert swapped is True
+    assert not (outside / 'note.txt').exists()
+    assert not any(outside.iterdir())

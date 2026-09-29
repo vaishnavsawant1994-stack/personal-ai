@@ -10,6 +10,7 @@ from typing import Literal
 from fastapi import APIRouter, Cookie, HTTPException
 from pydantic import BaseModel, Field
 
+from knowledge.classification import is_connector_source
 from knowledge.store import KnowledgeError
 from memory.second_brain import MemoryCandidate
 from security.request_context import current_trusted_request
@@ -160,7 +161,7 @@ def owner_product_router(runtime):
     def authenticate(device_id: str | None, token: str | None, scope: str):
         if not device_id or not token or not registry.authenticate(device_id, token):
             raise HTTPException(401, 'This browser is not trusted or its session was revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, scope):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, scope):
             raise HTTPException(403, f'This device is not permitted to use {scope}')
         return device_id
 
@@ -209,7 +210,7 @@ def owner_product_router(runtime):
 
     def knowledge_access(device_id: str):
         classes = {'owner', 'trusted-devices'}
-        if not hasattr(registry, 'authorize') or registry.authorize(device_id, 'knowledge:private'):
+        if callable(getattr(registry, 'authorize', None)) and registry.authorize(device_id, 'knowledge:private'):
             classes.add('private')
         return classes
 
@@ -243,7 +244,7 @@ def owner_product_router(runtime):
         return value
 
     def can_read_sensitive_memory(device_id: str):
-        return not hasattr(registry, 'authorize') or registry.authorize(device_id, 'memory:sensitive')
+        return callable(getattr(registry, 'authorize', None)) and registry.authorize(device_id, 'memory:sensitive')
 
     def filter_memories(rows, device_id: str):
         if can_read_sensitive_memory(device_id):
@@ -423,6 +424,8 @@ def owner_product_router(runtime):
         device_id = authenticate(pa_device, pa_token, 'knowledge:write')
         if body.access_class == 'private' and 'private' not in knowledge_access(device_id):
             raise HTTPException(403, 'This device cannot create private knowledge')
+        if is_connector_source(body.source):
+            raise HTTPException(400, 'Connector knowledge must be ingested from the connector read')
         try:
             if body.content_base64 is not None:
                 data = base64.b64decode(body.content_base64, validate=True)
@@ -465,6 +468,8 @@ def owner_product_router(runtime):
             raise HTTPException(404, 'Knowledge document not found')
         if body.access_class == 'private' and 'private' not in knowledge_access(device_id):
             raise HTTPException(403, 'This device cannot mark knowledge private')
+        if body.source is not None and is_connector_source(body.source) and body.source != existing.get('source'):
+            raise HTTPException(400, 'Connector knowledge must be ingested from the connector read')
         try:
             changes = body.model_dump(exclude_none=True)
             if 'metadata' in changes:
@@ -729,6 +734,13 @@ def owner_product_router(runtime):
         if not body.enabled:
             require_fresh_reauthentication()
         runtime['tools'].set_emergency_stop(body.enabled)
+        sessions = runtime.get('cloud_sessions')
+        if sessions is not None and hasattr(sessions, 'set_emergency_stop'):
+            sessions.set_emergency_stop(body.enabled)
+            if hasattr(sessions, 'emergency_stopped') and bool(sessions.emergency_stopped()) != bool(body.enabled):
+                raise HTTPException(503, 'Emergency Stop did not converge on the cloud session mirror')
+        if bool(getattr(runtime['tools'], 'emergency_stop', False)) != bool(body.enabled):
+            raise HTTPException(503, 'Emergency Stop did not converge on the tool authority')
         # ToolRegistry is the canonical E-stop authority and advances the
         # security epoch. Also cancel active canonical turns so this owner
         # surface converges with the cloud owner E-stop semantics.

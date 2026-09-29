@@ -24,9 +24,6 @@ from security.keychain import KeychainUnavailable, RootKeyStore
 
 EXCLUDED_NAMES = {'vault.json', '.env', 'secrets.json'}
 EXCLUDED_DIRS = {'browser-profile', 'cache', 'tmp'}
-# Security authority is intentionally non-restorable from ordinary data backups.
-# Restoring an older copy could resurrect revoked devices/sessions, roll back the
-# approval security epoch, or weaken owner/policy controls.
 NON_RESTORABLE_SECURITY_NAMES = {
     'devices.sqlite3',
     'pwa-sessions.sqlite3',
@@ -86,20 +83,39 @@ class BackupService:
             raise BackupError('unsafe backup path')
         return rel
 
+    def _assert_no_symlink_components(self, path: Path, *, rel_hint: str | None = None) -> None:
+        """Reject any path that has a symlink component under the owner data root.
+
+        Called both at initial validation and immediately before restore writes so a
+        parent-directory symlink swap after validation cannot redirect output.
+
+        Walks the logical path components without following symlinks, then confirms
+        the final resolved location still remains inside the owner data root.
+        """
+        hint = rel_hint or path.as_posix()
+        root = self.data_dir.resolve()
+        try:
+            try:
+                rel_parts = Path(path).relative_to(self.data_dir).parts
+            except ValueError:
+                rel_parts = Path(path).resolve(strict=False).relative_to(root).parts
+        except ValueError as exc:
+            raise BackupError(f'unsafe restore destination: {hint}') from exc
+
+        current = Path(self.data_dir)
+        for part in rel_parts:
+            current = current / part
+            if current.is_symlink():
+                raise BackupError(f'unsafe restore destination: {hint}')
+
+        resolved = Path(path).resolve(strict=False)
+        if resolved != root and root not in resolved.parents:
+            raise BackupError(f'unsafe restore destination: {hint}')
+
     def _safe_destination(self, rel: Path) -> Path:
         """Return a restore destination proven to stay inside the owner data root."""
         destination = self.data_dir / rel
-        root = self.data_dir.resolve()
-        resolved = destination.resolve(strict=False)
-        if resolved != root and root not in resolved.parents:
-            raise BackupError(f'unsafe restore destination: {rel.as_posix()}')
-        current = self.data_dir
-        for part in rel.parts[:-1]:
-            current = current / part
-            if current.exists() and current.is_symlink():
-                raise BackupError(f'unsafe restore destination: {rel.as_posix()}')
-        if destination.exists() and destination.is_symlink():
-            raise BackupError(f'unsafe restore destination: {rel.as_posix()}')
+        self._assert_no_symlink_components(destination, rel_hint=rel.as_posix())
         return destination
 
     def _eligible(self):
@@ -317,9 +333,22 @@ class BackupService:
 
     def create(self, name: str | None = None) -> Path:
         stamp = time.strftime('%Y%m%d-%H%M%S')
-        target = self.backup_dir / (name or f'personal-ai-{stamp}.paibackup')
-        if target.suffix != '.paibackup':
-            target = target.with_suffix('.paibackup')
+        candidate = Path(name or f'personal-ai-{stamp}.paibackup')
+        if candidate.suffix != '.paibackup':
+            candidate = candidate.with_suffix('.paibackup')
+        rel = self._safe_rel(candidate.as_posix())
+        target = self.backup_dir / rel
+        root = self.backup_dir.resolve()
+        resolved = target.resolve(strict=False)
+        if resolved != root and root not in resolved.parents:
+            raise BackupError('unsafe backup path')
+        current = self.backup_dir
+        for part in rel.parts[:-1]:
+            current = current / part
+            if current.exists() and current.is_symlink():
+                raise BackupError('unsafe backup path')
+        if target.exists() and target.is_symlink():
+            raise BackupError('unsafe backup path')
 
         handle = tempfile.NamedTemporaryFile(
             prefix='personal-ai-backup-payload-', suffix='.zip', delete=False
@@ -421,9 +450,19 @@ class BackupService:
             if cleanup:
                 payload.unlink(missing_ok=True)
 
-    @staticmethod
-    def _copy_fsynced(source: Path, destination: Path) -> None:
+    def _copy_fsynced(self, source: Path, destination: Path, *, enforce_data_root: bool = False) -> None:
+        if enforce_data_root:
+            self._assert_no_symlink_components(destination)
+            if destination.exists() and destination.is_symlink():
+                raise BackupError(f'unsafe restore destination: {destination.as_posix()}')
         destination.parent.mkdir(parents=True, exist_ok=True)
+        # When writing into the owner data root, re-check immediately before opening
+        # so a parent symlink swap after earlier validation cannot redirect output.
+        # Rollback/temp copies live outside data_dir and must not use this check.
+        if enforce_data_root:
+            self._assert_no_symlink_components(destination)
+            if destination.exists() and destination.is_symlink():
+                raise BackupError(f'unsafe restore destination: {destination.as_posix()}')
         with source.open('rb') as src, destination.open('wb') as dst:
             shutil.copyfileobj(src, dst, COPY_CHUNK)
             dst.flush()
@@ -462,8 +501,6 @@ class BackupService:
                 destination = self._safe_destination(rel)
                 destinations.append((rel, staged, destination))
 
-            # Snapshot all existing targets before mutating anything. If any
-            # snapshot fails, the restore aborts with owner state untouched.
             for rel, _, destination in destinations:
                 rollback_copy = None
                 if destination.exists():
@@ -475,13 +512,17 @@ class BackupService:
 
             restored = 0
             try:
-                for _, source, destination in destinations:
+                for rel, source, destination in destinations:
                     destination.parent.mkdir(parents=True, exist_ok=True)
+                    self._assert_no_symlink_components(destination, rel_hint=rel.as_posix())
                     temp_destination = destination.with_name(
                         f'.{destination.name}.{secrets.token_hex(6)}.restore'
                     )
                     try:
-                        self._copy_fsynced(source, temp_destination)
+                        self._copy_fsynced(source, temp_destination, enforce_data_root=True)
+                        self._assert_no_symlink_components(destination, rel_hint=rel.as_posix())
+                        if destination.exists() and destination.is_symlink():
+                            raise BackupError(f'unsafe restore destination: {rel.as_posix()}')
                         os.replace(temp_destination, destination)
                         restored += 1
                     finally:
@@ -501,7 +542,7 @@ class BackupService:
                                 os.replace(rollback_temp, destination)
                             finally:
                                 rollback_temp.unlink(missing_ok=True)
-                    except Exception as rollback_exc:  # pragma: no cover - catastrophic filesystem failure
+                    except Exception as rollback_exc:
                         rollback_errors.append(f'{destination}: {rollback_exc}')
                 if rollback_errors:
                     raise BackupError(

@@ -1,0 +1,1538 @@
+[
+  {
+    "file": "dashboard/api.py",
+    "line": 12,
+    "method": "GET",
+    "path": "/dashboard/status",
+    "status": "canonical",
+    "note": "auth device:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "dashboard/api.py",
+    "line": 15,
+    "method": "GET",
+    "path": "/dashboard/devices",
+    "status": "canonical",
+    "note": "auth device:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "dashboard/api.py",
+    "line": 17,
+    "method": "GET",
+    "path": "/dashboard/automations",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "dashboard/api.py",
+    "line": 19,
+    "method": "GET",
+    "path": "/dashboard/memory",
+    "status": "canonical",
+    "note": "auth memory:sensitive; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "dashboard/api.py",
+    "line": 21,
+    "method": "POST",
+    "path": "/dashboard/tool",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "dashboard/api.py",
+    "line": 25,
+    "method": "POST",
+    "path": "/dashboard/device/{device_id}/command",
+    "status": "canonical",
+    "note": "auth device:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/activities_api.py",
+    "line": 43,
+    "method": "GET",
+    "path": "/iphone/api/activities/{activity_id}",
+    "status": "canonical",
+    "note": "auth activities:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 235,
+    "method": "GET",
+    "path": "/health",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 247,
+    "method": "GET",
+    "path": "/health/model",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 253,
+    "method": "POST",
+    "path": "/pair/start",
+    "status": "canonical",
+    "note": "auth loopback; binding=loopback; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 259,
+    "method": "POST",
+    "path": "/pair/confirm",
+    "status": "canonical",
+    "note": "auth enrollment; binding=one-time-pairing-code; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 271,
+    "method": "GET",
+    "path": "/oauth/start/{provider_id}",
+    "status": "canonical",
+    "note": "auth loopback; binding=loopback; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 278,
+    "method": "GET",
+    "path": "/oauth/callback",
+    "status": "canonical",
+    "note": "auth loopback; binding=loopback; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 286,
+    "method": "POST",
+    "path": "/command",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=delegated-to-executor-or-relay; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 295,
+    "method": "POST",
+    "path": "/continuity/resume",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 305,
+    "method": "GET",
+    "path": "/continuity/sync",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 315,
+    "method": "POST",
+    "path": "/continuity/append",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 329,
+    "method": "POST",
+    "path": "/continuity/context",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 343,
+    "method": "POST",
+    "path": "/continuity/handoff",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 382,
+    "method": "POST",
+    "path": "/proactive/consider",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 393,
+    "method": "GET",
+    "path": "/proactive/history",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 402,
+    "method": "GET",
+    "path": "/workflows",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 411,
+    "method": "GET",
+    "path": "/workflows/runs",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 440,
+    "method": "POST",
+    "path": "/workflows/create",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 460,
+    "method": "POST",
+    "path": "/workflows/run",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 476,
+    "method": "POST",
+    "path": "/workflows/pause",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 485,
+    "method": "POST",
+    "path": "/workflows/approval",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=bearer; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/api.py",
+    "line": 510,
+    "method": "GET",
+    "path": "/benchmark",
+    "status": "canonical",
+    "note": "auth qualification:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 519,
+    "method": "POST",
+    "path": "/benchmark/run",
+    "status": "canonical",
+    "note": "auth qualification:record; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 531,
+    "method": "POST",
+    "path": "/cloud/session",
+    "status": "canonical",
+    "note": "auth cloud-session; binding=owner-or-cloud-session; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 535,
+    "method": "POST",
+    "path": "/cloud/session/revoke",
+    "status": "canonical",
+    "note": "auth status:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 540,
+    "method": "POST",
+    "path": "/cloud/command",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=delegated-to-executor-or-relay; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 545,
+    "method": "POST",
+    "path": "/cloud/memory/search",
+    "status": "canonical",
+    "note": "auth memory:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 550,
+    "method": "GET",
+    "path": "/cloud/status",
+    "status": "canonical",
+    "note": "auth status:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 555,
+    "method": "GET",
+    "path": "/cloud/events",
+    "status": "canonical",
+    "note": "auth status:read; binding=bearer; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/api.py",
+    "line": 629,
+    "method": "GET",
+    "path": "/cloud/activities",
+    "status": "canonical",
+    "note": "auth status:read; binding=bearer; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/api.py",
+    "line": 663,
+    "method": "GET",
+    "path": "/cloud/approval/{approval_id}",
+    "status": "canonical",
+    "note": "auth approval:read; binding=bearer; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/api.py",
+    "line": 686,
+    "method": "POST",
+    "path": "/cloud/approval",
+    "status": "canonical",
+    "note": "auth approval:write; binding=bearer; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/api.py",
+    "line": 691,
+    "method": "POST",
+    "path": "/cloud/emergency-stop",
+    "status": "canonical",
+    "note": "auth cloud-session; binding=owner-or-cloud-session; estop=checked-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 698,
+    "method": "WEBSOCKET",
+    "path": "/device/ws/{device_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/api.py",
+    "line": 760,
+    "method": "GET",
+    "path": "/dashboard-ui",
+    "status": "canonical",
+    "note": "auth loopback; binding=loopback; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/approval_api.py",
+    "line": 66,
+    "method": "GET",
+    "path": "/iphone/api/approvals",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/approval_api.py",
+    "line": 77,
+    "method": "POST",
+    "path": "/iphone/api/approval/{approval_id}/approve",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/approval_api.py",
+    "line": 144,
+    "method": "POST",
+    "path": "/iphone/api/approval/{approval_id}/reject",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/approvals_center_api.py",
+    "line": 29,
+    "method": "GET",
+    "path": "/iphone/api/approvals-center/{approval_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/apps_tools_api.py",
+    "line": 25,
+    "method": "GET",
+    "path": "/iphone/api/apps-tools/tools",
+    "status": "canonical",
+    "note": "auth device:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/apps_tools_api.py",
+    "line": 30,
+    "method": "GET",
+    "path": "/iphone/api/apps-tools/tools/{tool_id}",
+    "status": "canonical",
+    "note": "auth device:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/apps_tools_api.py",
+    "line": 38,
+    "method": "GET",
+    "path": "/iphone/api/apps-tools/apps",
+    "status": "canonical",
+    "note": "auth device:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/apps_tools_api.py",
+    "line": 43,
+    "method": "GET",
+    "path": "/iphone/api/apps-tools/apps/{app_id}",
+    "status": "canonical",
+    "note": "auth device:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/automation_visibility_api.py",
+    "line": 25,
+    "method": "GET",
+    "path": "/iphone/api/automation-visibility/automations",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/automation_visibility_api.py",
+    "line": 30,
+    "method": "GET",
+    "path": "/iphone/api/automation-visibility/workflows",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/automation_visibility_api.py",
+    "line": 35,
+    "method": "GET",
+    "path": "/iphone/api/automation-visibility/runs",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/capability_console.py",
+    "line": 10,
+    "method": "GET",
+    "path": "/capabilities/api/status",
+    "status": "canonical",
+    "note": "auth device:read; binding=bearer; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/capability_console.py",
+    "line": 40,
+    "method": "GET",
+    "path": "/capabilities/",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/cloud_security.py",
+    "line": 10,
+    "method": "POST",
+    "path": "/cloud/reauth",
+    "status": "canonical",
+    "note": "auth status:read; binding=bearer; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/connector_api.py",
+    "line": 35,
+    "method": "GET",
+    "path": "/iphone/api/connectors/{connector_id}",
+    "status": "canonical",
+    "note": "auth device:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/connector_api.py",
+    "line": 38,
+    "method": "POST",
+    "path": "/iphone/api/connectors/{connector_id}/oauth/start",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/connector_api.py",
+    "line": 68,
+    "method": "POST",
+    "path": "/iphone/api/connectors/{connector_id}/oauth/complete",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/connector_api.py",
+    "line": 72,
+    "method": "POST",
+    "path": "/iphone/api/connectors/oauth/finalize",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/connector_api.py",
+    "line": 83,
+    "method": "POST",
+    "path": "/iphone/api/connectors/{connector_id}/revoke",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/connector_knowledge_api.py",
+    "line": 26,
+    "method": "POST",
+    "path": "/iphone/api/connectors/drive/files/{file_id}/knowledge",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/connector_knowledge_api.py",
+    "line": 36,
+    "method": "POST",
+    "path": "/iphone/api/connectors/sheets/{spreadsheet_id}/knowledge",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/connector_oauth_callback.py",
+    "line": 8,
+    "method": "GET",
+    "path": "/connector-oauth/callback",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/connector_ui.py",
+    "line": 29,
+    "method": "GET",
+    "path": "/iphone/connector-ui.js",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/continuity_sync_api.py",
+    "line": 54,
+    "method": "GET",
+    "path": "/iphone/api/continuity/status",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/continuity_sync_api.py",
+    "line": 58,
+    "method": "POST",
+    "path": "/iphone/api/continuity/reconcile",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/continuity_sync_api.py",
+    "line": 70,
+    "method": "POST",
+    "path": "/iphone/api/continuity/handoff",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/continuity_sync_api.py",
+    "line": 74,
+    "method": "GET",
+    "path": "/iphone/api/continuity/operations/{operation_id}",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/continuity_sync_api.py",
+    "line": 78,
+    "method": "GET",
+    "path": "/iphone/api/continuity/world/{observation_id}",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 128,
+    "method": "POST",
+    "path": "/iphone/api/voice/turn",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 231,
+    "method": "POST",
+    "path": "/iphone/api/voice/barge",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 253,
+    "method": "POST",
+    "path": "/iphone/api/voice/operation/cancel",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 275,
+    "method": "POST",
+    "path": "/iphone/api/voice/client-event",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 303,
+    "method": "GET",
+    "path": "/iphone/api/conversations",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/conversation_voice_api.py",
+    "line": 314,
+    "method": "GET",
+    "path": "/iphone/api/conversations/{conversation_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/devices_presence_api.py",
+    "line": 43,
+    "method": "GET",
+    "path": "/iphone/api/devices-presence/{device_id}",
+    "status": "canonical",
+    "note": "auth device:read; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/devices_presence_api.py",
+    "line": 51,
+    "method": "DELETE",
+    "path": "/iphone/api/devices-presence/{device_id}",
+    "status": "canonical",
+    "note": "auth device:admin; binding=trusted-session-or-device; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 37,
+    "method": "GET",
+    "path": "/iphone/api/everyday/active",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 46,
+    "method": "GET",
+    "path": "/iphone/api/everyday/due",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 56,
+    "method": "GET",
+    "path": "/iphone/api/everyday/briefing",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 64,
+    "method": "GET",
+    "path": "/iphone/api/everyday/{item_id}/history",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 75,
+    "method": "GET",
+    "path": "/iphone/api/everyday/{item_id}/context",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 86,
+    "method": "POST",
+    "path": "/iphone/api/everyday/{item_id}/complete",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 97,
+    "method": "POST",
+    "path": "/iphone/api/everyday/{item_id}/snooze",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 109,
+    "method": "POST",
+    "path": "/iphone/api/everyday/{item_id}/reschedule",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/everyday_intelligence_api.py",
+    "line": 121,
+    "method": "POST",
+    "path": "/iphone/api/everyday/{item_id}/cancel",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 299,
+    "method": "GET",
+    "path": "/iphone/",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 303,
+    "method": "GET",
+    "path": "/iphone/manifest.webmanifest",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 307,
+    "method": "GET",
+    "path": "/iphone/sw.js",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 311,
+    "method": "GET",
+    "path": "/iphone/api/stage11/identity",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 319,
+    "method": "GET",
+    "path": "/iphone/api/status",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 364,
+    "method": "GET",
+    "path": "/iphone/api/access/options",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 377,
+    "method": "GET",
+    "path": "/iphone/api/access/security",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 393,
+    "method": "POST",
+    "path": "/iphone/api/access/google/login",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 420,
+    "method": "POST",
+    "path": "/iphone/api/access/password/setup",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 435,
+    "method": "POST",
+    "path": "/iphone/api/access/password/login",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 449,
+    "method": "POST",
+    "path": "/iphone/api/access/recovery/regenerate",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 460,
+    "method": "POST",
+    "path": "/iphone/api/access/recovery/login",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 472,
+    "method": "POST",
+    "path": "/iphone/api/access/passkey/register/options",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 505,
+    "method": "POST",
+    "path": "/iphone/api/access/passkey/register/complete",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 542,
+    "method": "POST",
+    "path": "/iphone/api/access/passkey/login/options",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 560,
+    "method": "POST",
+    "path": "/iphone/api/access/passkey/login/complete",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 595,
+    "method": "POST",
+    "path": "/iphone/api/enroll",
+    "status": "canonical",
+    "note": "auth transport; binding=none; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 610,
+    "method": "POST",
+    "path": "/iphone/api/logout",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 626,
+    "method": "POST",
+    "path": "/iphone/api/voice/turn",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 744,
+    "method": "POST",
+    "path": "/iphone/api/approval/{approval_id}/approve",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 778,
+    "method": "POST",
+    "path": "/iphone/api/approval/{approval_id}/reject",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 802,
+    "method": "GET",
+    "path": "/iphone/api/conversations",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 818,
+    "method": "POST",
+    "path": "/iphone/api/conversations",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 830,
+    "method": "GET",
+    "path": "/iphone/api/conversations/{conversation_id}",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 843,
+    "method": "POST",
+    "path": "/iphone/api/conversations/{conversation_id}/activate",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 856,
+    "method": "PATCH",
+    "path": "/iphone/api/conversations/{conversation_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 867,
+    "method": "POST",
+    "path": "/iphone/api/voice/barge",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 881,
+    "method": "POST",
+    "path": "/iphone/api/voice/client-event",
+    "status": "legacy-opt-in",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 893,
+    "method": "POST",
+    "path": "/iphone/api/qualification/start",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 946,
+    "method": "POST",
+    "path": "/iphone/api/qualification/stop",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 967,
+    "method": "POST",
+    "path": "/iphone/api/qualification/takeover",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/iphone_pwa.py",
+    "line": 1010,
+    "method": "GET",
+    "path": "/iphone/api/qualification/sessions",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/memory_governance_api.py",
+    "line": 31,
+    "method": "POST",
+    "path": "/iphone/api/memory/candidates/{candidate_id}/approve",
+    "status": "canonical",
+    "note": "auth memory:write; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_governance_api.py",
+    "line": 49,
+    "method": "DELETE",
+    "path": "/iphone/api/memory/candidates/{candidate_id}",
+    "status": "canonical",
+    "note": "auth memory:write; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 40,
+    "method": "GET",
+    "path": "/iphone/api/memory/retrieval",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 47,
+    "method": "GET",
+    "path": "/iphone/api/life-graph",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 71,
+    "method": "GET",
+    "path": "/iphone/api/life-graph/timeline",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 87,
+    "method": "GET",
+    "path": "/iphone/api/memory/{memory_id}/retrieval-explanation",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 96,
+    "method": "GET",
+    "path": "/iphone/api/knowledge/ocr/status",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 101,
+    "method": "GET",
+    "path": "/iphone/api/knowledge/{document_id}/versions",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 109,
+    "method": "DELETE",
+    "path": "/iphone/api/knowledge/{document_id}/version",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/memory_knowledge_inspection.py",
+    "line": 122,
+    "method": "DELETE",
+    "path": "/iphone/api/knowledge/lineages/{lineage_id}",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 33,
+    "method": "GET",
+    "path": "/iphone/api/world/observations",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 55,
+    "method": "GET",
+    "path": "/iphone/api/world/observations/{observation_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 67,
+    "method": "GET",
+    "path": "/iphone/api/world/observations/{observation_id}/lineage",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 79,
+    "method": "DELETE",
+    "path": "/iphone/api/world/observations/{observation_id}",
+    "status": "canonical",
+    "note": "auth memory:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 93,
+    "method": "GET",
+    "path": "/iphone/api/world/capabilities",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/multimodal_world_api.py",
+    "line": 114,
+    "method": "GET",
+    "path": "/iphone/api/world/governed-context",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 228,
+    "method": "GET",
+    "path": "/iphone/api/preferences",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 233,
+    "method": "PUT",
+    "path": "/iphone/api/preferences",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 264,
+    "method": "GET",
+    "path": "/iphone/api/memory",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 275,
+    "method": "GET",
+    "path": "/iphone/api/memory/graph",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 283,
+    "method": "GET",
+    "path": "/iphone/api/memory/tree",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 288,
+    "method": "GET",
+    "path": "/iphone/api/memory/export",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 300,
+    "method": "POST",
+    "path": "/iphone/api/memory/retention",
+    "status": "canonical",
+    "note": "auth memory:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 317,
+    "method": "POST",
+    "path": "/iphone/api/memory",
+    "status": "canonical",
+    "note": "auth memory:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 345,
+    "method": "GET",
+    "path": "/iphone/api/memory/{memory_id}",
+    "status": "canonical",
+    "note": "auth memory:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 353,
+    "method": "PATCH",
+    "path": "/iphone/api/memory/{memory_id}",
+    "status": "canonical",
+    "note": "auth memory:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 374,
+    "method": "DELETE",
+    "path": "/iphone/api/memory/{memory_id}",
+    "status": "canonical",
+    "note": "auth memory:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 392,
+    "method": "GET",
+    "path": "/iphone/api/knowledge",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 402,
+    "method": "GET",
+    "path": "/iphone/api/knowledge/search",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 412,
+    "method": "GET",
+    "path": "/iphone/api/knowledge/export",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 418,
+    "method": "POST",
+    "path": "/iphone/api/knowledge",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 450,
+    "method": "GET",
+    "path": "/iphone/api/knowledge/{document_id}",
+    "status": "canonical",
+    "note": "auth knowledge:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 458,
+    "method": "PATCH",
+    "path": "/iphone/api/knowledge/{document_id}",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 485,
+    "method": "DELETE",
+    "path": "/iphone/api/knowledge/{document_id}",
+    "status": "canonical",
+    "note": "auth knowledge:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 503,
+    "method": "GET",
+    "path": "/iphone/api/activities",
+    "status": "canonical",
+    "note": "auth activities:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 513,
+    "method": "GET",
+    "path": "/iphone/api/devices",
+    "status": "canonical",
+    "note": "auth device:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 518,
+    "method": "PATCH",
+    "path": "/iphone/api/devices/{target_device_id}/permissions",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 548,
+    "method": "POST",
+    "path": "/iphone/api/devices/{target_device_id}/revoke",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 591,
+    "method": "GET",
+    "path": "/iphone/api/workflows",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 602,
+    "method": "POST",
+    "path": "/iphone/api/workflows",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 617,
+    "method": "POST",
+    "path": "/iphone/api/workflows/{workflow_id}/run",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 636,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/cancel",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 650,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/recovery/link",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 659,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/recovery/refresh",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 666,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/resume",
+    "status": "canonical",
+    "note": "auth workflow:write; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 680,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/approve",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=device-cookie; estop=not-in-handler; approval=mentions-approval"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 707,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/reject",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 731,
+    "method": "POST",
+    "path": "/iphone/api/system/emergency-stop",
+    "status": "canonical",
+    "note": "auth device:admin; binding=device-cookie; estop=checked-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 759,
+    "method": "GET",
+    "path": "/iphone/api/qualification",
+    "status": "canonical",
+    "note": "auth qualification:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 764,
+    "method": "POST",
+    "path": "/iphone/api/qualification/stages",
+    "status": "canonical",
+    "note": "auth qualification:record; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 783,
+    "method": "POST",
+    "path": "/iphone/api/qualification/sessions/{session_id}/trials",
+    "status": "canonical",
+    "note": "auth qualification:record; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 806,
+    "method": "POST",
+    "path": "/iphone/api/qualification/sessions/{session_id}/finish",
+    "status": "canonical",
+    "note": "auth qualification:record; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 821,
+    "method": "GET",
+    "path": "/iphone/api/system/status",
+    "status": "canonical",
+    "note": "auth activities:read; binding=device-cookie; estop=checked-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/owner_product.py",
+    "line": 836,
+    "method": "POST",
+    "path": "/iphone/api/system/model-evaluation",
+    "status": "canonical",
+    "note": "auth qualification:record; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 96,
+    "method": "POST",
+    "path": "/iphone/api/operations/plans",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 120,
+    "method": "POST",
+    "path": "/iphone/api/operations/from-everyday/{item_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 144,
+    "method": "POST",
+    "path": "/iphone/api/operations/plans/{plan_id}/execute",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 162,
+    "method": "GET",
+    "path": "/iphone/api/operations/{operation_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 180,
+    "method": "POST",
+    "path": "/iphone/api/operations/{operation_id}/approve",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 195,
+    "method": "POST",
+    "path": "/iphone/api/operations/{operation_id}/reject",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 215,
+    "method": "POST",
+    "path": "/iphone/api/operations/{operation_id}/cancel",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 235,
+    "method": "POST",
+    "path": "/iphone/api/operations/{operation_id}/recovery/link",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/personal_operations_api.py",
+    "line": 256,
+    "method": "POST",
+    "path": "/iphone/api/operations/{operation_id}/recovery/refresh",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/pwa_conversations.py",
+    "line": 22,
+    "method": "POST",
+    "path": "/iphone/api/conversations/{conversation_id}/archive",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/pwa_conversations.py",
+    "line": 33,
+    "method": "DELETE",
+    "path": "/iphone/api/conversations/{conversation_id}",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/pwa_conversations.py",
+    "line": 40,
+    "method": "GET",
+    "path": "/iphone/api/conversations/{conversation_id}/export",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/pwa_security.py",
+    "line": 27,
+    "method": "POST",
+    "path": "/iphone/api/access/reauth/password",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/pwa_security.py",
+    "line": 47,
+    "method": "GET",
+    "path": "/iphone/api/sessions",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/pwa_security.py",
+    "line": 67,
+    "method": "POST",
+    "path": "/iphone/api/sessions/{session_id}/revoke",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/pwa_security.py",
+    "line": 85,
+    "method": "POST",
+    "path": "/iphone/api/sessions/revoke-others",
+    "status": "canonical",
+    "note": "auth trusted-session; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/recovery_visibility_api.py",
+    "line": 23,
+    "method": "GET",
+    "path": "/iphone/api/execution-recovery/{transaction_id}",
+    "status": "canonical",
+    "note": "auth ai:chat; binding=trusted-session-or-device; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/workflow_budget_api.py",
+    "line": 27,
+    "method": "GET",
+    "path": "/iphone/api/workflows/runs/{run_id}/budget",
+    "status": "canonical",
+    "note": "auth workflow:read; binding=device-cookie; estop=not-in-handler; approval=none-visible"
+  },
+  {
+    "file": "server/workflow_budget_api.py",
+    "line": 41,
+    "method": "POST",
+    "path": "/iphone/api/workflows/runs/{run_id}/budget/override",
+    "status": "canonical",
+    "note": "auth workflow:approve; binding=device-cookie; estop=not-in-handler; approval=fresh-reauth"
+  },
+  {
+    "file": "server/workflow_budget_ui.py",
+    "line": 55,
+    "method": "GET",
+    "path": "/iphone/workflow-budget-ui.js",
+    "status": "surface-specific-ok",
+    "note": "auth none; binding=none; estop=not-in-handler; approval=none-visible"
+  }
+]

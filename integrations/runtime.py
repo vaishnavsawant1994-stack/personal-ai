@@ -65,6 +65,7 @@ def build_integrations(settings,vault=None):
         a=HomeAssistantAdapter(settings.home_assistant_url,settings.home_assistant_token,gateway=gateway); adapters['home_assistant']=a; reg.register(Integration('home_assistant','Home Assistant',set(o.name for o in home_assistant_manifest().operations),lambda:bool(a.states() is not None),home_assistant_manifest(),True))
     if google_scopes is not None:
         reg.sync_provider_scopes('google',google_scopes)
+    if oauth: oauth.bind_live(adapters)
     for manifest in reg.manifests.list():
         configured=manifest.connector_id in adapters
         current=state.health(manifest.connector_id)

@@ -19,6 +19,7 @@ PUBLIC_PATHS = {
     '/iphone/manifest.webmanifest',
     '/iphone/sw.js',
     '/iphone/api/access/options',
+    '/iphone/api/stage11/identity',
     '/iphone/api/access/google/login',
     '/iphone/api/access/password/login',
     '/iphone/api/access/recovery/login',

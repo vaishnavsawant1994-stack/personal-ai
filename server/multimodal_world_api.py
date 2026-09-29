@@ -15,7 +15,7 @@ def multimodal_world_router(runtime):
     def authenticate(device_id: str | None, token: str | None):
         if not device_id or not token or not registry.authenticate(device_id, token):
             raise HTTPException(401, 'This browser is not trusted or its device credential was revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, 'ai:chat'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, 'ai:chat'):
             raise HTTPException(403, 'This device is not permitted to inspect Personal AI world context')
         context = current_trusted_request()
         if context is None:
@@ -83,7 +83,7 @@ def multimodal_world_router(runtime):
         pa_token: str | None = Cookie(default=None),
     ):
         device_id = authenticate(pa_device, pa_token)
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, 'memory:write'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, 'memory:write'):
             raise HTTPException(403, 'This device is not permitted to delete owner context')
         visible = world.inspect(observation_id, allowed_classifications=classifications(device_id))
         if visible is None:

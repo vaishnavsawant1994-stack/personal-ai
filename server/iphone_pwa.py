@@ -125,7 +125,7 @@ class IphonePwaState:
                 self._cancel.pop(device_id, None)
 
 
-def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool = True):
+def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool = False):
     router = APIRouter(prefix='/iphone', tags=['iphone-pwa'])
     state = IphonePwaState()
     web_dir = Path(settings.base_dir) / 'pwa'
@@ -153,17 +153,23 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
             max_age=60 * 60 * 24 * cookie_days,
         )
 
+    def forwarded_proto(request: Request) -> str:
+        if not getattr(settings, 'iphone_trust_forwarded_proto', False):
+            return ''
+        return request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
+
     def require_https(request: Request):
-        forwarded = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
-        scheme = forwarded or request.url.scheme.lower()
+        scheme = forwarded_proto(request) or request.url.scheme.lower()
         if scheme != 'https' and not getattr(settings, 'iphone_pwa_allow_insecure', False):
             raise HTTPException(400, 'iPhone owner enrollment requires HTTPS')
 
     def request_identity(request: Request):
-        forwarded_host = request.headers.get('x-forwarded-host', '').split(',')[0].strip()
+        forwarded_host = ''
+        if getattr(settings, 'iphone_trust_forwarded_proto', False):
+            forwarded_host = request.headers.get('x-forwarded-host', '').split(',')[0].strip()
         host = forwarded_host or request.headers.get('host', '').strip()
-        forwarded_proto = request.headers.get('x-forwarded-proto', '').split(',')[0].strip().lower()
-        proto = forwarded_proto or request.url.scheme.lower()
+        forwarded_proto_value = forwarded_proto(request)
+        proto = forwarded_proto_value or request.url.scheme.lower()
         if not host or proto != 'https':
             raise HTTPException(400, 'Secure HTTPS origin required')
         rp_id = host.rsplit(':', 1)[0] if host.count(':') == 1 else host.strip('[]')
@@ -228,7 +234,7 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
             raise HTTPException(401, 'iPhone session is not enrolled or has been revoked')
         if not registry.is_active(device_id):
             raise HTTPException(401, 'iPhone device is revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, 'ai:chat'):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, 'ai:chat'):
             raise HTTPException(403, 'This device is not permitted to use conversation or voice')
         return device_id
 
@@ -301,6 +307,14 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
     @router.get('/sw.js', include_in_schema=False)
     def service_worker():
         return Response((web_dir / 'sw.js').read_text(encoding='utf-8'), media_type='application/javascript', headers={'Cache-Control': 'no-cache'})
+
+    @router.get('/api/stage11/identity')
+    def stage11_identity():
+        from qualification.stage11_identity import public_identity
+        body, code = public_identity()
+        if code != 200:
+            raise HTTPException(code, body)
+        return body
 
     @router.get('/api/status')
     def status(
@@ -594,10 +608,20 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
         return {'ok': True, 'device_id': device['id']}
 
     @router.post('/api/logout')
-    def logout(response: Response):
+    def logout(
+        response: Response,
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        device_id = auth_device(pa_device, pa_token)
+        registry.revoke(device_id)
+        sessions = runtime.get('pwa_sessions')
+        if sessions is not None and hasattr(sessions, 'revoke_device'):
+            sessions.revoke_device(device_id)
         response.delete_cookie('pa_device', path='/iphone')
         response.delete_cookie('pa_token', path='/iphone')
-        return {'ok': True}
+        emit('iphone.logout', device_id=device_id)
+        return {'ok': True, 'revoked': True, 'device_id': device_id}
 
     @router.post('/api/voice/turn')
     async def voice_turn(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import HTMLResponse
 
 
@@ -8,7 +8,18 @@ def capability_console_router(runtime):
     router = APIRouter(prefix='/capabilities', tags=['capability-console'])
 
     @router.get('/api/status')
-    def status():
+    def status(
+        authorization: str | None = Header(default=None),
+        x_device_id: str | None = Header(default=None),
+    ):
+        registry = runtime.get('device_registry') if runtime else None
+        if registry is None or not x_device_id:
+            raise HTTPException(401, 'Device identity required')
+        token = (authorization or '').removeprefix('Bearer ').strip()
+        if not token or not registry.authenticate(x_device_id, token):
+            raise HTTPException(401, 'Unauthorized')
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(x_device_id, 'device:read'):
+            raise HTTPException(403, 'Device is not permitted to read capability status')
         future = runtime.get('future_intelligence')
         phases = future.status() if future is not None else {}
         return {
@@ -53,6 +64,6 @@ h1{font-size:32px;line-height:1.05;margin:12px 0 8px}.sub{color:#9ba6b8;line-hei
 <script>
 const descriptions={p4:'Everyday Personal Intelligence · briefing, goals, reminders, follow-ups, attention and context.',p5:'Deep Second Brain · Life Graph, timeline, causal relationships and evidence-backed decision context.',p6:'Autonomous Personal Operations · long-horizon plans with governed approval boundaries.',p7:'Multimodal World Understanding · screen, camera, image, document, audio, location, sensors and wearables.',p8:'Personal AI Everywhere · unified identity and continuity across device surfaces.',p9:'Sovereign / Hybrid Intelligence · privacy-aware local, private and cloud model routing.',p10:'Advanced Autonomous Intelligence · agents, long-horizon planning, evaluation, learning and strategy.'};
 const names={p4:'P4 · Everyday Intelligence',p5:'P5 · Deep Second Brain',p6:'P6 · Personal Operations',p7:'P7 · World Understanding',p8:'P8 · Everywhere',p9:'P9 · Hybrid Intelligence',p10:'P10 · Advanced Intelligence'};
-async function load(){try{const r=await fetch('/capabilities/api/status',{cache:'no-store'});const d=await r.json();document.getElementById('runtime').textContent=d.runtime_ready?'Runtime online':'Runtime unavailable';const g=document.getElementById('grid');g.innerHTML='';for(const key of ['p4','p5','p6','p7','p8','p9','p10']){const p=d.phases[key]||{};const active=String(p.activation||'').toLowerCase()==='safe-now';const el=document.createElement('article');el.className='card';el.innerHTML=`<div class="top"><div class="phase">${names[key]}</div><div class="state ${active?'ok':'locked'}">${active?'SAFE NOW':'GATED'}</div></div><div class="desc">${descriptions[key]}</div><div class="foundation"><span class="chip">Implemented: ${p.implemented===true?'yes':'no'}</span><span class="chip">${p.activation||'status unavailable'}</span></div>`;g.appendChild(el)}document.getElementById('footer').textContent=d.qualification_notice+' · P3 recorder: '+(d.p3_qualification_present?'present':'missing')+' · Second Brain: '+(d.second_brain_present?'present':'missing')+' · Continuity: '+(d.continuity_present?'present':'missing')+' · Automation: '+(d.automation_present?'present':'missing');}catch(e){document.getElementById('runtime').textContent='Unavailable';document.getElementById('footer').textContent='Could not read runtime status: '+e.message}}
+async function load(){try{const r=await fetch('/capabilities/api/status',{cache:'no-store'});if(!r.ok){document.getElementById('runtime').textContent='Sign-in required';document.getElementById('footer').textContent='Capability status requires a trusted device session.';return}const d=await r.json();document.getElementById('runtime').textContent=d.runtime_ready?'Runtime online':'Runtime unavailable';const g=document.getElementById('grid');g.innerHTML='';for(const key of ['p4','p5','p6','p7','p8','p9','p10']){const p=d.phases[key]||{};const active=String(p.activation||'').toLowerCase()==='safe-now';const el=document.createElement('article');el.className='card';el.innerHTML=`<div class="top"><div class="phase">${names[key]}</div><div class="state ${active?'ok':'locked'}">${active?'SAFE NOW':'GATED'}</div></div><div class="desc">${descriptions[key]}</div><div class="foundation"><span class="chip">Implemented: ${p.implemented===true?'yes':'no'}</span><span class="chip">${p.activation||'status unavailable'}</span></div>`;g.appendChild(el)}document.getElementById('footer').textContent=d.qualification_notice+' · P3 recorder: '+(d.p3_qualification_present?'present':'missing')+' · Second Brain: '+(d.second_brain_present?'present':'missing')+' · Continuity: '+(d.continuity_present?'present':'missing')+' · Automation: '+(d.automation_present?'present':'missing');}catch(e){document.getElementById('runtime').textContent='Unavailable';document.getElementById('footer').textContent='Could not read runtime status: '+e.message}}
 load();setInterval(load,15000);
 </script></main></body></html>'''

@@ -20,7 +20,7 @@ def test_android_release_surface_uses_secure_cloud_and_custom_tabs():
 def test_android_workflow_retains_installable_apk():
     workflow = (ROOT / ".github/workflows/android.yml").read_text()
     assert "app-debug.apk" in workflow
-    assert "actions/upload-artifact@v4" in workflow
+    assert "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2" in workflow
     assert "SHA256SUMS.txt" in workflow
 
 

@@ -184,7 +184,7 @@ def test_vector_owner_isolation(tmp_path):
 
 def test_knowledge_source_identity_and_provenance(tmp_path):
     _, knowledge = knowledge_stack(tmp_path)
-    doc = knowledge.ingest(filename='a.txt', data=b'alpha', source='google-drive:file-1')
+    doc = knowledge.ingest(filename='a.txt', data=b'alpha', source='google-drive:file-1', access_class='private')
     evidence = knowledge.source_evidence(doc['id'])
     assert evidence[0]['external_ref'] == 'file-1' and evidence[0]['source_type'] == 'google-drive'
 
@@ -216,7 +216,7 @@ def test_knowledge_access_class_is_preserved(tmp_path, access_class):
 
 def test_disconnect_disables_retrieval_but_retains_by_default(tmp_path):
     store, knowledge = knowledge_stack(tmp_path)
-    doc = knowledge.ingest(filename='a.txt', data=b'Project Atlas launch', source='google-drive:file-1')
+    doc = knowledge.ingest(filename='a.txt', data=b'Project Atlas launch', source='google-drive:file-1', access_class='private')
     sid = knowledge.source_evidence(doc['id'])[0]['id']
     assert knowledge.search('Atlas') and knowledge.disconnect_source(sid)
     assert knowledge.search('Atlas') == [] and store.detail(doc['id'])
@@ -225,15 +225,15 @@ def test_disconnect_disables_retrieval_but_retains_by_default(tmp_path):
 def test_delete_disconnect_policy_removes_unshared_doc(tmp_path):
     store, knowledge = knowledge_stack(tmp_path)
     knowledge.ensure_source('google-drive:file-1', disconnect_policy='delete')
-    doc = knowledge.ingest(filename='a.txt', data=b'alpha', source='google-drive:file-1', metadata={'disconnect_policy':'delete'})
+    doc = knowledge.ingest(filename='a.txt', data=b'alpha', source='google-drive:file-1', metadata={'disconnect_policy':'delete'}, access_class='private')
     sid = knowledge.source_evidence(doc['id'])[0]['id']; knowledge.disconnect_source(sid)
     assert store.detail(doc['id']) is None
 
 
 def test_same_content_distinct_sources_preserve_both_provenances(tmp_path):
     _, knowledge = knowledge_stack(tmp_path)
-    a = knowledge.ingest(filename='a.txt', data=b'same', source='google-drive:file-1')
-    b = knowledge.ingest(filename='b.txt', data=b'same', source='google-drive:file-2')
+    a = knowledge.ingest(filename='a.txt', data=b'same', source='google-drive:file-1', access_class='private')
+    b = knowledge.ingest(filename='b.txt', data=b'same', source='google-drive:file-2', access_class='private')
     assert a['id'] == b['id']
     assert {x['external_ref'] for x in knowledge.source_evidence(a['id'])} == {'file-1','file-2'}
 

@@ -31,6 +31,14 @@ class Registry:
         return self.tokens.get(device_id) == token
     def is_active(self, device_id):
         return device_id in self.active
+    def authorize(self, device_id, scope):
+        return device_id in self.active
+    def revoke(self, device_id):
+        if device_id not in self.tokens:
+            return False
+        self.tokens.pop(device_id, None)
+        self.active.discard(device_id)
+        return True
 
 
 class Executor:
@@ -306,7 +314,7 @@ def test_voice_tool_request_returns_owner_approval_instead_of_http_500(tmp_path)
         base_dir=Path(__file__).resolve().parent.parent,
         iphone_owner_enrollment_code='this-is-a-long-owner-code',
         iphone_pwa_allow_insecure=False,
-    )))
+    ), include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
 
@@ -366,7 +374,7 @@ def test_pwa_approval_recovers_from_ephemeral_cache_loss_using_canonical_context
         iphone_pwa_allow_insecure=False,
     )
     app = FastAPI()
-    app.include_router(iphone_pwa_router(runtime, settings))
+    app.include_router(iphone_pwa_router(runtime, settings, include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     pending = client.post('/iphone/api/voice/turn', json={'transcript': 'search the web'})
@@ -375,7 +383,7 @@ def test_pwa_approval_recovers_from_ephemeral_cache_loss_using_canonical_context
     # Recreate the router to simulate process/router-local cache loss while the
     # canonical durable approval remains pending.
     reloaded = FastAPI()
-    reloaded.include_router(iphone_pwa_router(runtime, settings))
+    reloaded.include_router(iphone_pwa_router(runtime, settings, include_legacy_runtime_routes=True))
     reloaded_client = TestClient(reloaded, base_url='https://testserver')
     reloaded_client.cookies.update(client.cookies)
     approved = reloaded_client.post('/iphone/api/approval/approval-durable/approve', json={})
@@ -405,7 +413,7 @@ def test_pwa_approval_cache_cannot_cross_device_binding(tmp_path):
         iphone_pwa_allow_insecure=False,
     )
     app = FastAPI()
-    app.include_router(iphone_pwa_router(runtime, settings))
+    app.include_router(iphone_pwa_router(runtime, settings, include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     response = client.post('/iphone/api/approval/approval-durable/approve', json={})
@@ -425,7 +433,7 @@ def test_unavailable_tool_returns_safe_error_instead_of_http_500(tmp_path):
         base_dir=Path(__file__).resolve().parent.parent,
         iphone_owner_enrollment_code='this-is-a-long-owner-code',
         iphone_pwa_allow_insecure=False,
-    )))
+    ), include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
 
@@ -450,7 +458,7 @@ def test_cancelled_http_error_is_not_reclassified_as_tool_error(tmp_path):
         base_dir=Path(__file__).resolve().parent.parent,
         iphone_owner_enrollment_code='this-is-a-long-owner-code',
         iphone_pwa_allow_insecure=False,
-    )))
+    ), include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     response = client.post('/iphone/api/voice/turn', json={'transcript': 'cancel'})
@@ -576,7 +584,7 @@ def test_model_unavailable_is_a_safe_explicit_state(tmp_path):
         base_dir=Path(__file__).resolve().parent.parent,
         iphone_owner_enrollment_code='this-is-a-long-owner-code',
         iphone_pwa_allow_insecure=False,
-    )))
+    ), include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     response = client.post('/iphone/api/voice/turn', json={'transcript': 'hello'})
@@ -598,7 +606,7 @@ def test_model_timeout_is_not_reported_as_http_500(tmp_path):
         base_dir=Path(__file__).resolve().parent.parent,
         iphone_owner_enrollment_code='this-is-a-long-owner-code',
         iphone_pwa_allow_insecure=False,
-    )))
+    ), include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='https://testserver')
     client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     response = client.post('/iphone/api/voice/turn', json={'transcript': 'hello'})
@@ -621,10 +629,17 @@ def test_plain_http_enrollment_fails_closed(tmp_path):
         'voice_qualification': Recorder(),
         'owner_access': OwnerAccessStore(tmp_path / 'owner-access.sqlite3'),
     }
-    app = FastAPI(); app.include_router(iphone_pwa_router(runtime, settings))
+    app = FastAPI(); app.include_router(iphone_pwa_router(runtime, settings, include_legacy_runtime_routes=True))
     client = TestClient(app, base_url='http://testserver')
     response = client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
     assert response.status_code == 400
+    forged = client.post(
+        '/iphone/api/enroll',
+        json={'code': 'this-is-a-long-owner-code'},
+        headers={'x-forwarded-proto': 'https'},
+    )
+    assert forged.status_code == 400
+    assert runtime['device_registry'].active == set()
 
 
 def test_conversation_survives_reload_and_continues_across_trusted_browsers(tmp_path):

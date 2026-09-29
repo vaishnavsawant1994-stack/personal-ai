@@ -165,7 +165,7 @@ def create_app(
         token = (authorization or '').removeprefix('Bearer ').strip()
         if not token or not device_registry.authenticate(device_id, token):
             raise HTTPException(401, 'Unauthorized')
-        if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, scope):
+        if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(device_id, scope):
             raise HTTPException(403, f'Device is not permitted to use {scope}')
         return device_id
 
@@ -292,9 +292,6 @@ def create_app(
         device_id = auth_device(authorization, x_device_id)
         return {'reply': executor.chat(body.text, device_id=device_id, request_id=body.request_id)}
 
-    # ------------------------------------------------------------------
-    # P2 trusted-device capability API
-    # ------------------------------------------------------------------
     @app.post('/continuity/resume')
     def continuity_resume(
         body: ContinuityResumeBody,
@@ -352,13 +349,35 @@ def create_app(
         device_id = auth_device(authorization, x_device_id)
         if not device_registry.is_active(body.to_device):
             raise HTTPException(404, 'Target device is not trusted/active')
-        if hasattr(device_registry, 'authorize') and not device_registry.authorize(body.to_device, 'ai:chat'):
+        if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(body.to_device, 'ai:chat'):
             raise HTTPException(403, 'Target device is not permitted to receive continuity handoff')
         service = require_runtime('continuity')
         active = service.active_for_device(device_id)
         if not active or active['id'] != body.thread_id:
             raise HTTPException(403, 'Source device is not active in the requested continuity thread')
-        return service.handoff(body.thread_id, from_device=device_id, to_device=body.to_device)
+
+        def handoff_authority_guard():
+            if not device_registry.is_active(device_id):
+                raise PermissionError('Source device is no longer trusted/active')
+            if not device_registry.is_active(body.to_device):
+                raise PermissionError('Target device is no longer trusted/active')
+            authorize = getattr(device_registry, 'authorize', None)
+            if not callable(authorize):
+                raise PermissionError('Device scope authorization is unavailable')
+            if not authorize(device_id, 'ai:chat'):
+                raise PermissionError('Source device is no longer permitted to use ai:chat')
+            if not authorize(body.to_device, 'ai:chat'):
+                raise PermissionError('Target device is no longer permitted to use ai:chat')
+
+        try:
+            return service.handoff(
+                body.thread_id,
+                from_device=device_id,
+                to_device=body.to_device,
+                authority_guard=handoff_authority_guard,
+            )
+        except PermissionError as exc:
+            raise HTTPException(403, str(exc)) from exc
 
     @app.post('/proactive/consider')
     def proactive_consider(
@@ -385,8 +404,9 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id, 'workflow:read')
-        return require_runtime('automations').workflows()
+        device_id = auth_device(authorization, x_device_id, 'workflow:read')
+        rows = require_runtime('automations').workflows()
+        return [row for row in rows if row.get('created_device_id') == device_id]
 
     @app.get('/workflows/runs')
     def workflow_runs(
@@ -399,8 +419,10 @@ def create_app(
         engine = require_runtime('automations')
         rows = engine.runs(workflow_id, max(1, min(int(limit), 500)))
         binding_reader = getattr(engine, 'run_binding', None)
+        # Fail closed: without binding metadata the legacy transport must not
+        # disclose workflow-run rows to an authenticated device.
         if not callable(binding_reader):
-            return rows
+            raise HTTPException(503, 'Workflow run binding authority is unavailable')
         visible = []
         for row in rows:
             binding = binding_reader(row.get('id'))
@@ -410,8 +432,6 @@ def create_app(
                 continue
             if binding.get('device_id') not in (None, device_id):
                 continue
-            # This legacy bearer-token transport has no browser session
-            # authority. Never expose a run that is explicitly session-bound.
             if binding.get('session_id') is not None:
                 continue
             visible.append(row)
@@ -423,7 +443,7 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_device_id: str | None = Header(default=None),
     ):
-        auth_device(authorization, x_device_id, 'workflow:write')
+        device_id = auth_device(authorization, x_device_id, 'workflow:write')
         trigger = bounded_mapping(body.trigger)
         steps = [bounded_mapping(step, max_bytes=32768) for step in body.steps]
         workflow_id = require_runtime('automations').create_workflow(
@@ -432,6 +452,8 @@ def create_app(
             steps,
             next_run_at=body.next_run_at,
             interval_seconds=body.interval_seconds,
+            owner_id='owner',
+            device_id=device_id,
         )
         return {'workflow_id': workflow_id}
 
@@ -506,9 +528,6 @@ def create_app(
             return benchmark.run_all()
         return benchmark.run(body.capability.strip())
 
-    # ------------------------------------------------------------------
-    # Cloud relay API
-    # ------------------------------------------------------------------
     @app.post('/cloud/session')
     def cloud_session(body: SessionStart):
         return result(require_cloud().issue_session(body.device_id, body.device_token))
@@ -583,8 +602,6 @@ def create_app(
                 initial = relay.status(session).payload
                 yield f"data: {json.dumps({'event': 'status', **initial}, separators=(',', ':'))}\n\n"
                 while not await request.is_disconnected():
-                    # A long-lived stream must not outlive the canonical session or
-                    # trusted-device authority that opened it.
                     if relay._live_session(session) is None:
                         break
                     try:
@@ -617,7 +634,7 @@ def create_app(
         seen = set()
         for entry in rows:
             payload = entry.get('payload') or {}
-            identity_kind = next((key for key in ('execution_id','run_id','approval_id') if payload.get(key)), None)
+            identity_kind = next((key for key in ('execution_id', 'run_id', 'approval_id') if payload.get(key)), None)
             if not identity_kind:
                 continue
             identity = str(payload[identity_kind])[:200]
@@ -625,8 +642,20 @@ def create_app(
             if key in seen:
                 continue
             seen.add(key)
-            safe_payload = {key: payload.get(key) for key in ('execution_id','run_id','approval_id','tool','status','verified','failure_code') if key in payload}
-            output.append({'activity_id': f'{identity_kind}:{identity}', 'identity_kind': identity_kind, 'identity': identity, 'category': str(entry.get('category') or '')[:80], 'action': str(entry.get('action') or '')[:80], 'created_at': entry.get('created_at'), 'payload': safe_payload})
+            safe_payload = {
+                key: payload.get(key)
+                for key in ('execution_id', 'run_id', 'approval_id', 'tool', 'status', 'verified', 'failure_code')
+                if key in payload
+            }
+            output.append({
+                'activity_id': f'{identity_kind}:{identity}',
+                'identity_kind': identity_kind,
+                'identity': identity,
+                'category': str(entry.get('category') or '')[:80],
+                'action': str(entry.get('action') or '')[:80],
+                'created_at': entry.get('created_at'),
+                'payload': safe_payload,
+            })
             if len(output) >= max(1, min(int(limit), 200)):
                 break
         return {'activities': output}
@@ -639,7 +668,20 @@ def create_app(
             raise HTTPException(404, 'approval unavailable')
         if context.get('device_id') not in (None, session.device_id):
             raise HTTPException(403, 'approval device mismatch')
-        return {key: context.get(key) for key in ('approval_id','execution_id','device_id','conversation_id','tool','expires_at','security_epoch','destination','data_classification')}
+        return {
+            key: context.get(key)
+            for key in (
+                'approval_id',
+                'execution_id',
+                'device_id',
+                'conversation_id',
+                'tool',
+                'expires_at',
+                'security_epoch',
+                'destination',
+                'data_classification',
+            )
+        }
 
     @app.post('/cloud/approval')
     def cloud_approval(body: ApprovalDecision, authorization: str | None = Header(default=None)):
@@ -659,7 +701,7 @@ def create_app(
         if not device_registry or not token or not device_registry.authenticate(device_id, token):
             await ws.close(code=4401)
             return
-        if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, 'ai:chat'):
+        if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(device_id, 'ai:chat'):
             await ws.close(code=4403)
             return
         await ws.accept()
@@ -671,15 +713,12 @@ def create_app(
         try:
             while True:
                 message = await ws.receive_json()
-                # WebSocket authentication is not durable authority. A device can be
-                # revoked after the transport is established, so revalidate trust
-                # before processing any message that could mutate canonical state.
                 if not device_registry or not device_registry.is_active(device_id):
                     if device_gateway:
                         device_gateway.disconnect(device_id)
                     await ws.close(code=4401)
                     break
-                if hasattr(device_registry, 'authorize') and not device_registry.authorize(device_id, 'ai:chat'):
+                if not callable(getattr(device_registry, 'authorize', None)) or not device_registry.authorize(device_id, 'ai:chat'):
                     if device_gateway:
                         device_gateway.disconnect(device_id)
                     await ws.close(code=4403)

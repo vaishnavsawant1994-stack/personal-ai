@@ -427,3 +427,48 @@ def test_stage8_legacy_workflow_run_listing_respects_persisted_device_binding(tm
     )
     assert foreign.status_code == 200
     assert run_id not in {row['id'] for row in foreign.json()}
+
+
+
+def test_stage8_legacy_handoff_target_revoked_at_precommit_boundary_leaves_no_residue(tmp_path, monkeypatch):
+    client, runtime, registry = build_client(tmp_path)
+    source, source_token = registry.enroll('Source race', 'ios')
+    target, _ = registry.enroll('Target race', 'windows')
+    thread_id = runtime['continuity'].resume(source['id'])['thread']['id']
+
+    with runtime['continuity'].lock, runtime['continuity']._con() as con:
+        before = con.execute(
+            'SELECT active_thread_id,last_event_id FROM continuity_device_state WHERE device_id=?',
+            (target['id'],),
+        ).fetchone()
+    assert before is None or before['active_thread_id'] is None
+
+    original_handoff = runtime['continuity'].handoff
+
+    def revoke_after_route_precheck(thread_id, *, from_device, to_device, authority_guard=None):
+        registry.revoke(to_device)
+        return original_handoff(
+            thread_id,
+            from_device=from_device,
+            to_device=to_device,
+            authority_guard=authority_guard,
+        )
+
+    monkeypatch.setattr(runtime['continuity'], 'handoff', revoke_after_route_precheck)
+    response = client.post(
+        '/continuity/handoff',
+        json={'thread_id': thread_id, 'to_device': target['id']},
+        headers=auth_headers(source, source_token),
+    )
+
+    assert response.status_code == 403
+    with runtime['continuity'].lock, runtime['continuity']._con() as con:
+        after = con.execute(
+            'SELECT active_thread_id,last_event_id FROM continuity_device_state WHERE device_id=?',
+            (target['id'],),
+        ).fetchone()
+    assert after is None or after['active_thread_id'] is None
+    assert [
+        event for event in runtime['continuity'].events_for_thread(thread_id)
+        if event['kind'] == 'handoff'
+    ] == []

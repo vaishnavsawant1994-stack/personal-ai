@@ -20,7 +20,7 @@ def workflow_budget_router(runtime):
     def authenticate(device_id: str | None, token: str | None, scope: str):
         if not device_id or not token or not registry.authenticate(device_id, token):
             raise HTTPException(401, 'This browser is not trusted or its session was revoked')
-        if hasattr(registry, 'authorize') and not registry.authorize(device_id, scope):
+        if not callable(getattr(registry, 'authorize', None)) or not registry.authorize(device_id, scope):
             raise HTTPException(403, f'This device is not permitted to use {scope}')
         return device_id
 
