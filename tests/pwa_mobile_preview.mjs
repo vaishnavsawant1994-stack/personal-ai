@@ -26,12 +26,12 @@ try {
   await page.waitForFunction(() => !document.querySelector("#voicePanel").classList.contains("hidden"));
   await page.evaluate(() => {
     document.querySelector("#stateLabel").textContent = "Ready";
-    document.querySelector("#status").textContent = "";
+    document.querySelector("#status").textContent = "Tap the microphone once and speak naturally.";
     const stream = document.querySelector("#messageStream");
     const fixture = [
-      ["assistant", "Hi, Vaishnav. What would you like to work on?"],
-      ["user", "Help me plan my week."],
-      ["assistant", "Tell me your priorities and I’ll organize them into a clear weekly plan."],
+      ["assistant", "Hi! I can help answer questions, explain how features work, organize information, write and summarize content, and support your day-to-day planning.\n\nHow can I assist you today?"],
+      ["user", "What is in your whole system, and how does everything work inside you?"],
+      ["assistant", "At a high level, I’m your personal AI. I can help with questions, planning, writing, and organizing your knowledge. Tell me what you’d like to explore, and I’ll explain it step by step."],
     ];
     for (const [role, text] of fixture) {
       const message = document.createElement("div");
