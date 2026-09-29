@@ -1,5 +1,19 @@
 # Personal AI
 
+<!-- repository-profile:start -->
+## Repository profile
+
+**Purpose:** Dated recovery/continuity snapshot of the Personal AI codebase, covering desktop, server, mobile/PWA, memory, knowledge, models, agents, tools, devices, automation, security, recovery, voice, and packaging foundations.
+
+**Core contents:** Python/PyQt6 desktop application, FastAPI control surface, model routing, SQLite-backed product data, memory and knowledge systems, governed tools/autonomy, companion/PWA areas, device pairing, audit/events, tests, qualification material, and deployment/packaging directories.
+
+**Canonical-source warning:** The repository name explicitly identifies a 28 September 2026 snapshot. This account also contains an empty `personal-ai-placeholder-empty` repository, but no repository named `personal-ai`. Do not assume this snapshot is the canonical continuation point until source provenance, complete Git history, branches/tags, CI evidence, and the owner decision are recorded.
+
+**Security note:** This repository is public. Keep secrets, owner keys, production credentials, personal data, and private deployment configuration out of Git history.
+
+**Recommended next milestone:** Establish the canonical Personal AI repository and exact accepted checkpoint, then mark this snapshot read-only or archive it after continuity is proven.
+<!-- repository-profile:end -->
+
 Independent personal AI assistant codebase designed from scratch.
 
 ## Current integrated product
