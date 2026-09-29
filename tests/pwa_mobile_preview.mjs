@@ -72,13 +72,13 @@ try {
         messages: rect("#messageStream"),
         composer: rect("#composer"),
         nav: rect(".nav"),
-        navLabels: [...document.querySelectorAll(".nav button span")].map(item => {
-          const r = item.getBoundingClientRect();
-          return { text: item.textContent, display: getComputedStyle(item).display, width: r.width, height: r.height };
-        }),
-      };
+        visibleLabels: [...document.querySelectorAll(".nav button")]
+          .filter(item => item.getBoundingClientRect().width > 0)
+          .map(item => item.querySelector("span")?.textContent.trim()),
+
     });
     console.log(`layout diagnostics ${width}x${height}: ${JSON.stringify({data,pageErrors})}`);
+    assert.deepEqual(data.visibleLabels, ["Home", "Memory", "Knowledge", "Activities", "More"], `wrong visible nav labels at ${width}x${height}`);
     assert.ok(data.documentWidth <= data.viewportWidth, `horizontal overflow at ${width}x${height}`);
     assert.ok(data.core.height > 0 && data.canvas.height > 0, `Core missing at ${width}x${height}`);
     assert.ok(data.messages.height > 0, `message viewport missing at ${width}x${height}`);
