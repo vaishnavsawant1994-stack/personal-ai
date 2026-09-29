@@ -46,11 +46,12 @@ try {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
   });
-  await page.waitForTimeout(350);
+  await page.waitForTimeout(500);
   await page.screenshot({ path: "artifacts/personal-ai-iphone-390x844.png" });
+
   const checkLayout = async (width, height) => {
     await page.setViewportSize({ width, height });
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(150);
     const data = await page.evaluate(() => {
       const rect = selector => {
         const r = document.querySelector(selector).getBoundingClientRect();
@@ -63,6 +64,9 @@ try {
       for (let i = 0; i < pixels.length; i += 4) {
         if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) canvasInk++;
       }
+      const visibleLabels = [...document.querySelectorAll(".nav button")]
+        .filter(item => item.getBoundingClientRect().width > 0)
+        .map(item => item.querySelector("span")?.textContent.trim());
       return {
         canvasInk,
         viewportWidth: innerWidth,
@@ -72,10 +76,8 @@ try {
         messages: rect("#messageStream"),
         composer: rect("#composer"),
         nav: rect(".nav"),
-        visibleLabels: [...document.querySelectorAll(".nav button")]
-          .filter(item => item.getBoundingClientRect().width > 0)
-          .map(item => item.querySelector("span")?.textContent.trim()),
-
+        visibleLabels,
+      };
     });
     console.log(`layout diagnostics ${width}x${height}: ${JSON.stringify({data,pageErrors})}`);
     assert.deepEqual(data.visibleLabels, ["Home", "Memory", "Knowledge", "Activities", "More"], `wrong visible nav labels at ${width}x${height}`);
@@ -84,8 +86,6 @@ try {
     assert.ok(data.messages.height > 0, `message viewport missing at ${width}x${height}`);
     assert.ok(data.canvasInk > 200, `neural mesh did not paint at ${width}x${height}`);
     assert.ok(data.composer.bottom < data.nav.top, `composer overlaps nav at ${width}x${height}`);
-    console.log(`viewport ${width}x${height}: ${JSON.stringify(data)}`);
-    return data;
   };
   await checkLayout(320, 568);
   await checkLayout(390, 844);
