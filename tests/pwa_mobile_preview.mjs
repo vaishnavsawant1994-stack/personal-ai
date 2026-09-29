@@ -56,7 +56,15 @@ try {
         const r = document.querySelector(selector).getBoundingClientRect();
         return { top: r.top, bottom: r.bottom, width: r.width, height: r.height };
       };
+      const canvas = document.querySelector("#neuralCanvas");
+      const ctx = canvas.getContext("2d");
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let canvasInk = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) canvasInk++;
+      }
       return {
+        canvasInk,
         viewportWidth: innerWidth,
         documentWidth: document.documentElement.scrollWidth,
         core: rect(".core-stage"),
@@ -73,6 +81,7 @@ try {
     assert.ok(data.documentWidth <= data.viewportWidth, `horizontal overflow at ${width}x${height}`);
     assert.ok(data.core.height > 0 && data.canvas.height > 0, `Core missing at ${width}x${height}`);
     assert.ok(data.messages.height > 0, `message viewport missing at ${width}x${height}`);
+    assert.ok(data.canvasInk > 200, `neural mesh did not paint at ${width}x${height}`);
     assert.ok(data.composer.bottom < data.nav.top, `composer overlaps nav at ${width}x${height}`);
     console.log(`viewport ${width}x${height}: ${JSON.stringify(data)}`);
     return data;
