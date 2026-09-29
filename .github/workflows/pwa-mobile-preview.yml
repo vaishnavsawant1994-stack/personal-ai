@@ -35,8 +35,9 @@ jobs:
           curl --fail --silent http://127.0.0.1:4173/iphone/ >/dev/null
           node tests/pwa_mobile_preview.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: personal-ai-mobile-preview
           path: artifacts/personal-ai-iphone-390x844.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
