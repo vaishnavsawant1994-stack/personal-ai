@@ -47,6 +47,16 @@ try {
     return canvas.width > 0 && canvas.height > 0;
   });
   await page.waitForTimeout(500);
+  const initialCanvasInk = await page.evaluate(() => {
+    const canvas = document.querySelector("#neuralCanvas");
+    const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let ink = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) ink++;
+    }
+    return ink;
+  });
+  assert.ok(initialCanvasInk > 200, "neural mesh did not paint at 390x844");
   await page.screenshot({ path: "artifacts/personal-ai-iphone-390x844.png" });
 
   const checkLayout = async (width, height) => {
@@ -58,17 +68,10 @@ try {
         return { top: r.top, bottom: r.bottom, width: r.width, height: r.height };
       };
       const canvas = document.querySelector("#neuralCanvas");
-      const ctx = canvas.getContext("2d");
-      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let canvasInk = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) canvasInk++;
-      }
       const visibleLabels = [...document.querySelectorAll(".nav button")]
         .filter(item => item.getBoundingClientRect().width > 0)
         .map(item => item.querySelector("span")?.textContent.trim());
       return {
-        canvasInk,
         viewportWidth: innerWidth,
         documentWidth: document.documentElement.scrollWidth,
         core: rect(".core-stage"),
@@ -84,7 +87,6 @@ try {
     assert.ok(data.documentWidth <= data.viewportWidth, `horizontal overflow at ${width}x${height}`);
     assert.ok(data.core.height > 0 && data.canvas.height > 0, `Core missing at ${width}x${height}`);
     assert.ok(data.messages.height > 0, `message viewport missing at ${width}x${height}`);
-    assert.ok(data.canvasInk > 200, `neural mesh did not paint at ${width}x${height}`);
     assert.ok(data.composer.bottom < data.nav.top, `composer overlaps nav at ${width}x${height}`);
   };
   await checkLayout(320, 568);
