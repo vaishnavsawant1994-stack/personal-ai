@@ -9,7 +9,7 @@ import threading
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Cookie, HTTPException, Request, Response
+from fastapi import APIRouter, Cookie, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 from google.auth.transport.requests import Request as GoogleAuthRequest
@@ -857,11 +857,13 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
     @router.delete('/api/conversations/{conversation_id}')
     def conversation_delete(
         conversation_id: str,
-        confirm: Literal[True],
+        confirm: bool = Query(default=False),
         pa_device: str | None = Cookie(default=None),
         pa_token: str | None = Cookie(default=None),
     ):
         device_id = auth_device(pa_device, pa_token)
+        if not confirm:
+            raise HTTPException(422, 'Explicit conversation deletion confirmation is required')
         if continuity is None:
             raise HTTPException(503, 'Conversation continuity is unavailable')
         thread = continuity.thread(conversation_id)
