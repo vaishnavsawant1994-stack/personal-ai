@@ -775,6 +775,69 @@
     .timeline-detail-back,.timeline-detail-complete{display:block;width:100%;min-height:44px;margin:0 0 14px;padding:8px 10px;border:1px solid rgba(169,191,223,.2);border-radius:10px;color:#e9f0fa;background:#263348;font-size:.84rem;text-align:left;cursor:pointer}.timeline-detail-complete{background:#35614e;border-color:#7bc7a2;color:#f0fff8;text-align:center}
     @media(max-width:360px){.timeline-events::before{left:55px}.timeline-row,.timeline-now{grid-template-columns:44px 18px minmax(0,1fr)!important}.timeline-content{padding:8px 7px}}
 
+
+    /* Timeline V2 — compact controls, continuous time rail, distinct event hierarchy. */
+    .conversation-top{padding:max(11px,env(safe-area-inset-top)) 11px 0!important;border-bottom:1px solid rgba(178,196,221,.075)}
+    .conversation-manager-head{grid-template-columns:38px minmax(0,1fr) 38px!important;gap:7px!important;margin:0 0 7px!important;padding:0!important;min-height:39px!important}
+    .conversation-manager-heading h2{font-size:.98rem!important;letter-spacing:-.025em!important}
+    .conversation-manager-heading p{font-size:.65rem!important;margin-top:1px!important;color:#8c99aa!important}
+    .conversation-manager-head .conversation-close,.conversation-manager-head .conversation-header-new{width:38px!important;height:38px!important;min-height:38px!important;border:0!important;border-radius:11px!important;background:transparent!important;color:#cad5e4!important;display:grid!important;place-items:center!important;padding:0!important}
+    .conversation-manager-head .conversation-header-new{background:#282f3b!important;color:#e2eafa!important}
+    .conversation-manager-head .conversation-header-new:hover,.conversation-manager-head .conversation-header-new:focus-visible{background:#354354!important}
+    .conversation-manager-head .conversation-header-new svg{width:19px;height:19px}
+    .conversation-search-wrap{margin:0 0 7px!important}
+    .conversation-search{height:39px!important;border-radius:10px!important;padding-left:37px!important;background:#232a34!important;border-color:rgba(177,199,229,.12)!important}
+    .conversation-search-wrap>svg{left:12px;width:17px;height:17px}
+    .conversation-filters{margin:0 -11px!important;padding:0 11px 7px!important;gap:4px!important;mask-image:linear-gradient(90deg,#000 0%,#000 92%,transparent 100%);-webkit-mask-image:linear-gradient(90deg,#000 0%,#000 92%,transparent 100%)}
+    .conversation-filter{min-height:31px!important;padding:0 11px!important;border-radius:9px!important;font-size:.75rem!important;color:#a1adbd!important;transition:background .16s ease,color .16s ease}
+    .conversation-filter.active{background:#303948!important;color:#f2f5fa!important;box-shadow:inset 0 0 0 1px rgba(187,208,236,.08)}
+    .timeline-overview{min-height:36px;display:flex;gap:7px;align-items:center;justify-content:space-between;margin:0 -1px;padding:4px 2px 8px}
+    .timeline-overview .timeline-summary{order:1;min-width:0;margin:0!important;padding:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.67rem!important;color:#b5c6db!important;letter-spacing:-.01em}
+    .timeline-overview .timeline-summary::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#80cba9;box-shadow:0 0 0 3px rgba(128,203,169,.11);margin:0 9px 1px 2px}
+    .timeline-overview .conversation-count{order:2;flex:0 0 auto;min-width:0;margin:0!important;padding:0!important;min-height:auto!important;font-size:.63rem!important;font-weight:530;color:#8795a9!important;text-align:right;white-space:nowrap}
+    .conversation-list{padding:0 10px max(14px,env(safe-area-inset-bottom))!important;gap:0!important}
+    .timeline-group{margin:0 0 9px!important}
+    .timeline-day{position:sticky!important;top:0!important;z-index:2!important;margin:0!important;padding:11px 0 6px 4px!important;border:0!important;background:#171b23!important;font-size:.76rem!important;line-height:1.45!important;font-weight:660!important;letter-spacing:-.01em!important;color:#e5ebf4!important}
+    .timeline-day::before{content:"";display:inline-block;width:3px;height:12px;border-radius:3px;background:#84adf4;vertical-align:-1px;margin-right:9px}
+    .timeline-events{position:relative!important;padding:0 0 1px!important}
+    .timeline-events::before{left:55px!important;width:1.5px!important;top:5px!important;bottom:2px!important;background:linear-gradient(180deg,rgba(128,158,199,.34),rgba(140,166,202,.53) 22%,rgba(140,166,202,.53) 83%,rgba(128,158,199,.19))!important}
+    .timeline-row{min-height:70px!important;grid-template-columns:44px 18px minmax(0,1fr)!important;column-gap:4px!important;align-items:stretch!important;padding:3px 1px 7px 0!important;gap:0 4px!important;border-radius:9px!important}
+    .timeline-row:hover,.timeline-row:focus-visible{background:rgba(217,232,249,.025)!important}
+    .timeline-time{grid-column:1!important;align-self:start!important;padding-top:15px!important;font-size:.64rem!important;letter-spacing:-.02em;color:#9aacc4!important;line-height:1.3!important;font-weight:560!important;text-align:right!important;font-variant-numeric:tabular-nums}
+    .timeline-axis{grid-column:2!important;height:100%!important;min-height:54px!important}
+    .timeline-axis::before{left:2px!important;top:15px!important;width:11px!important;height:11px!important;box-sizing:border-box!important;border:2px solid #171b23!important;box-shadow:0 0 0 1.3px #8295b1!important}
+    .timeline-row[data-type="conversation"] .timeline-axis::before{background:#8fbaff!important;box-shadow:0 0 0 1.3px #7fa8e7!important}
+    .timeline-row[data-type="meeting"] .timeline-axis::before{background:#cbb4fc!important;box-shadow:0 0 0 1.3px #ad93d8!important}
+    .timeline-row[data-type="work"] .timeline-axis::before,.timeline-row[data-type="workflow"] .timeline-axis::before{background:#9ab9f0!important;box-shadow:0 0 0 1.3px #7c9dd3!important}
+    .timeline-row[data-state="completed"] .timeline-axis::before{background:#82d4aa!important;box-shadow:0 0 0 1.3px #63b890!important}
+    .timeline-row[data-state="overdue"] .timeline-axis::before{background:#efaca0!important;box-shadow:0 0 0 1.3px #d58c85!important}
+    .timeline-content{grid-column:3!important;display:block!important;min-width:0!important;min-height:56px!important;box-sizing:border-box!important;padding:8px 9px 8px 11px!important;background:#202733!important;border:1px solid rgba(153,180,219,.105)!important;border-radius:11px!important;box-shadow:0 1px 2px rgba(0,0,0,.075)!important}
+    .timeline-row[data-type="meeting"] .timeline-content{border-left:2px solid rgba(194,157,245,.46)!important;padding-left:10px!important}
+    .timeline-row[data-state="overdue"] .timeline-content{border-left:2px solid rgba(238,153,137,.54)!important;padding-left:10px!important}
+    .timeline-row[data-state="completed"] .timeline-content{border-left:2px solid rgba(132,213,174,.32)!important;padding-left:10px!important}
+    .timeline-row:focus-visible .timeline-content,.timeline-row:hover .timeline-content{border-color:rgba(157,194,242,.34)!important;background:#283140!important}
+    .timeline-labels{margin:0 0 4px!important;gap:5px!important;flex-wrap:nowrap!important;min-width:0}
+    .timeline-type{font-size:.56rem!important;letter-spacing:.085em!important;line-height:1.15!important;font-weight:720!important;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;color:#9cb9e1!important}
+    .timeline-badge{flex:0 0 auto!important;margin-left:auto;padding:3px 6px!important;font-size:.57rem!important;border-radius:6px!important;letter-spacing:0!important;line-height:1.1!important;background:#2d3745!important}
+    .timeline-row[data-state="completed"] .timeline-badge{background:rgba(93,181,136,.10)!important}
+    .timeline-row[data-state="overdue"] .timeline-badge{background:rgba(233,128,117,.1)!important}
+    .timeline-copy strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden!important;font-size:.79rem!important;font-weight:600!important;line-height:1.32!important;color:#e7edf7!important}
+    .timeline-copy small{display:block!important;margin-top:3px!important;font-size:.64rem!important;line-height:1.25!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#94a7bd!important}
+    .timeline-now{min-height:35px!important;grid-template-columns:44px 18px minmax(0,1fr)!important;gap:4px!important;isolation:isolate}
+    .timeline-now::after{content:"";position:absolute;top:50%;left:55px;right:2px;height:1px;background:linear-gradient(90deg,#8bbefa,rgba(139,190,250,.2));z-index:0}
+    .timeline-now time{z-index:2;font-size:.62rem!important;color:#a3cbff!important;white-space:nowrap}
+    .timeline-now-axis{z-index:2!important;left:4px!important;width:8px!important;height:8px!important;background:#a2ccff!important;box-shadow:0 0 0 3px #171b23,0 0 0 4px #8bbafa!important}
+    .timeline-now>span:last-child{z-index:2!important;justify-self:start!important;background:#26354a!important;border:1px solid rgba(140,190,249,.28);border-radius:5px;padding:3px 7px!important;margin-left:6px!important;font-size:.58rem!important;letter-spacing:.1em!important;color:#bad8ff!important}
+    .timeline-empty{margin-top:7px!important;padding:16px 10px!important;line-height:1.5!important}
+    @media(max-width:360px){.timeline-events::before{left:51px!important}.timeline-row,.timeline-now{grid-template-columns:40px 18px minmax(0,1fr)!important}.timeline-now::after{left:51px}.timeline-content{padding:8px 7px 8px 9px!important}.timeline-badge{font-size:.53rem!important;padding-inline:5px!important}.timeline-overview .timeline-summary{font-size:.61rem!important}.timeline-overview .conversation-count{font-size:.59rem!important}}
+    @media(prefers-reduced-motion:reduce){.conversation-filter{transition:none}}
+
+    /* Preserve accessible 44px touch targets while keeping the header compact. */
+    .conversation-manager-head{grid-template-columns:44px minmax(0,1fr) 44px!important;min-height:44px!important;margin-bottom:5px!important}
+    .conversation-manager-head .conversation-close,.conversation-manager-head .conversation-header-new{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+    .conversation-manager-head .conversation-close{margin-left:-4px!important}
+    .conversation-manager-head .conversation-header-new{margin-left:-2px!important}
+    .conversation-manager-head .conversation-header-new:focus-visible,.timeline-row:focus-visible .timeline-content{outline:2px solid rgba(150,200,255,.78)!important;outline-offset:1px!important}
   </style>
 </head>
 <body>
@@ -897,13 +960,13 @@
 <aside id="conversationDrawer" class="conversation-drawer hidden" role="dialog" aria-modal="true" aria-label="Personal AI timeline" aria-hidden="true">
   <div class="conversation-top">
     <header class="conversation-manager-head">
-      <button id="closeDrawer" class="conversation-close" type="button" aria-label="Close conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
-      <div class="conversation-manager-heading"><h2>Timeline</h2><p>Chats, meetings, tasks and work by time</p></div>
+      <button id="closeDrawer" class="conversation-close" type="button" aria-label="Close timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+      <div class="conversation-manager-heading"><h2>Your timeline</h2><p>Everything in its place</p></div>
+      <button id="newConversation" class="conversation-add conversation-header-new" type="button" aria-label="New chat" title="New chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg></button>
     </header>
-    <button id="newConversation" class="conversation-new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>New chat</span></button>
-    <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search chats" aria-label="Search conversations"/></div>
+    <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search timeline…" aria-label="Search timeline"/></div>
     <div class="conversation-filters" role="group" aria-label="Timeline filters"><button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button><button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button><button class="conversation-filter" type="button" data-conversation-filter="conversation" aria-pressed="false">Conversations</button><button class="conversation-filter" type="button" data-conversation-filter="meeting" aria-pressed="false">Meetings</button><button class="conversation-filter" type="button" data-conversation-filter="task" aria-pressed="false">Tasks</button><button class="conversation-filter" type="button" data-conversation-filter="work" aria-pressed="false">Work</button><button class="conversation-filter" type="button" data-conversation-filter="reminder" aria-pressed="false">Reminders</button><button class="conversation-filter" type="button" data-conversation-filter="workflow" aria-pressed="false">Workflows</button><button class="conversation-filter" type="button" data-conversation-filter="activity" aria-pressed="false">Activities</button></div>
-    <p id="conversationCount" class="conversation-count" aria-live="polite">Loading timeline…</p><div id="timelineSummary" class="timeline-summary" aria-live="polite">Loading your schedule…</div>
+    <div class="timeline-overview"><div id="timelineSummary" class="timeline-summary" aria-live="polite">Loading your schedule…</div><p id="conversationCount" class="conversation-count" aria-live="polite">Loading timeline…</p></div>
   </div>
   <div id="conversationList" class="conversation-list" aria-label="Your chronological activity timeline"></div><div id="timelineDetail" class="timeline-detail hidden" aria-label="Timeline item details"></div>
 </aside>
@@ -1163,6 +1226,12 @@ function openTimelineDetail(item){
  const today=document.createElement('button');today.type='button';today.className='timeline-detail-back';today.textContent='Open Today plan';today.onclick=()=>openModule('home').then(()=>$('todayHeading').scrollIntoView({block:'nearest'}));detail.append(today);
  back.focus({preventScroll:true});
 }
+function makeTimelineNow(){
+ const line=document.createElement('div');line.className='timeline-now';line.setAttribute('aria-label','Current time');
+ const clock=document.createElement('time');clock.textContent=timelineWhen(new Date());
+ const axis=document.createElement('span');axis.className='timeline-now-axis';axis.setAttribute('aria-hidden','true');
+ const tag=document.createElement('span');tag.textContent='NOW';line.append(clock,axis,tag);return line;
+}
 function renderConversationList(items){
  if(Array.isArray(items)){conversationCache=items;renderSidebarChatList()}
  const list=$('conversationList');list.replaceChildren();
@@ -1185,16 +1254,14 @@ function renderConversationList(items){
  for(const item of rows){
   const label=timelineDay(item.date);
   if(label!==group){
+   if(group==='Today'&&!nowInserted&&events)events.append(makeTimelineNow());
    group=label;nowInserted=false;
    const section=document.createElement('section');section.className='timeline-group';
    const day=document.createElement('h3');day.className='timeline-day';day.textContent=label;
    events=document.createElement('div');events.className='timeline-events';section.append(day,events);list.append(section);
   }
   if(label==='Today'&&!nowInserted&&item.date&&item.date.getTime()>Date.now()){
-   nowInserted=true;const line=document.createElement('div');line.className='timeline-now';
-   const clock=document.createElement('time');clock.textContent=timelineWhen(new Date());
-   const axis=document.createElement('span');axis.className='timeline-now-axis';axis.setAttribute('aria-hidden','true');
-   const tag=document.createElement('span');tag.textContent='NOW';line.append(clock,axis,tag);events.append(line);
+   nowInserted=true;events.append(makeTimelineNow());
   }
   const row=document.createElement('button');row.type='button';row.className='timeline-row';
   row.dataset.type=item.type;row.dataset.state=item.state;row.setAttribute('aria-label','Open '+item.title+' · '+timelineStateLabel(item.state));
@@ -1209,6 +1276,7 @@ function renderConversationList(items){
   row.onclick=()=>{if(item.type==='conversation')openConversation(item.source.id).catch(e=>showToast(e.message));else if(['task','work','meeting','reminder'].includes(item.type))openTimelineDetail(item);else if(item.type==='workflow')openModule('workflows');else openModule('activities')};
   events.append(row);
  }
+ if(group==='Today'&&!nowInserted&&events)events.append(makeTimelineNow());
 }
 function setConversationFilter(filter){
  conversationFilter=filter;$('timelineDetail').classList.add('hidden');$('conversationList').classList.remove('hidden');

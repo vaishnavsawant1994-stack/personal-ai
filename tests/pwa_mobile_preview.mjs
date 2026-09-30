@@ -267,12 +267,43 @@ try {
   assert.ok((await page.locator(".timeline-row[data-state=completed]").count())>=2,"completed work must remain visible in history");
   assert.ok((await page.locator(".timeline-row[data-state=overdue]").count())>=1,"overdue work must show a distinct state");
   assert.ok((await page.locator(".timeline-row[data-state=upcoming]").count())>=1,"future meetings must show upcoming state");
+  // Visual acceptance: the timeline must occupy the screen, not sit under bulky controls.
+  const timelineVisual = await page.evaluate(() => {
+    const rect = selector => document.querySelector(selector).getBoundingClientRect();
+    const first = document.querySelector(".timeline-row");
+    const group = document.querySelector(".timeline-events");
+    const axis = first.querySelector(".timeline-axis");
+    const spine = parseFloat(getComputedStyle(group,"::before").left);
+    const dot = parseFloat(getComputedStyle(axis,"::before").left);
+    return {
+      firstTop:rect(".timeline-row").top,
+      cardWidth:rect(".timeline-content").width,
+      headerHeight:rect(".conversation-top").height,
+      summaryY:rect("#timelineSummary").top,
+      countY:rect("#conversationCount").top,
+      railX:group.getBoundingClientRect().left+spine,
+      dotX:axis.getBoundingClientRect().left+dot+5.5,
+      backTarget:rect("#closeDrawer").width,
+      newTarget:rect("#newConversation").width,
+      search:rect("#conversationSearch").width,
+      nowCount:document.querySelectorAll(".timeline-now").length,
+      newChatRows:document.querySelectorAll(".conversation-new-chat").length,
+    };
+  });
+  assert.ok(timelineVisual.firstTop < 280, "timeline events must start near the top on iPhone instead of below oversized controls");
+  assert.ok(timelineVisual.cardWidth > 175, "timeline events must have readable content space");
+  assert.ok(Math.abs(timelineVisual.summaryY - timelineVisual.countY) <= 7, "status counts must share one compact summary row");
+  assert.ok(Math.abs(timelineVisual.railX - timelineVisual.dotX) <= 4, "timeline spine must align precisely with event dots");
+  assert.ok(timelineVisual.backTarget >= 44 && timelineVisual.newTarget >= 44 && timelineVisual.search > 180, "compact header must retain accessible touch targets");
+  assert.equal(timelineVisual.newChatRows, 0, "move New chat to header instead of pushing the timeline downward");
+  assert.equal(timelineVisual.nowCount, 1, "Today must have exactly one visible NOW marker");
   assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/everyday/timeline")).length>0),true,"timeline must load canonical schedule/task source");
   assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/activities")).length>0),true,"timeline must load canonical audited activity source");
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.equal(await page.locator(".timeline-row[data-type=meeting]").count(),3,"Meetings filter must include today and tomorrow");
   await page.locator('[data-conversation-filter="task"]').click();
   assert.deepEqual((await page.locator(".timeline-copy strong").allTextContents()).sort(),["Finish daily review","Finished inventory check","Submit overdue report"].sort(),"Tasks filter must include completed and overdue history");
+  assert.equal(await page.locator(".timeline-now").count(), 1, "NOW marker must remain after completed items even with no upcoming Today tasks");
   await page.locator('[data-conversation-filter="work"]').click();
   assert.ok((await page.locator(".timeline-row").count())>=3,"Work filter must combine work items, runs and activity");
   await page.locator('[data-conversation-filter="reminder"]').click();
