@@ -26,6 +26,7 @@ try {
   });
 
   const pageErrors = [];
+  const uploadedDocuments = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
   await page.route("**/iphone/api/**", route => {
@@ -48,6 +49,12 @@ try {
       body = { conversations: conversations.filter(item => item.title.toLowerCase().includes(q)) };
     } else if (path === "/conversations" && method === "POST") {
       body = { thread: { id: "new", title: "New conversation", updated_at: new Date().toISOString() }, events: [] };
+    } else if (path === "/voice/turn" && method === "POST") {
+      const text = JSON.parse(request.postData() || "{}").transcript;
+      body = { status: "ok", conversation_id: "new", conversation_title: "New conversation", reply: "Received: " + text };
+    } else if (path === "/knowledge" && method === "POST") {
+      uploadedDocuments.push(JSON.parse(request.postData() || "{}"));
+      body = { id: "browser-test-document", filename: uploadedDocuments.at(-1).filename };
     } else if (path === "/logout") {
       body = { ok: true };
     }
@@ -222,6 +229,15 @@ try {
   await page.screenshot({ path: "artifacts/personal-ai-new-chat-390x844.png", fullPage: true });
   await page.locator("#message").focus();
   assert.equal(await page.locator("#message").evaluate(node => document.activeElement === node), true, "composer input must receive keyboard focus");
+  await page.locator("#attachmentInput").setInputFiles({ name: "browser-qa.txt", mimeType: "text/plain", buffer: Buffer.from("Browser attachment test") });
+  await page.waitForFunction(() => document.querySelector("#toast")?.textContent.includes("Document added to Knowledge"));
+  assert.equal(uploadedDocuments.length, 1, "attachment must use the existing Knowledge ingestion endpoint");
+  assert.equal(uploadedDocuments[0].filename, "browser-qa.txt");
+  assert.ok(uploadedDocuments[0].content_base64, "attachment bytes must be sent to Knowledge");
+  await page.click("#sendButton");
+  await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
+  assert.ok((await page.locator("#messageStream").innerText()).includes("Hello from browser QA"), "user message must render");
+  assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Hello from browser QA"), "assistant response must render");
 
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => enterHomeLanding());
@@ -237,6 +253,28 @@ try {
   assert.ok(landscape.composerBottom <= landscape.innerHeight + 1, "landscape composer must stay in viewport");
   assert.ok(landscape.headerLeft >= 0 && landscape.headerRight <= landscape.innerWidth + 1, "landscape header must fit");
   await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
+
+  // Authentication presentation only: real password, Google and passkey authority
+  // are exercised separately by the server integration/security suite.
+  const locked = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await locked.route("https://accounts.google.com/**", route => route.abort());
+  await locked.route("**/iphone/api/**", route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/status")) {
+      return route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ detail: "Owner verification required" }) });
+    }
+    return route.fulfill({
+      status: 200, contentType: "application/json",
+      body: JSON.stringify({ password_available: true, passkey_available: false, google_available: false }),
+    });
+  });
+  await locked.goto("http://127.0.0.1:4173/iphone/", { waitUntil: "domcontentloaded" });
+  await locked.waitForFunction(() => !document.querySelector("#enrollPanel").classList.contains("hidden"));
+  assert.ok(await locked.locator("#passwordChoice").isVisible(), "real owner password option must remain accessible");
+  await locked.click("#passwordChoice");
+  assert.ok(await locked.locator("#ownerPassword").isVisible(), "owner password form must open");
+  await locked.screenshot({ path: "artifacts/personal-ai-login-390x844.png", fullPage: true });
+  await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
   console.log("Final Personal AI mobile redesign passed Home, menu, conversations, chat, sphere preservation, no-bottom-nav, and 8 iPhone viewport checks.");
