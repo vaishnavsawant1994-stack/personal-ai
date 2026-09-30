@@ -163,8 +163,16 @@ try {
   await page.evaluate(() => refreshToday());
 
 
-  // Owner Controls remain reachable through the hamburger (top-right icon now opens Recent).
+  // The conversation-first sidebar keeps owner security behind its anchored account footer.
   await page.click("#historyButton");
+  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
+  assert.ok(await page.locator("#sidebarAccountButton").isVisible(), "account controls must be anchored to bottom");
+  await page.click("#sidebarAccountButton");
+  assert.equal(await page.locator("#sidebarAccountButton").getAttribute("aria-expanded"), "true", "account popover must advertise expanded state");
+  for (const label of ["Owner controls","Settings","Trusted devices","System status","Sign out"]) {
+    assert.ok((await page.locator("#sidebarAccountMenu").innerText()).includes(label), "account controls missing " + label);
+  }
+  await page.screenshot({ path: "artifacts/personal-ai-sidebar-account-390x844.png", fullPage: true });
   await page.click("#appOwnerControls");
   await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
   for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
@@ -176,17 +184,34 @@ try {
 
   await page.click("#historyButton");
   await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
+  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   const drawerState = await page.evaluate(() => ({
-    labels: [...document.querySelectorAll("#appDrawer .drawer-row strong")].map(node => node.textContent.trim()),
+    labels: [...document.querySelectorAll("#appDrawer .sidebar-nav-row span")].map(node => node.textContent.trim()),
+    chatTitles: [...document.querySelectorAll("#sidebarChatList .sidebar-chat-row span")].map(node => node.textContent.trim()),
     rect: document.querySelector("#appDrawer").getBoundingClientRect(),
+    footer: document.querySelector("#sidebarAccountButton").getBoundingClientRect(),
     expanded: document.querySelector("#historyButton").getAttribute("aria-expanded"),
   }));
-  for (const expected of ["Home", "Conversations", "Memory", "Knowledge", "Activities", "Owner controls", "Settings", "Trusted devices", "System status", "Sign out"]) {
-    assert.ok(drawerState.labels.includes(expected), "missing navigation item: " + expected);
+  for (const expected of ["Home","Today","Conversations","Memory","Knowledge","Activities","Tools","Workflows"]) {
+    assert.ok(drawerState.labels.includes(expected), "missing functional sidebar section: " + expected);
   }
-  assert.equal(drawerState.expanded, "true", "hamburger aria-expanded must track the drawer");
-  assert.ok(drawerState.rect.width <= 390, "drawer must fit mobile viewport");
+  assert.deepEqual(drawerState.chatTitles, conversations.map(item=>item.title), "main sidebar must display real canonical conversation history");
+  assert.equal(drawerState.expanded, "true", "hamburger aria-expanded must track the sidebar");
+  assert.ok(drawerState.rect.width <= 390 && drawerState.rect.left >= -1, "sidebar must fit mobile viewport");
+  assert.ok(drawerState.footer.bottom <= 845 && drawerState.footer.height >= 44, "account actions must remain visible and touchable");
+  assert.ok(await page.locator("#sidebarNewChat").isVisible(), "new chat must be a primary action");
+  assert.ok(await page.locator("#sidebarSearchToggle").isVisible(), "chat search must be a primary action");
   await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
+  await page.click("#sidebarSearchToggle");
+  assert.equal(await page.locator("#sidebarSearchToggle").getAttribute("aria-expanded"), "true");
+  await page.fill("#sidebarSearch", "Onion");
+  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 1 && document.querySelector("#sidebarChatList").textContent.includes("Onion"));
+  await page.fill("#sidebarSearch", "not-a-real-chat");
+  await page.waitForFunction(() => document.querySelector("#sidebarChatList")?.textContent.includes("No matching conversations"));
+  await page.click("#sidebarSearchClear");
+  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
+  await page.click("#sidebarSearchToggle");
+  assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
   await page.click("#appConversations");
   await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden"));
@@ -216,6 +241,11 @@ try {
   await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
   await page.click("#closeDrawer");
   await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.click("#historyButton");
+  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
+  await page.locator("#sidebarChatList .sidebar-chat-row").first().click();
+  await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
+  assert.ok((await page.locator("#messageStream").innerText()).includes("Plan mushroom farm"), "sidebar chat selection must open the actual persisted conversation");
   await page.click("#historyButton");
   await page.click("#appConversations");
 
@@ -287,12 +317,35 @@ try {
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
     assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
     assert.ok(layout.composer.height>=50 && layout.composer.height<=54, "composer is too tall at " + width + "x" + height);
-    if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
-    if (width === 430) await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
+    if (width === 320) {
+      await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
+      await page.click("#historyButton");
+      const narrowSidebar = await page.evaluate(() => ({
+        screenWidth:innerWidth, screenHeight:innerHeight,
+        aside:document.querySelector("#appDrawer").getBoundingClientRect(),
+        footer:document.querySelector("#sidebarAccountButton").getBoundingClientRect(),
+        newChat:document.querySelector("#sidebarNewChat").getBoundingClientRect(),
+      }));
+      assert.ok(narrowSidebar.aside.left >= -1 && narrowSidebar.aside.right <= narrowSidebar.screenWidth + 1, "sidebar must not clip at 320px");
+      assert.ok(narrowSidebar.footer.bottom <= narrowSidebar.screenHeight + 1, "account footer must remain accessible at 320x568");
+      assert.ok(narrowSidebar.newChat.height >= 44, "new chat must preserve touch target on narrow screens");
+      await page.screenshot({ path: "artifacts/personal-ai-sidebar-320x568.png", fullPage: true });
+      await page.click("#closeAppDrawer");
+    }
+    if (width === 430) {
+      await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
+      await page.click("#historyButton");
+      assert.ok(await page.locator("#sidebarAccountButton").isVisible());
+      await page.screenshot({ path: "artifacts/personal-ai-sidebar-430x932.png", fullPage: true });
+      await page.click("#closeAppDrawer");
+    }
   }
 
   // Keyboard and creation controls use the existing application bindings.
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.click("#historyButton");
+  await page.click("#sidebarNewChat");
+  await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.click("#historyButton");
   await page.click("#appConversations");
   await page.click("#newConversation");
@@ -416,7 +469,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Slim equal Home cards and real Today timeline passed create/complete/empty/sort interactions alongside expanding composer and eight phone viewport checks.");
+  console.log("ChatGPT-inspired integrated sidebar passed new chat, live search, real chats, account/owner actions, drawer responsiveness, Today timeline, expanding composer and eight viewport checks.");
 } finally {
   await browser.close();
 }
