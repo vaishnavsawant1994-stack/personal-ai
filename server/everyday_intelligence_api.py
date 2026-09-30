@@ -1,7 +1,18 @@
 from __future__ import annotations
 
+from datetime import date, datetime
+from typing import Literal
+
 from fastapi import APIRouter, Cookie, HTTPException, Query
 from pydantic import BaseModel, Field
+
+
+class TodayItemBody(BaseModel):
+    """Create a real owner-controlled everyday item for the Today timeline."""
+    category: Literal['task', 'work', 'meeting', 'reminder']
+    title: str = Field(min_length=1, max_length=160)
+    due_at: str = Field(min_length=10, max_length=80)
+    timezone: str = Field(min_length=1, max_length=80)
 
 
 class SnoozeBody(BaseModel):
@@ -34,6 +45,26 @@ def everyday_intelligence_router(runtime):
             allowed.update({'sensitive', 'secret'})
         return allowed
 
+    @router.get('/timeline')
+    def timeline(
+        limit: int = Query(default=250, ge=1, le=500),
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        """Owner-authorized minimal projection, including completed historical items.
+
+        History is not synthesized from active-only state. Exclude memories,
+        evidence and raw private context from the aggregated timeline.
+        """
+        authenticate(pa_device, pa_token)
+        fields = ('id', 'kind', 'title', 'status', 'due_at', 'snoozed_until',
+                  'timezone', 'created_at', 'updated_at', 'completed_at',
+                  'cancelled_at', 'context', 'source')
+        return {'items': [
+            {name: (item.get(name) if name != 'context' else (item.get('context') if str(item.get('context') or '').startswith('personal-ai:today:') else '')) for name in fields}
+            for item in everyday.items(status='all', limit=limit)
+        ]}
+
     @router.get('/active')
     def active(
         limit: int = Query(default=100, ge=1, le=500),
@@ -42,6 +73,36 @@ def everyday_intelligence_router(runtime):
     ):
         authenticate(pa_device, pa_token)
         return {'items': everyday.items(status='open', limit=limit)}
+
+    @router.post('/items', status_code=201)
+    def add_today_item(
+        body: TodayItemBody,
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        authenticate(pa_device, pa_token)
+        title = body.title.strip()
+        if not title:
+            raise HTTPException(422, 'A nonempty title is required')
+        try:
+            if len(body.due_at) == 10:
+                date.fromisoformat(body.due_at)
+                if body.category == 'meeting':
+                    raise HTTPException(422, 'Meetings require a time')
+            else:
+                due = datetime.fromisoformat(body.due_at.replace('Z', '+00:00'))
+                if due.tzinfo is None or due.utcoffset() is None:
+                    raise HTTPException(422, 'Provide a timezone-aware date and time')
+            category = {'task': 'task', 'work': 'task',
+                        'meeting': 'commitment', 'reminder': 'reminder'}[body.category]
+            item_id = everyday.add(
+                category, title, due_at=body.due_at,
+                context='personal-ai:today:' + body.category,
+                source='today_ui', timezone_name=body.timezone,
+            )
+        except ValueError as exc:
+            raise HTTPException(422, 'Invalid Today date or timezone') from exc
+        return {'item': everyday.get(item_id)}
 
     @router.get('/due')
     def due(
