@@ -199,6 +199,18 @@
     .owner-menu button{min-height:52px;border:0;border-radius:14px;background:transparent;color:#dbe5f4;padding:8px 10px;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;text-align:left;width:100%;cursor:pointer}.owner-menu button:hover{background:rgba(29,54,89,.54)}.owner-menu .owner-menu-icon{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:rgba(31,68,117,.4)}.owner-menu .owner-menu-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8}.owner-menu .danger{margin-top:6px;color:#ff8da3;border-top:1px solid rgba(123,157,210,.11);border-radius:0;padding-top:13px}
     .more-sheet{display:none!important}
     button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(112,177,255,.9);outline-offset:2px}
+
+    /* Keep the original neural canvas mounted and measurable while chatting:
+       hiding its wrapper with display:none stalled its pre-existing animation. */
+    .presence{position:relative}
+    .brand{position:relative;left:auto;transform:none;grid-column:2;justify-self:center}
+    .owner-status{position:relative;grid-column:3}
+    .owner-status .status-dot{right:43px;top:17px}
+    body.has-conversation:not(.home-landing) .core-stage{
+      display:block;visibility:hidden;position:absolute;left:0;top:0;
+      pointer-events:none;z-index:-1;
+    }
+    body.home-landing .core-stage{position:relative;visibility:visible;z-index:auto}
     @media(min-width:901px){
       .app-shell{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(18px,env(safe-area-inset-bottom))}
       .topbar{grid-template-columns:56px 1fr 56px}.history-button{width:46px;height:46px}.core-stage{width:min(32vw,420px);height:clamp(250px,42vh,420px)}
@@ -216,7 +228,7 @@
       .brand strong{font-size:.76rem;letter-spacing:.22em}.core-stage{width:76vw;height:200px}.quick-actions{gap:7px}.quick-action{padding:8px;grid-template-columns:30px minmax(0,1fr);min-height:70px}.quick-icon{width:30px;height:30px}.quick-copy strong{font-size:.76rem}.quick-copy span{font-size:.61rem}.composer{padding-left:5px}.attach-button{width:40px;min-width:40px}.round-button{width:46px;min-width:46px}
     }
     @media(max-height:650px) and (max-width:900px){
-      .core-stage{height:165px;width:64vw}.home-intro{gap:9px}.home-greeting h1{font-size:1.35rem}.home-greeting p{font-size:.82rem;margin-top:3px}.quick-action{min-height:55px;padding:7px}.quick-copy span{display:none}.quick-icon{width:30px;height:30px}.composer{min-height:56px}.round-button{width:46px;height:46px;min-width:46px;min-height:46px}
+      .core-stage{height:165px;width:64vw}.home-intro{gap:9px}.home-greeting h1{font-size:1.35rem}.home-greeting p{font-size:.82rem;margin-top:3px}.quick-action{min-height:70px;padding:7px}.quick-icon{width:30px;height:30px}.composer{min-height:56px}.round-button{width:46px;height:46px;min-width:46px;min-height:46px}
     }
     @media(orientation:landscape) and (max-height:520px){
       .core-stage{height:118px;width:190px}.home-greeting{display:none}.home-intro{gap:6px}.quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.quick-action{min-height:54px}.quick-copy span{display:none}.presence{gap:6px}
