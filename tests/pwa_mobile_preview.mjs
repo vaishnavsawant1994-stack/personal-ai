@@ -80,7 +80,7 @@ try {
     }
     return ink;
   });
-  assert.ok(canvasInk > 200, "existing neural sphere renderer did not paint");
+  assert.ok(canvasInk > 90, "original mini neural sphere renderer did not paint");
 
   const homeState = await page.evaluate(() => ({
     bottomNavPresent: Boolean(document.querySelector(".nav")),
@@ -88,20 +88,30 @@ try {
     menuButton: document.querySelector("#historyButton").getBoundingClientRect(),
     composer: document.querySelector("#composer").getBoundingClientRect(),
     core: document.querySelector(".core-stage").getBoundingClientRect(),
+    recent: [...document.querySelectorAll("#recentList .recent-row strong")].map(node => node.textContent),
+    headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
+    headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
+    actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     innerHeight,
   }));
   assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
   assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
+  assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
+  assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
+  assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
+  assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
+  assert.equal(await page.locator(".prompt-chips button").count(), 4);
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
   assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
 
-  // Capture Owner Controls independently from the hamburger navigation.
-  await page.click("#ownerButton");
+  // Owner Controls remain reachable through the hamburger (top-right icon now opens Recent).
+  await page.click("#historyButton");
+  await page.click("#appOwnerControls");
   await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
   for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
     assert.ok((await page.locator("#ownerMenu").innerText()).includes(item), "Owner Controls missing " + item);
@@ -167,7 +177,7 @@ try {
     innerWidth,
     innerHeight,
   }));
-  assert.equal(chatState.coreVisibility, "hidden", "active conversation must conceal Home sphere while retaining its original animation loop");
+  assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
   assert.equal(await page.locator(".state").isVisible(), false, "idle conversations must not show a redundant READY heading");
   assert.equal(chatState.messageCount, 2);
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
@@ -207,7 +217,7 @@ try {
     });
     assert.ok(layout.documentWidth <= layout.viewportWidth, "horizontal overflow at " + width + "x" + height);
     assert.ok(layout.core.width > 0 && layout.core.height > 0, "sphere missing at " + width + "x" + height);
-    assert.ok(layout.sphereInk > 200, "sphere animation did not repaint after chat at " + width + "x" + height);
+    assert.ok(layout.sphereInk > 90, "mini sphere animation did not repaint after chat at " + width + "x" + height);
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
@@ -223,9 +233,9 @@ try {
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.fill("#message", "Hello from browser QA");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
-  assert.ok(await page.locator("#sendButton").isVisible(), "send control must replace microphone when typing");
+  assert.ok(await page.locator("#sendButton").isVisible(), "send control must remain visible when typing");
   assert.equal(await page.locator("#homeIntro").isVisible(), false, "new empty chat must not duplicate Home quick actions");
-  assert.equal(await page.locator(".core-stage").evaluate(node => getComputedStyle(node).visibility), "hidden", "new empty chat keeps Home sphere out of view");
+  assert.equal(await page.locator(".core-stage").evaluate(node => getComputedStyle(node).visibility), "visible", "new empty chat retains mini header sphere");
   await page.screenshot({ path: "artifacts/personal-ai-new-chat-390x844.png", fullPage: true });
   await page.locator("#message").focus();
   assert.equal(await page.locator("#message").evaluate(node => document.activeElement === node), true, "composer input must receive keyboard focus");
@@ -277,7 +287,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Final Personal AI mobile redesign passed Home, menu, conversations, chat, sphere preservation, no-bottom-nav, and 8 iPhone viewport checks.");
+  console.log("Compact neural header Home redesign passed real Recent data, prompt chips, navigation, chat, original sphere geometry, and 8 viewport checks.");
 } finally {
   await browser.close();
 }
