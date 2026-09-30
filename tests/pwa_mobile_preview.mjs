@@ -251,6 +251,8 @@ try {
   assert.ok(timelineState.types.includes("conversation")&&timelineState.types.includes("meeting")&&timelineState.types.includes("task")&&timelineState.types.includes("workflow")&&timelineState.types.includes("activity"),"All must combine every supported real source");
   assert.ok(timelineState.titles.includes("Team planning meeting")&&timelineState.titles.includes("Finish daily review")&&timelineState.titles.includes("Morning operations")&&timelineState.titles.includes("Document indexed"));
   assert.equal(await page.locator("#conversationCount").innerText(),"7 timeline items");
+  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/everyday/active")).length>0),true,"timeline must load canonical schedule/task source");
+  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/activities")).length>0),true,"timeline must load canonical audited activity source");
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-row").evaluateAll(rows=>rows.map(x=>x.dataset.type)),["meeting"],"Meetings filter must isolate real meetings");
   await page.locator('[data-conversation-filter="task"]').click();

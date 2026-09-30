@@ -1091,29 +1091,7 @@ async function refreshConversationList(){
  }catch(error){if(epoch!==conversationSearchRequestEpoch)return;$('conversationCount').textContent='Timeline unavailable';$('conversationList').replaceChildren();const empty=document.createElement('div');empty.className='timeline-empty';empty.textContent='Unable to load your activity timeline. Please try again.';$('conversationList').append(empty)}
 }
 function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();renderSidebarChatList()}
-let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false,conversationManagerResults=null;
-async function refreshConversationList(query=''){
-  const epoch=++conversationSearchRequestEpoch;
-  $('conversationCount').textContent='Loading conversations…';
-  try{
-    const data=await api('/conversations?q='+encodeURIComponent(query));
-    if(epoch!==conversationSearchRequestEpoch)return data;
-    if(!Array.isArray(data.conversations))throw new Error('Conversations unavailable');
-    conversationManagerResults=query?data.conversations:null;
-    renderConversationList(data.conversations,!query);
-    return data;
-  }catch(error){
-    if(epoch===conversationSearchRequestEpoch){
-      conversationManagerResults=null;
-      $('conversationCount').textContent='Could not load conversations';
-      $('conversationList').replaceChildren();
-      const empty=document.createElement('div');empty.className='conversation-empty';
-      empty.textContent='Unable to load conversations. Use search to retry.';
-      $('conversationList').append(empty);
-    }
-    throw error;
-  }
-}
+let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false;
 function syncDrawerOverlay(){const open=!$('appDrawer').classList.contains('hidden')||!$('conversationDrawer').classList.contains('hidden');$('drawerOverlay').classList.toggle('hidden',!open)}
 function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
 function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
