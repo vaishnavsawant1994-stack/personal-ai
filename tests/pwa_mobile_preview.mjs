@@ -458,6 +458,9 @@ try {
 
   // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
   await page.locator("#message").focus();
+  await page.waitForFunction(() => document.activeElement === document.querySelector("#message") && document.querySelector("#composer").classList.contains("is-expanded"));
+  await page.waitForTimeout(260);
+  assert.equal(await page.evaluate(() => document.activeElement?.id), "message", "closing the timeline must not steal chat composer focus later");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("is-expanded")), "focus must expand the composer even before typing");
   const emptyExpanded = await page.evaluate(() => ({
     composer: document.querySelector("#composer").getBoundingClientRect(),

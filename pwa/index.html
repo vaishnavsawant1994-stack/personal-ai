@@ -996,7 +996,7 @@ function ownerDisplayName(){const raw=(appStatus&&appStatus.owner_display_name)|
 function updateDrawerConnection(label,connected){const node=$('drawerConnection');if(!node)return;node.replaceChildren();const dot=document.createElement('i');dot.style.background=connected?'var(--status-success)':'#8794a6';node.append(dot,document.createTextNode(label))}
 function updateHomeGreeting(){const node=$('homeGreeting');if(!node)return;node.textContent=greeting().replace(/\.$/,'')}
 function enterHomeLanding(){document.body.classList.add('home-landing');requestAnimationFrame(resizeCanvas)}
-function enterConversationView(){document.body.classList.remove('home-landing');requestAnimationFrame(()=>{$('messageStream').scrollTop=$('messageStream').scrollHeight;resizeCanvas()})}
+function enterConversationView(){document.body.classList.remove('home-landing');requestAnimationFrame(()=>{$('messageStream').scrollTop=$('messageStream').scrollHeight;resizeCanvas();resizeComposerEditor()})}
 function eventMessage(event){const kind=String(event.kind||''),text=String((event.payload&&event.payload.text)||'');if(!text)return null;if(kind==='user_message')return{role:'user',text};if(kind==='assistant_message')return{role:'assistant',text};if(kind==='approval_rejected')return{role:'system',text};return null}
 function renderMessages(){const stream=$('messageStream');stream.textContent='';const messages=conversationEvents.map(eventMessage).filter(Boolean);document.body.classList.toggle('has-conversation',messages.length>0);messages.forEach(item=>{const node=document.createElement('div');node.className='message '+item.role;node.textContent=item.text;stream.appendChild(node)});conversationPinnedToBottom=true;stream.scrollTop=stream.scrollHeight;resizeCanvas()}
 function appendMessage(kind,text){conversationEvents.push({kind,payload:{text}});renderMessages()}
@@ -1301,7 +1301,7 @@ async function refreshConversationList(){
 function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();renderSidebarChatList()}
 let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false;
 function syncDrawerOverlay(){const open=!$('appDrawer').classList.contains('hidden')||!$('conversationDrawer').classList.contains('hidden');$('drawerOverlay').classList.toggle('hidden',!open)}
-function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();api('/conversations').then(data=>{if(Array.isArray(data.conversations)){conversationCache=data.conversations;renderSidebarChatList()}}).catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
+function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();api('/conversations').then(data=>{if(Array.isArray(data.conversations)){conversationCache=data.conversations;renderSidebarChatList()}}).catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>{if(!$('appDrawer').classList.contains('hidden'))$('closeAppDrawer').focus()},20)}
 function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
 function openDrawer(){
   $('timelineDetail').classList.add('hidden');$('conversationList').classList.remove('hidden');
@@ -1315,7 +1315,7 @@ function openDrawer(){
   $('closeDrawer').setAttribute('aria-label',fromSidebar?'Back to main menu':'Close conversations');
   syncDrawerOverlay();syncConversationViewport();
   refreshConversationList().catch(()=>{});
-  requestAnimationFrame(()=>$('conversationSearch').focus({preventScroll:true}));
+  requestAnimationFrame(()=>{if(!$('conversationDrawer').classList.contains('hidden'))$('conversationSearch').focus({preventScroll:true})});
 }
 function closeDrawer(returnToMain=true){
   if($('conversationDrawer').classList.contains('hidden'))return;
