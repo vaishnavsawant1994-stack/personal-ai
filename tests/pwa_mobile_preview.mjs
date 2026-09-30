@@ -56,7 +56,7 @@ try {
     let body = {};
     if (path === "/status") {
       if(revokeSession)return route.fulfill({status:401,contentType:"application/json",body:JSON.stringify({detail:"Owner verification required"})});
-      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
+      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3, active_qualification: true };
     } else if (path === "/everyday/active" && method === "GET") {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/timeline" && method === "GET") {
