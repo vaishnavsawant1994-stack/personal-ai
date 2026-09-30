@@ -629,6 +629,7 @@ try {
   // leave an unauthorized request stuck in its loading state.
   revokeSession=true;
   await page.click("#historyButton");
+  await page.click("#sidebarAccountButton");
   page.once("dialog",dialog=>dialog.accept());
   await page.click("#drawerSignOut");
   await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
