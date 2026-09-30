@@ -54,6 +54,20 @@ def everyday_intelligence_router(runtime):
         authenticate(pa_device, pa_token)
         return {'items': everyday.items(status='open', limit=limit)}
 
+    @router.get('/timeline')
+    def timeline(
+        limit: int = Query(default=500, ge=1, le=500),
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        """Real persisted scheduled and completed items for the owner's combined timeline.
+
+        Return existing canonical records, including terminal states; do not infer
+        meeting attendance or reconstruct historical actions without audit proof.
+        """
+        authenticate(pa_device, pa_token)
+        return {'items': everyday.items(status='all', limit=limit)}
+
     @router.post('/items', status_code=201)
     def add_today_item(
         body: TodayItemBody,

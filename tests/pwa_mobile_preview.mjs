@@ -12,12 +12,17 @@ const conversations = [
 const now = new Date();
 const atToday = (hour, minute = 0) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute).toISOString();
+const atDayOffset = (days,hour=10) => new Date(now.getFullYear(),now.getMonth(),now.getDate()+days,hour).toISOString();
 const everydayItems = [
-  { id: "task-1", kind: "task", context: "personal-ai:today:task", title: "Finish daily review", due_at: atToday(9), status: "scheduled" },
-  { id: "meeting-1", kind: "commitment", context: "personal-ai:today:meeting", title: "Team planning meeting", due_at: atToday(14), status: "scheduled" },
+  { id:"task-1",kind:"task",context:"personal-ai:today:task",title:"Finish daily review",due_at:atToday(9),created_at:atToday(7),updated_at:atToday(8),status:"scheduled" },
+  { id:"meeting-1",kind:"commitment",context:"personal-ai:today:meeting",title:"Team planning meeting",due_at:atToday(14),created_at:atToday(8),updated_at:atToday(8),status:"scheduled" },
+  { id:"work-1",kind:"task",context:"personal-ai:today:work",title:"Prepare client proposal",due_at:atDayOffset(-1,16),created_at:atDayOffset(-2,9),updated_at:atDayOffset(-1,9),status:"scheduled" },
+  { id:"done-1",kind:"task",context:"personal-ai:today:task",title:"Complete weekly report",due_at:atToday(11),created_at:atToday(8),updated_at:atToday(12,20),completed_at:atToday(12,20),status:"completed" },
+  { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
-const auditedActivities=[{id:"a1",kind:"knowledge",label:"Document indexed",action:"index",status:"completed",created_at:atToday(8,30)}];
-const workflowRuns=[{id:"w1",workflow_title:"Morning operations",status:"running",current_step:2,updated_at:atToday(11)}];
+const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
+let allowActivity=true;
 
 const activeConversation = {
   thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
@@ -50,6 +55,13 @@ try {
       body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
     } else if (path === "/everyday/active" && method === "GET") {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
+    } else if (path === "/everyday/timeline" && method === "GET") {
+      body = { items: everydayItems };
+    } else if (path === "/activities" && method === "GET") {
+      if(!allowActivity)return route.fulfill({status:403,contentType:"application/json",body:JSON.stringify({detail:"Not authorized"})});
+      body={activities:auditedEvents};
+    } else if (path === "/workflows" && method === "GET") {
+      body={runs:workflowRuns,workflows:[]};
     } else if (path === "/everyday/items" && method === "POST") {
       const input = JSON.parse(request.postData() || "{}");
       const item = { id: "created-" + everydayItems.length, title: input.title, kind: input.category === "meeting" ? "commitment" : input.category === "reminder" ? "reminder" : "task",
@@ -59,12 +71,8 @@ try {
     } else if (path.startsWith("/everyday/") && path.endsWith("/complete") && method === "POST") {
       const id = decodeURIComponent(path.split("/")[2]);
       const item = everydayItems.find(item => item.id === id);
-      if(item)item.status = "completed";
+      if(item){item.status="completed";item.completed_at=new Date().toISOString();item.updated_at=item.completed_at}
       body = item || {};
-    } else if (path === "/activities" && method === "GET") {
-      body = { activities: auditedActivities };
-    } else if (path === "/workflows" && method === "GET") {
-      body = { workflows: [], runs: workflowRuns };
     } else if (path === "/preferences") {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
@@ -243,36 +251,83 @@ try {
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
   await page.click("#appConversations");
-  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden") && document.querySelectorAll(".timeline-row").length === 7);
-  const timelineState=await page.evaluate(()=>({right:document.querySelector("#conversationDrawer").getBoundingClientRect().right,width:document.querySelector("#conversationDrawer").getBoundingClientRect().width,viewport:innerWidth,filters:[...document.querySelectorAll(".conversation-filter")].map(x=>x.textContent.trim()),types:[...document.querySelectorAll(".timeline-row")].map(x=>x.dataset.type),titles:[...document.querySelectorAll(".timeline-copy strong")].map(x=>x.textContent.trim())}));
-  assert.ok(Math.abs(timelineState.right-timelineState.viewport)<=1,"unified timeline drawer must remain right anchored");
-  assert.ok(timelineState.width<=331,"right timeline must preserve compact sidebar width");
-  assert.deepEqual(timelineState.filters,["All","Recent","Conversations","Meetings","Tasks","Workflows","Activities"]);
-  assert.ok(timelineState.types.includes("conversation")&&timelineState.types.includes("meeting")&&timelineState.types.includes("task")&&timelineState.types.includes("workflow")&&timelineState.types.includes("activity"),"All must combine every supported real source");
-  assert.ok(timelineState.titles.includes("Team planning meeting")&&timelineState.titles.includes("Finish daily review")&&timelineState.titles.includes("Morning operations")&&timelineState.titles.includes("Document indexed"));
-  assert.equal(await page.locator("#conversationCount").innerText(),"7 timeline items");
-  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/everyday/active")).length>0),true,"timeline must load canonical schedule/task source");
-  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/activities")).length>0),true,"timeline must load canonical audited activity source");
+  await page.waitForFunction(() => {
+    const panel=document.querySelector("#conversationDrawer");
+    return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
+      Math.abs(panel.getBoundingClientRect().right-innerWidth)<=1;
+  });
+  await page.waitForFunction(() => document.querySelectorAll(".timeline-entry").length >= 10);
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"right Timeline must replace open left drawer");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Back to main menu");
+  const timelineState=await page.evaluate(()=>({
+    filters:[...document.querySelectorAll(".conversation-filter")].map(n=>n.textContent.trim()),
+    titles:[...document.querySelectorAll(".timeline-title")].map(n=>n.textContent.trim()),
+    categories:[...document.querySelectorAll(".timeline-entry")].map(n=>n.dataset.category),
+    clocks:[...document.querySelectorAll(".timeline-clock")].map(n=>new Date(n.dateTime).getTime()),
+    rect:document.querySelector("#conversationDrawer").getBoundingClientRect(),
+    width:innerWidth,cssRight:getComputedStyle(document.querySelector("#conversationDrawer")).right,
+  }));
+  assert.deepEqual(timelineState.filters,["All","Recent","Chats","Meetings","Tasks","Work","Reminders","Workflows","Done","Activity"]);
+  assert.ok(timelineState.titles.includes("Complete weekly report"),"completed work must show recorded completion time");
+  assert.ok(timelineState.titles.includes("Team planning meeting"),"real saved meetings must appear");
+  assert.ok(timelineState.categories.includes("activity"),"authorized audit events must appear without fabrication");
+  assert.ok(timelineState.clocks.every((stamp,i,a)=>i===0||a[i-1]>=stamp),"mixed records must sort chronologically");
+  assert.ok(Math.abs(timelineState.rect.right-timelineState.width)<=1&&timelineState.rect.left>0,"Timeline must stay right-aligned");
+  assert.equal(timelineState.cssRight,"0px");
+  assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
+  assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
+  assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  await page.screenshot({path:"artifacts/personal-ai-unified-timeline-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
-  assert.deepEqual(await page.locator(".timeline-row").evaluateAll(rows=>rows.map(x=>x.dataset.type)),["meeting"],"Meetings filter must isolate real meetings");
-  await page.locator('[data-conversation-filter="task"]').click();
-  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Finish daily review"],"Tasks filter must isolate pending tasks");
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
+  await page.locator('[data-conversation-filter="work"]').click();
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Prepare client proposal"]);
+  await page.locator('[data-conversation-filter="done"]').click();
+  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Complete weekly report"));
   await page.locator('[data-conversation-filter="workflow"]').click();
-  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Morning operations"]);
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Morning operations"]);
   await page.locator('[data-conversation-filter="activity"]').click();
-  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Document indexed"]);
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Workflow"]);
+  await page.locator('[data-conversation-filter="reminder"]').click();
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Send follow-up"]);
   await page.locator('[data-conversation-filter="conversation"]').click();
-  assert.equal(await page.locator(".timeline-row").count(),3,"Conversations filter must show only canonical chats");
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),conversations.map(x=>x.title));
   await page.locator('[data-conversation-filter="all"]').click();
-  await page.fill("#conversationSearch","planning");
-  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===2);
-  assert.deepEqual((await page.locator(".timeline-copy strong").allTextContents()).sort(),["Project Planning","Team planning meeting"].sort(),"search must span chats and scheduled work");
+  await page.fill("#conversationSearch","Onion");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===1&&document.querySelector(".timeline-title").textContent.includes("Onion"));
+  assert.ok((await page.locator("#conversationCount").innerText()).startsWith("1 entry"));
+  await page.locator('[data-conversation-filter="recent"]').click();
+  assert.equal(await page.locator('[data-conversation-filter="recent"]').getAttribute("aria-pressed"),"true");
+  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Onion Cultivation Guide"),"Recent must preserve cross-category search results");
+  await page.locator('[data-conversation-filter="all"]').click();
+  await page.fill("#conversationSearch","weekly report");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===1&&document.querySelector(".timeline-title").textContent.includes("Complete weekly report"));
+  await page.fill("#conversationSearch","nonexistent title");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===0&&document.querySelector(".timeline-empty")?.textContent.includes("No matching"));
   await page.fill("#conversationSearch","");
-  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===7);
-  await page.screenshot({path:"artifacts/personal-ai-timeline-right-390x844.png",fullPage:true});
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+  await page.locator('[data-conversation-filter="work"]').click();
+  await page.locator('.timeline-entry[data-category="work"] .timeline-complete').click();
+  await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="work"]')?.dataset.status==="done");
+  await page.locator('[data-conversation-filter="done"]').click();
+  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Prepare client proposal"),"Mark done must persist and update the timeline");
+  await page.locator('[data-conversation-filter="activity"]').click();
+  allowActivity=false;
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.waitForFunction(()=>document.querySelector(".timeline-notice")?.textContent.includes("not permitted"));
+  assert.equal(await page.locator('.timeline-entry[data-category="activity"]').count(),0,"restricted audited activity must not leak");
+  allowActivity=true;
+  await page.locator('[data-conversation-filter="all"]').click();
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="activity"]'));
+  await page.screenshot({path:"artifacts/personal-ai-unified-timeline-filtered-390x844.png",fullPage:true});
   await page.click("#closeDrawer");
-  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden")&&!document.querySelector("#appDrawer").classList.contains("hidden"));
-  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true");
+  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden") &&
+    !document.querySelector("#appDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true","Back must restore left main sidebar");
+  assert.equal(await page.locator("#appConversations").isVisible(),true,"returned left menu must remain functional");
+  assert.deepEqual(await page.locator("#sidebarChatList .sidebar-chat-row span").allTextContents(),
+    conversations.map(item=>item.title),"search in right drawer must not destroy main sidebar chat history");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   await page.locator("#sidebarChatList .sidebar-chat-row").first().click();
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
@@ -280,7 +335,7 @@ try {
   await page.click("#historyButton");
   await page.click("#appConversations");
 
-  await page.click(".conversation-item");
+  await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   const chatState = await page.evaluate(() => ({
@@ -376,6 +431,9 @@ try {
       }));
       assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
       assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px");
+      await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+      const filters320=await page.locator(".conversation-filters").evaluate(node=>({scroll:node.scrollWidth,width:node.clientWidth,overflow:getComputedStyle(node).overflowX}));
+      assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all timeline categories must remain horizontally scrollable at 320px");
       await page.screenshot({ path: "artifacts/personal-ai-conversations-right-320x568.png", fullPage: true });
       await page.click("#closeDrawer");
     }
@@ -516,7 +574,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Distinct right-edge Conversations and left main sidebar passed direct entry, Back navigation, real search/filter, history preservation, new chat, 320px responsive checks, Today and multiline composer across eight viewports.");
+  console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eight viewports.");
 } finally {
   await browser.close();
 }
