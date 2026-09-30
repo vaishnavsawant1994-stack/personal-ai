@@ -455,8 +455,9 @@ try {
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.click("#historyButton");
   await page.click("#appConversations");
+  const previousConversationId = await page.evaluate(() => currentConversationId);
   await page.click("#newConversation");
-  await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
+  await page.waitForFunction(previousId => currentConversationId !== previousId && document.querySelector("#conversationDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0, previousConversationId);
 
   // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
   await page.locator("#message").focus();
