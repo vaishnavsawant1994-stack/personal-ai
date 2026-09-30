@@ -45,6 +45,26 @@ def everyday_intelligence_router(runtime):
             allowed.update({'sensitive', 'secret'})
         return allowed
 
+    @router.get('/timeline')
+    def timeline(
+        limit: int = Query(default=250, ge=1, le=500),
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        """Owner-authorized minimal projection, including completed historical items.
+
+        History is not synthesized from active-only state. Exclude memories,
+        evidence and raw private context from the aggregated timeline.
+        """
+        authenticate(pa_device, pa_token)
+        fields = ('id', 'kind', 'title', 'status', 'due_at', 'snoozed_until',
+                  'timezone', 'created_at', 'updated_at', 'completed_at',
+                  'cancelled_at', 'context', 'source')
+        return {'items': [
+            {name: (item.get(name) if name != 'context' else (item.get('context') if str(item.get('context') or '').startswith('personal-ai:today:') else '')) for name in fields}
+            for item in everyday.items(status='all', limit=limit)
+        ]}
+
     @router.get('/active')
     def active(
         limit: int = Query(default=100, ge=1, le=500),

@@ -16,6 +16,13 @@ const everydayItems = [
   { id: "task-1", kind: "task", context: "personal-ai:today:task", title: "Finish daily review", due_at: atToday(9), status: "scheduled" },
   { id: "meeting-1", kind: "commitment", context: "personal-ai:today:meeting", title: "Team planning meeting", due_at: atToday(14), status: "scheduled" },
 ];
+const timelineExtraItems=[
+  {id:"done-older",kind:"task",context:"personal-ai:today:task",title:"Finished inventory check",due_at:atToday(8),completed_at:atToday(8,20),status:"completed"},
+  {id:"overdue-1",kind:"task",context:"personal-ai:today:task",title:"Submit overdue report",due_at:new Date(Date.now()-86400000).toISOString(),status:"scheduled"},
+  {id:"future-1",kind:"commitment",context:"personal-ai:today:meeting",title:"Tomorrow briefing",due_at:new Date(Date.now()+86400000).toISOString(),status:"scheduled"},
+  {id:"work-1",kind:"task",context:"personal-ai:today:work",title:"Review platform sprint",due_at:new Date(Date.now()-2*86400000).toISOString(),status:"scheduled"},
+  {id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Renew software access",due_at:new Date(Date.now()+3*86400000).toISOString(),status:"scheduled"},
+];
 const auditedActivities=[{id:"a1",kind:"knowledge",label:"Document indexed",action:"index",status:"completed",created_at:atToday(8,30)}];
 const workflowRuns=[{id:"w1",workflow_title:"Morning operations",status:"running",current_step:2,updated_at:atToday(11)}];
 
@@ -48,6 +55,8 @@ try {
     let body = {};
     if (path === "/status") {
       body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
+    } else if (path === "/everyday/timeline" && method === "GET") {
+      body = { items: [...everydayItems,...timelineExtraItems] };
     } else if (path === "/everyday/active" && method === "GET") {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/items" && method === "POST") {
@@ -59,7 +68,7 @@ try {
     } else if (path.startsWith("/everyday/") && path.endsWith("/complete") && method === "POST") {
       const id = decodeURIComponent(path.split("/")[2]);
       const item = everydayItems.find(item => item.id === id);
-      if(item)item.status = "completed";
+      if(item){item.status = "completed";item.completed_at = new Date().toISOString()}
       body = item || {};
     } else if (path === "/activities" && method === "GET") {
       body = { activities: auditedActivities };
@@ -243,20 +252,30 @@ try {
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
   await page.click("#appConversations");
-  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden") && document.querySelectorAll(".timeline-row").length === 7);
+  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden") && document.querySelectorAll(".timeline-row").length === 12);
   const timelineState=await page.evaluate(()=>({right:document.querySelector("#conversationDrawer").getBoundingClientRect().right,width:document.querySelector("#conversationDrawer").getBoundingClientRect().width,viewport:innerWidth,filters:[...document.querySelectorAll(".conversation-filter")].map(x=>x.textContent.trim()),types:[...document.querySelectorAll(".timeline-row")].map(x=>x.dataset.type),titles:[...document.querySelectorAll(".timeline-copy strong")].map(x=>x.textContent.trim())}));
   assert.ok(Math.abs(timelineState.right-timelineState.viewport)<=1,"unified timeline drawer must remain right anchored");
   assert.ok(timelineState.width<=331,"right timeline must preserve compact sidebar width");
-  assert.deepEqual(timelineState.filters,["All","Recent","Conversations","Meetings","Tasks","Workflows","Activities"]);
+  assert.deepEqual(timelineState.filters,["All","Recent","Conversations","Meetings","Tasks","Work","Reminders","Workflows","Activities"]);
   assert.ok(timelineState.types.includes("conversation")&&timelineState.types.includes("meeting")&&timelineState.types.includes("task")&&timelineState.types.includes("workflow")&&timelineState.types.includes("activity"),"All must combine every supported real source");
-  assert.ok(timelineState.titles.includes("Team planning meeting")&&timelineState.titles.includes("Finish daily review")&&timelineState.titles.includes("Morning operations")&&timelineState.titles.includes("Document indexed"));
-  assert.equal(await page.locator("#conversationCount").innerText(),"7 timeline items");
-  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/everyday/active")).length>0),true,"timeline must load canonical schedule/task source");
+  assert.ok(timelineState.titles.includes("Team planning meeting")&&timelineState.titles.includes("Finish daily review")&&timelineState.titles.includes("Finished inventory check")&&timelineState.titles.includes("Tomorrow briefing")&&timelineState.titles.includes("Morning operations")&&timelineState.titles.includes("Document indexed"));
+  assert.equal(await page.locator("#conversationCount").innerText(),"12 timeline items");
+  assert.ok((await page.locator("#timelineSummary").innerText()).includes("completed"),"timeline summary must include completed and pending work");
+  assert.equal(await page.locator(".timeline-events").count()>=2,true,"proper grouped timeline events must be present");
+  assert.equal(await page.locator(".timeline-axis").count(),12,"each event must sit on the timeline spine");
+  assert.ok((await page.locator(".timeline-row[data-state=completed]").count())>=2,"completed work must remain visible in history");
+  assert.ok((await page.locator(".timeline-row[data-state=overdue]").count())>=1,"overdue work must show a distinct state");
+  assert.ok((await page.locator(".timeline-row[data-state=upcoming]").count())>=1,"future meetings must show upcoming state");
+  assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/everyday/timeline")).length>0),true,"timeline must load canonical schedule/task source");
   assert.equal(await page.evaluate(()=>performance.getEntriesByType("resource").filter(entry=>entry.name.includes("/activities")).length>0),true,"timeline must load canonical audited activity source");
   await page.locator('[data-conversation-filter="meeting"]').click();
-  assert.deepEqual(await page.locator(".timeline-row").evaluateAll(rows=>rows.map(x=>x.dataset.type)),["meeting"],"Meetings filter must isolate real meetings");
+  assert.equal(await page.locator(".timeline-row[data-type=meeting]").count(),2,"Meetings filter must include today and tomorrow");
   await page.locator('[data-conversation-filter="task"]').click();
-  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Finish daily review"],"Tasks filter must isolate pending tasks");
+  assert.deepEqual((await page.locator(".timeline-copy strong").allTextContents()).sort(),["Finish daily review","Finished inventory check","Submit overdue report"].sort(),"Tasks filter must include completed and overdue history");
+  await page.locator('[data-conversation-filter="work"]').click();
+  assert.ok((await page.locator(".timeline-row").count())>=3,"Work filter must combine work items, runs and activity");
+  await page.locator('[data-conversation-filter="reminder"]').click();
+  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Renew software access"]);
   await page.locator('[data-conversation-filter="workflow"]').click();
   assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Morning operations"]);
   await page.locator('[data-conversation-filter="activity"]').click();
@@ -268,8 +287,14 @@ try {
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===2);
   assert.deepEqual((await page.locator(".timeline-copy strong").allTextContents()).sort(),["Project Planning","Team planning meeting"].sort(),"search must span chats and scheduled work");
   await page.fill("#conversationSearch","");
-  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===7);
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===12);
   await page.screenshot({path:"artifacts/personal-ai-timeline-right-390x844.png",fullPage:true});
+  await page.locator("#conversationList").evaluate(node=>node.scrollTop=node.scrollHeight);
+  await page.screenshot({path:"artifacts/personal-ai-timeline-history-390x844.png",fullPage:true});
+  await page.locator(".timeline-row[data-type=task]").first().click();
+  assert.ok(await page.locator("#timelineDetail").isVisible(),"task click must open real item details");
+  assert.ok((await page.locator("#timelineDetail").innerText()).includes("Status:"),"detail must show real status");
+  await page.locator(".timeline-detail-back").first().click();
   await page.click("#closeDrawer");
   await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden")&&!document.querySelector("#appDrawer").classList.contains("hidden"));
   assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true");
@@ -280,7 +305,8 @@ try {
   await page.click("#historyButton");
   await page.click("#appConversations");
 
-  await page.click(".conversation-item");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row[data-type=conversation]").length===3);
+  await page.locator(".timeline-row[data-type=conversation]").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   const chatState = await page.evaluate(() => ({

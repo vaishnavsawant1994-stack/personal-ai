@@ -85,3 +85,36 @@ def test_today_rejects_untrusted_categories_malformed_dates_and_blank_titles():
     ]:
         assert client.post('/iphone/api/everyday/items', cookies=auth(), json=payload).status_code == 422
     assert everyday.calls == []
+
+def test_timeline_requires_owner_and_includes_completed_with_private_fields_excluded():
+    client, registry, everyday = client_for_today()
+
+    def records(*, status, limit):
+        assert status == 'all'
+        assert limit == 25
+        return [
+            {'id': 'done', 'kind': 'task', 'title': 'Completed review',
+             'status': 'completed', 'due_at': '2026-09-30T09:00:00+02:00',
+             'completed_at': '2026-09-30T09:24:00+02:00',
+             'source': 'today_ui', 'context': 'personal-ai:today:task',
+             'evidence': ['private evidence'], 'related_memory_ids': ['secret']},
+            {'id': 'pending', 'kind': 'commitment', 'title': 'Team meeting',
+             'status': 'scheduled', 'due_at': '2026-09-30T15:00:00+02:00'}
+        ]
+
+    everyday.items = records
+    url = '/iphone/api/everyday/timeline?limit=25'
+    assert client.get(url).status_code == 401
+    registry.allowed = False
+    assert client.get(url, cookies=auth()).status_code == 403
+    registry.allowed = True
+    result = client.get(url, cookies=auth())
+    assert result.status_code == 200
+    items = result.json()['items']
+    assert [item['id'] for item in items] == ['done', 'pending']
+    assert items[0]['completed_at'] == '2026-09-30T09:24:00+02:00'
+    assert items[1]['status'] == 'scheduled'
+    assert items[1]['context'] == ''
+    assert 'related_memory_ids' not in items[0] and 'evidence' not in items[0]
+    assert client.get('/iphone/api/everyday/timeline?limit=501',
+                      cookies=auth()).status_code == 422
