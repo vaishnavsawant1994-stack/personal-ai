@@ -23,6 +23,8 @@ const everydayItems = [
 const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
+const deletedConversationIds=[];
+const exportedConversationIds=[];
 
 const activeConversation = {
   thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
@@ -77,6 +79,18 @@ try {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
       body = activeConversation;
+    } else if (path === "/conversations/c1" && method === "PATCH") {
+      const title = JSON.parse(request.postData() || "{}").title;
+      activeConversation.thread.title = title;
+      conversations[0].title = title;
+      body = { conversation: { ...activeConversation.thread } };
+    } else if (path === "/conversations/c1/export" && method === "GET") {
+      exportedConversationIds.push("c1");
+      body = { version: 1, conversation: activeConversation.thread, events: activeConversation.events };
+    } else if (path === "/conversations/new" && method === "DELETE") {
+      if(url.searchParams.get("confirm") !== "true")return route.fulfill({ status: 422, contentType:"application/json",body:JSON.stringify({detail:"Confirmation required"})});
+      deletedConversationIds.push("new");
+      body = { deleted:true, conversation_id:"new" };
     } else if (path.startsWith("/conversations/c1")) {
       body = activeConversation;
     } else if (path.startsWith("/conversations") && method === "GET") {
@@ -136,6 +150,7 @@ try {
     innerWidth,
     innerHeight,
   }));
+  assert.equal(await page.locator("#chatMenuButton").isVisible(), false, "three-dot conversation menu must be absent on Home");
   assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
   assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
@@ -353,6 +368,41 @@ try {
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
   assert.ok(chatState.scrollWidth <= chatState.innerWidth, "active conversation must not overflow horizontally");
+  assert.equal(await page.locator("#chatMenuButton").isVisible(), true, "three-dot menu must appear after loading a real conversation");
+  const headerButtons=await page.evaluate(()=>({
+    more:document.querySelector("#chatMenuButton").getBoundingClientRect(),
+    timeline:document.querySelector("#ownerButton").getBoundingClientRect(),
+  }));
+  assert.ok(headerButtons.more.right <= headerButtons.timeline.left+1, "conversation menu must sit LEFT of the right-side timeline button");
+  assert.ok(headerButtons.more.width>=44&&headerButtons.more.height>=44, "conversation menu must retain accessible touch target");
+  await page.click("#chatMenuButton");
+  assert.equal(await page.locator("#chatActionMenu").isVisible(),true,"three-dot menu must open");
+  assert.deepEqual(await page.locator("#chatActionMenu [role=menuitem]").allTextContents(),
+    ["✎Rename","↗Share transcript","⧉Copy transcript","↓Download JSON","⌫Delete conversation"],"conversation menu must expose only connected actions");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#chatActionMenu").isVisible(),false,"Escape must close the conversation menu");
+  await page.click("#chatMenuButton");
+  page.once("dialog",dialog=>dialog.accept("Mushroom Session Notes"));
+  await page.click("#chatRename");
+  await page.waitForFunction(()=>document.querySelector("#conversationTitle").textContent==="Mushroom Session Notes");
+  assert.equal(conversations[0].title,"Mushroom Session Notes","rename must call the real conversation API");
+  await page.evaluate(()=>{
+    Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.__copiedTranscript=text}}});
+    Object.defineProperty(navigator,"share",{configurable:true,value:async data=>{window.__sharedTranscript=data}});
+  });
+  await page.click("#chatMenuButton");
+  await page.click("#chatCopy");
+  await page.waitForFunction(()=>Boolean(window.__copiedTranscript));
+  assert.ok((await page.evaluate(()=>window.__copiedTranscript)).includes("Plan mushroom farm shed"),"copy must use the real transcript");
+  await page.click("#chatMenuButton");
+  await page.click("#chatShare");
+  await page.waitForFunction(()=>Boolean(window.__sharedTranscript));
+  assert.ok((await page.evaluate(()=>window.__sharedTranscript.text)).includes("Plan mushroom farm shed"),"share must send transcript text, not manufacture a public link");
+  await page.click("#chatMenuButton");
+  const exportDownload=page.waitForEvent("download");
+  await page.click("#chatExport");
+  await exportDownload;
+  assert.deepEqual(exportedConversationIds,["c1"],"download must request the authenticated canonical export");
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
 
   const viewports = [
@@ -550,6 +600,19 @@ try {
   assert.ok(landscape.composerBottom <= landscape.innerHeight + 1, "landscape composer must stay in viewport");
   assert.ok(landscape.headerLeft >= 0 && landscape.headerRight <= landscape.innerWidth + 1, "landscape header must fit");
   await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
+  assert.equal(await page.locator("#chatMenuButton").isVisible(),false,"conversation actions must disappear on Home even when old chat exists");
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>enterConversationView());
+  await page.waitForFunction(()=>!document.querySelector("#chatMenuButton").classList.contains("hidden"));
+  await page.click("#chatMenuButton");
+  page.once("dialog",dialog=>dialog.dismiss());
+  await page.click("#chatDelete");
+  assert.deepEqual(deletedConversationIds,[],"cancel must leave conversation untouched");
+  await page.click("#chatMenuButton");
+  page.once("dialog",dialog=>dialog.accept());
+  await page.click("#chatDelete");
+  await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
+  assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
 
   // Authentication presentation only: real password, Google and passkey authority
   // are exercised separately by the server integration/security suite.
