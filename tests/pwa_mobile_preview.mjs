@@ -185,6 +185,7 @@ try {
   await page.click("#historyButton");
   await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
+  await page.waitForFunction(() => document.querySelector("#appDrawer").getBoundingClientRect().left >= -1);
   const drawerState = await page.evaluate(() => ({
     labels: [...document.querySelectorAll("#appDrawer .sidebar-nav-row span")].map(node => node.textContent.trim()),
     chatTitles: [...document.querySelectorAll("#sidebarChatList .sidebar-chat-row span")].map(node => node.textContent.trim()),
@@ -320,6 +321,7 @@ try {
     if (width === 320) {
       await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
       await page.click("#historyButton");
+      await page.waitForFunction(() => document.querySelector("#appDrawer").getBoundingClientRect().left >= -1);
       const narrowSidebar = await page.evaluate(() => ({
         screenWidth:innerWidth, screenHeight:innerHeight,
         aside:document.querySelector("#appDrawer").getBoundingClientRect(),
