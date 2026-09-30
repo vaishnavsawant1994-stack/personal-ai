@@ -270,19 +270,6 @@
     .quick-copy strong{font-size:clamp(.78rem,3.3vw,.99rem);font-weight:560;line-height:1.18}
     .quick-copy span{color:#acb8c9;font-size:clamp(.64rem,2.55vw,.77rem);line-height:1.4;margin-top:6px}
     .action-arrow{justify-self:end;align-self:center;color:#9cabc2;font-size:1.38rem;line-height:1;font-weight:300}
-    .recent-panel{min-height:116px;max-height:300px;flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(160,180,207,.13);border-radius:21px;padding:12px 15px;background:linear-gradient(150deg,rgba(27,33,42,.92),rgba(18,24,32,.98))}
-    .recent-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:2px 0 11px;flex:0 0 auto}
-    .recent-heading h2{margin:0;font-size:1.03rem;font-weight:590}
-    .recent-heading button{border:0;background:transparent;color:#b2c7e4;cursor:pointer;padding:7px 1px;font-size:.78rem}
-    .recent-heading button span{font-size:1.23rem;margin-left:5px}
-    .recent-list{min-height:0;flex:1 1 auto;overflow-y:auto;scrollbar-width:thin}
-    .recent-row{width:100%;min-height:57px;border:0;border-top:1px solid rgba(167,183,205,.085);padding:8px 0;background:transparent;color:#e5ebf5;display:grid;grid-template-columns:39px minmax(0,1fr) 14px;align-items:center;gap:11px;text-align:left;cursor:pointer}
-    .recent-row:hover,.recent-row:focus-visible{color:white;background:rgba(77,110,157,.1)}
-    .recent-row-icon{width:37px;height:37px;border-radius:12px;display:grid;place-items:center;color:#c7daef;background:rgba(80,102,135,.17)}
-    .recent-row-icon svg{width:19px;height:19px;stroke:currentColor;stroke-width:1.65;fill:none}
-    .recent-row-copy{min-width:0}.recent-row-copy strong{display:block;font-weight:500;font-size:.87rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.recent-row-copy small{display:block;font-size:.71rem;color:#899ab3;margin-top:4px}
-    .recent-row-arrow{color:#8197b4;justify-self:end;font-size:1.3rem}
-    .recent-empty{color:#8192a8;font-size:.81rem;line-height:1.5;text-align:center;padding:25px 8px}
     .composer{width:min(100%,690px);min-height:59px;grid-template-columns:auto minmax(0,1fr) auto auto;border:1px solid transparent;border-radius:999px;background:linear-gradient(#1a2332,#161c2a) padding-box,linear-gradient(100deg,#4ebfff,#6968ff 55%,#ad72ff) border-box;box-shadow:0 10px 36px rgba(0,0,0,.21);gap:5px;padding:5px 6px 5px 10px}
     .composer input{font-size:clamp(.84rem,3.6vw,1rem);min-width:0}
     .attach-button{color:#bfcede;width:37px;height:40px;min-width:37px;min-height:40px}
@@ -510,6 +497,50 @@
       min-height:var(--keyboard-visible-height,100dvh);
     }
 
+
+    /* Slim 2x2 shortcuts, actual owner-owned Today agenda. */
+    .quick-actions{--home-card-height:66px;grid-template-rows:repeat(2,var(--home-card-height));grid-auto-rows:var(--home-card-height);gap:8px}
+    .quick-action{box-sizing:border-box;height:var(--home-card-height);min-height:0!important;padding:6px 9px;grid-template-columns:32px minmax(0,1fr) 8px;gap:8px;border-radius:15px;align-content:center}
+    .quick-icon{width:32px;height:32px;border-radius:10px}
+    .quick-icon svg{width:18px;height:18px}
+    .quick-copy{min-width:0}
+    .quick-copy strong{font-size:clamp(.76rem,3.15vw,.91rem);line-height:1.2}
+    .quick-copy span{font-size:clamp(.61rem,2.55vw,.72rem);line-height:1.2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .action-arrow{font-size:1rem}
+    .home-intro,body.home-landing .home-intro{gap:clamp(10px,1.6vh,15px)}
+    .today-panel{width:100%;min-height:148px;max-height:360px;flex:1 1 auto;min-width:0;overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(159,179,206,.15);border-radius:19px;padding:13px 14px 8px;background:linear-gradient(150deg,rgba(27,33,42,.91),rgba(17,22,31,.97))}
+    .today-heading{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:10px}
+    .today-heading h2{font-size:1.05rem;font-weight:620;line-height:1.2;margin:0}
+    .today-date{display:block;color:#8499b4;font-size:.71rem;margin-top:4px}
+    .today-heading button{min-height:38px;border:1px solid rgba(136,165,201,.23);border-radius:12px;color:#c5dcfa;background:#253347;padding:7px 13px;font-size:.82rem;cursor:pointer}
+    .today-heading button:hover,.today-heading button:focus-visible{border-color:#80abe9}
+    .today-timeline{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+    .today-item{min-height:58px;position:relative;display:grid;grid-template-columns:48px 12px minmax(0,1fr) 39px;align-items:center;gap:10px;border-top:1px solid rgba(162,184,210,.075);padding:7px 0}
+    .today-time{font-size:.74rem;font-variant-numeric:tabular-nums;color:#a5b6cb;line-height:1.2}
+    .today-track{position:relative;height:100%;min-height:35px;display:flex;justify-content:center;align-items:center}
+    .today-track:before{content:"";position:absolute;width:1px;background:rgba(109,140,179,.3);inset:-14px auto}
+    .today-track:after{content:"";position:relative;width:8px;height:8px;flex:0 0 8px;border-radius:50%;border:2px solid #79baf7;background:#283e5b}
+    .today-item[data-kind="meeting"] .today-track:after{border-color:#d4a0ff;background:#4c366b}
+    .today-item[data-kind="reminder"] .today-track:after{border-color:#e8c580;background:#6b5631}
+    .today-copy{min-width:0}
+    .today-copy strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.86rem;font-weight:510}
+    .today-copy small{display:block;font-size:.71rem;color:#899db5;margin-top:4px}
+    .today-check{width:38px;height:38px;border-radius:50%;border:1px solid rgba(141,167,198,.25);color:#aabbd2;background:rgba(46,60,77,.32);cursor:pointer;display:grid;place-items:center;font-size:1.12rem}
+    .today-check:hover,.today-check:focus-visible{color:#d6f9eb;border-color:#9addc7}
+    .today-empty{padding:22px 9px;text-align:center;font-size:.81rem;line-height:1.5;color:#9cacbd;margin:0}
+    .today-source{flex:0 0 auto;padding-top:7px;margin:0;font-size:.66rem;color:#7489a3}
+    .today-form{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding:8px 0;border-top:1px solid rgba(162,184,210,.14);overflow-y:auto;max-height:216px}
+    .today-form label{font-size:.7rem;color:#a8b9d0}
+    .today-form label span{font-size:.61rem;color:#8a9cb0}
+    .today-form input,.today-form select{height:37px;min-width:0;box-sizing:border-box;background:#141e2b;color:#eef3fb;border:1px solid rgba(157,177,208,.23);border-radius:10px;padding:7px;font-size:16px;color-scheme:dark}
+    .today-form label[for="todayTitle"],.today-form #todayTitle{grid-column:1 / -1}
+    .today-form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px}
+    .today-form-actions button{border:1px solid rgba(149,177,211,.24);border-radius:10px;padding:6px 13px;min-height:37px;color:#cbdcf1;background:#27354b;cursor:pointer}
+    #todaySave{background:#416cbd;color:white}
+    @media(max-width:350px){.quick-actions{--home-card-height:66px;gap:7px}.quick-action{grid-template-columns:28px minmax(0,1fr) 7px;gap:5px;padding:5px}.quick-icon{width:28px;height:28px}.quick-copy strong{font-size:.75rem}.quick-copy span{font-size:.59rem}.today-panel{padding:10px 9px}.today-item{grid-template-columns:44px 10px minmax(0,1fr) 36px;gap:6px}}
+    @media(max-height:700px) and (max-width:900px){.quick-actions{--home-card-height:62px}.today-panel{min-height:114px}.today-item{min-height:52px}}
+    @media(orientation:landscape) and (max-height:520px){.quick-actions{--home-card-height:54px;grid-template-rows:54px;grid-auto-rows:54px}.quick-action{height:54px}.today-panel{max-height:185px;min-height:80px}.today-source{display:none}}
+
   </style>
 </head>
 <body>
@@ -540,14 +571,24 @@
       <div id="homeIntro" class="home-intro">
         <div class="home-greeting"><h1 id="homeGreeting">Good evening</h1><p>How can I help you today?</p></div>
         <div class="quick-actions" aria-label="Home actions">
-          <button id="quickAsk" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v11H9l-4 3z"/></svg></span><span class="quick-copy"><strong>Chat</strong><span>Ask anything,<br/>get clear answers.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
-          <button id="quickData" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v5h4M10 13h5M10 16h5"/></svg></span><span class="quick-copy"><strong>Create</strong><span>Write, plan, and<br/>bring ideas to life.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
-          <button id="quickTask" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1"/><path d="m4 18 6-6 4 3 3-4 4 5"/></svg></span><span class="quick-copy"><strong>Imagine</strong><span>Explore available<br/>visual tools.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
-          <button id="quickTools" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><rect x="14" y="14" width="7" height="7" rx="1.3"/></svg></span><span class="quick-copy"><strong>Tools</strong><span>Apps, workflows,<br/>and more.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
+          <button id="quickAsk" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v11H9l-4 3z"/></svg></span><span class="quick-copy"><strong>Chat</strong><span>Ask anything</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
+          <button id="quickData" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v5h4M10 13h5M10 16h5"/></svg></span><span class="quick-copy"><strong>Create</strong><span>Write &amp; plan</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
+          <button id="quickTask" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1"/><path d="m4 18 6-6 4 3 3-4 4 5"/></svg></span><span class="quick-copy"><strong>Imagine</strong><span>Visual ideas</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
+          <button id="quickTools" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><rect x="14" y="14" width="7" height="7" rx="1.3"/></svg></span><span class="quick-copy"><strong>Tools</strong><span>Apps &amp; workflows</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
         </div>
-        <section class="recent-panel" aria-labelledby="recentHeading">
-          <div class="recent-heading"><h2 id="recentHeading">Recent</h2><button id="seeAllRecent" type="button">See all <span aria-hidden="true">›</span></button></div>
-          <div id="recentList" class="recent-list"><p class="recent-empty">Your recent conversations will appear here.</p></div>
+        <section class="today-panel" aria-labelledby="todayHeading">
+          <div class="today-heading"><div><h2 id="todayHeading">Today</h2><span id="todayDate" class="today-date">Your daily plan</span></div><button id="todayAdd" type="button" aria-expanded="false" aria-controls="todayForm">+ Add</button></div>
+          <div id="todayTimeline" class="today-timeline" aria-live="polite"><p class="today-empty">Loading today's plan…</p></div>
+          <form id="todayForm" class="today-form hidden" aria-label="Add to today's plan">
+            <label for="todayCategory">Type</label>
+            <select id="todayCategory" aria-label="Plan item type"><option value="task">Task</option><option value="work">Work</option><option value="meeting">Meeting</option><option value="reminder">Reminder</option></select>
+            <label for="todayTitle">Title</label>
+            <input id="todayTitle" type="text" maxlength="160" placeholder="What needs doing?" autocomplete="off" required/>
+            <label for="todayTime">Time <span>(optional for tasks)</span></label>
+            <input id="todayTime" type="time" aria-label="Scheduled time"/>
+            <div class="today-form-actions"><button id="todayCancel" type="button">Cancel</button><button id="todaySave" type="submit">Save</button></div>
+          </form>
+          <p class="today-source">Your Personal AI plan · External calendars not connected</p>
         </section>
       </div>
       <div class="state" aria-live="polite"><strong id="stateLabel">Idle</strong><span id="status">Tap the microphone once and speak naturally.</span></div>
@@ -631,20 +672,68 @@ function conversationDate(item){const value=item&&item.updated_at;const date=val
 function conversationGroupLabel(item){const date=conversationDate(item);if(!date)return'Earlier';const today=new Date(),startToday=new Date(today.getFullYear(),today.getMonth(),today.getDate()),startDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()),days=Math.round((startToday-startDate)/86400000);if(days===0)return'Today';if(days===1)return'Yesterday';return date.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}
 function conversationTimeLabel(item){const date=conversationDate(item);if(!date)return'';const today=new Date(),sameDay=date.toDateString()===today.toDateString();return sameDay?date.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):date.toLocaleDateString([], {day:'numeric',month:'short'})}
 
-function renderRecent(){
- const host=$('recentList');if(!host)return;host.replaceChildren();
- const records=conversationCache.slice().sort((a,b)=>(conversationDate(b)?.getTime()||0)-(conversationDate(a)?.getTime()||0)).slice(0,3);
- if(!records.length){const p=document.createElement('p');p.className='recent-empty';p.textContent='Your recent conversations will appear here.';host.append(p);return}
- for(const item of records){
-  const button=document.createElement('button');button.type='button';button.className='recent-row';
-  const icon=document.createElement('span');icon.className='recent-row-icon';icon.innerHTML='<svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7zM15 3v5h4M10 12h6M10 16h6"/></svg>';
-  const copy=document.createElement('span');copy.className='recent-row-copy';const title=document.createElement('strong');title.textContent=item.title||'Conversation';
-  const time=document.createElement('small');time.textContent=conversationTimeLabel(item)||'Conversation';copy.append(title,time);
-  const chevron=document.createElement('span');chevron.className='recent-row-arrow';chevron.setAttribute('aria-hidden','true');chevron.textContent='›';
-  button.append(icon,copy,chevron);button.onclick=()=>openConversation(item.id).catch(e=>showToast(e.message));host.append(button)
- }
+function todayKey(date){
+ return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-')
 }
-function renderConversationList(items){if(Array.isArray(items))conversationCache=items;renderRecent();const list=$('conversationList');list.textContent='';let rows=conversationCache.slice();if(conversationFilter==='recent'){const cutoff=Date.now()-7*86400000;rows=rows.filter(item=>{const date=conversationDate(item);return date&&date.getTime()>=cutoff})}if(!rows.length){const empty=document.createElement('div');empty.className='conversation-empty';empty.textContent=$('conversationSearch').value?'No conversations match this search.':'No conversations yet. Start a new conversation when you are ready.';list.appendChild(empty);return}let currentGroup='';rows.forEach(item=>{const group=conversationGroupLabel(item);if(group!==currentGroup){currentGroup=group;const heading=document.createElement('div');heading.className='conversation-group-title';heading.textContent=group;list.appendChild(heading)}const button=document.createElement('button');button.type='button';button.className='conversation-item'+(item.id===currentConversationId?' active':'');button.setAttribute('aria-pressed',item.id===currentConversationId?'true':'false');const icon=document.createElement('span');icon.className='conversation-item-icon';icon.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6zM15 4v4h4M9 12h6M9 15h5"/></svg>';const copy=document.createElement('span');copy.className='conversation-item-copy';const title=document.createElement('strong'),preview=document.createElement('span'),time=document.createElement('time');title.textContent=item.title||'Conversation';preview.textContent=item.preview||'Continue this conversation';time.textContent=conversationTimeLabel(item);copy.append(title,preview);button.append(icon,copy,time);button.onclick=()=>openConversation(item.id);list.appendChild(button)})}
+function todayItemDue(item){
+ const raw=item.status==='snoozed'&&item.snoozed_until?item.snoozed_until:item.due_at;
+ if(!raw)return null;
+ if(/^\d{4}-\d{2}-\d{2}$/.test(String(raw)))return {day:String(raw),time:null,millis:Number.MAX_SAFE_INTEGER};
+ const d=new Date(raw);
+ if(Number.isNaN(d.getTime()))return null;
+ return {day:todayKey(d),time:d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}),millis:d.getTime()}
+}
+function todayItemKind(item){
+ const kind=String(item.context||'').match(/^personal-ai:today:(task|work|meeting|reminder)$/);
+ if(kind)return kind[1];
+ return ['task','reminder','followup','commitment'].includes(item.kind)?item.kind:'work'
+}
+function todayKindLabel(kind){return ({task:'Task',work:'Work',meeting:'Meeting',reminder:'Reminder',followup:'Follow-up',commitment:'Commitment'})[kind]||'Work'}
+function renderToday(items){
+ const host=$('todayTimeline');if(!host)return;
+ host.replaceChildren();
+ $('todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+ const key=todayKey(new Date());
+ const records=(Array.isArray(items)?items:[]).map(item=>({item,due:todayItemDue(item)}))
+  .filter(record=>record.due?.day===key && !['completed','dismissed','cancelled'].includes(record.item.status))
+  .sort((a,b)=>a.due.millis-b.due.millis || String(a.item.title).localeCompare(String(b.item.title)));
+ if(!records.length){
+  const p=document.createElement('p');p.className='today-empty';p.textContent='Nothing planned yet. Add a task, work item or meeting.';host.append(p);return
+ }
+ records.forEach(({item,due})=>{
+  const kind=todayItemKind(item),row=document.createElement('div');row.className='today-item';row.dataset.kind=kind;row.setAttribute('role','listitem');
+  const time=document.createElement('time');time.className='today-time';time.textContent=due.time||'Anytime';
+  const rail=document.createElement('span');rail.className='today-track';rail.setAttribute('aria-hidden','true');
+  const copy=document.createElement('div');copy.className='today-copy';
+  const title=document.createElement('strong');title.textContent=item.title||'Untitled';
+  const meta=document.createElement('small');meta.textContent=todayKindLabel(kind);
+  copy.append(title,meta);
+  const done=document.createElement('button');done.type='button';done.className='today-check';
+  done.setAttribute('aria-label','Mark '+(item.title||'item')+' complete');done.textContent='✓';
+  done.onclick=async()=>{
+   done.disabled=true;
+   try{await api('/everyday/'+encodeURIComponent(item.id)+'/complete',{method:'POST',body:'{}'});await refreshToday();showToast('Completed')}
+   catch(error){done.disabled=false;showToast(error.message||'Unable to complete item')}
+  };
+  row.append(time,rail,copy,done);host.append(row)
+ })
+ host.setAttribute('role','list')
+}
+async function refreshToday(){
+ const data=await api('/everyday/active?limit=200');
+ if(!Array.isArray(data.items))throw new Error('Today items are unavailable');
+ renderToday(data.items);return data
+}
+function todayLoadError(error){
+ const panel=$('todayTimeline');if(!panel)return;
+ panel.textContent='';const p=document.createElement('p');p.className='today-empty';p.textContent='Today is unavailable. Use the button to retry.';
+ const retry=document.createElement('button');retry.type='button';retry.textContent='Retry';retry.onclick=()=>refreshToday().catch(todayLoadError);
+ p.append(document.createElement('br'),retry);panel.append(p);
+}
+function closeTodayForm(){
+ $('todayForm').classList.add('hidden');$('todayAdd').setAttribute('aria-expanded','false')
+}
+function renderConversationList(items){if(Array.isArray(items))conversationCache=items;const list=$('conversationList');list.textContent='';let rows=conversationCache.slice();if(conversationFilter==='recent'){const cutoff=Date.now()-7*86400000;rows=rows.filter(item=>{const date=conversationDate(item);return date&&date.getTime()>=cutoff})}if(!rows.length){const empty=document.createElement('div');empty.className='conversation-empty';empty.textContent=$('conversationSearch').value?'No conversations match this search.':'No conversations yet. Start a new conversation when you are ready.';list.appendChild(empty);return}let currentGroup='';rows.forEach(item=>{const group=conversationGroupLabel(item);if(group!==currentGroup){currentGroup=group;const heading=document.createElement('div');heading.className='conversation-group-title';heading.textContent=group;list.appendChild(heading)}const button=document.createElement('button');button.type='button';button.className='conversation-item'+(item.id===currentConversationId?' active':'');button.setAttribute('aria-pressed',item.id===currentConversationId?'true':'false');const icon=document.createElement('span');icon.className='conversation-item-icon';icon.innerHTML='<svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6zM15 4v4h4M9 12h6M9 15h5"/></svg>';const copy=document.createElement('span');copy.className='conversation-item-copy';const title=document.createElement('strong'),preview=document.createElement('span'),time=document.createElement('time');title.textContent=item.title||'Conversation';preview.textContent=item.preview||'Continue this conversation';time.textContent=conversationTimeLabel(item);copy.append(title,preview);button.append(icon,copy,time);button.onclick=()=>openConversation(item.id);list.appendChild(button)})}
 function setConversationFilter(filter){conversationFilter=filter;document.querySelectorAll('[data-conversation-filter]').forEach(button=>{const active=button.dataset.conversationFilter===filter;button.classList.toggle('active',active);button.setAttribute('aria-selected',active?'true':'false')});renderConversationList()}
 function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages()}
 async function refreshConversationList(query=''){const data=await api('/conversations?q='+encodeURIComponent(query));renderConversationList(data.conversations);return data}
@@ -662,7 +751,7 @@ function renderGoogleLogin(){const host=$('googleLogin');if(!accessOptions.googl
 async function handleGoogleCredential(result){try{if(!result||!result.credential)throw new Error('Google did not return a sign-in credential.');await api('/access/google/login',{method:'POST',body:JSON.stringify({credential:result.credential,name:'Google owner browser'})});$('enrollStatus').textContent='';await check()}catch(error){accessError(error)}}
 window.handleGoogleCredential=handleGoogleCredential;
 async function loadAccessOptions(){try{accessOptions=await api('/access/options')}catch{accessOptions={}}const passkeySupported=Boolean(window.PublicKeyCredential&&navigator.credentials&&accessOptions.passkey_available);$('passkeyLogin').disabled=!passkeySupported;$('passkeyLogin').textContent=passkeySupported?'Continue with Face ID':'Face ID not set up';$('passwordChoice').classList.toggle('hidden',!accessOptions.password_available);renderGoogleLogin();return accessOptions}
-async function check(){$('greeting').textContent=greeting();try{appStatus=await api('/status');try{uiPreferences=await api('/preferences')}catch{}sessionActive=Boolean(appStatus.active_qualification);$('enrollPanel').classList.add('hidden');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Trusted device';$('ownerMenuStatus').textContent=modelStateLabel(appStatus.model);$('voiceAlert').textContent='';if(appStatus.conversation)applyConversation(appStatus.conversation);renderConversationList(appStatus.conversations||[]);updateHomeGreeting();updateDrawerConnection('Connected',true);enterHomeLanding();return appStatus}catch(error){if(error.status===401){await loadAccessOptions();$('enrollPanel').classList.remove('hidden');$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Locked';$('ownerMenuStatus').textContent='Owner verification required';updateDrawerConnection('Locked',false)}else{$('enrollPanel').classList.add('hidden');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Reconnecting';$('ownerMenuStatus').textContent='Personal AI reconnecting';updateDrawerConnection('Reconnecting',false);$('voiceAlert').textContent='Personal AI is reconnecting. Your trusted login and conversations remain saved.';updateHomeGreeting();enterHomeLanding();setState('background','Waiting for the secure connection…')}return null}}
+async function check(){$('greeting').textContent=greeting();try{appStatus=await api('/status');try{uiPreferences=await api('/preferences')}catch{}sessionActive=Boolean(appStatus.active_qualification);$('enrollPanel').classList.add('hidden');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Trusted device';$('ownerMenuStatus').textContent=modelStateLabel(appStatus.model);$('voiceAlert').textContent='';if(appStatus.conversation)applyConversation(appStatus.conversation);renderConversationList(appStatus.conversations||[]);refreshToday().catch(todayLoadError);updateHomeGreeting();updateDrawerConnection('Connected',true);enterHomeLanding();return appStatus}catch(error){if(error.status===401){await loadAccessOptions();$('enrollPanel').classList.remove('hidden');$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Locked';$('ownerMenuStatus').textContent='Owner verification required';updateDrawerConnection('Locked',false)}else{$('enrollPanel').classList.add('hidden');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');$('modulePanel').classList.remove('open');activeModule='home';$('devicePill').textContent='Reconnecting';$('ownerMenuStatus').textContent='Personal AI reconnecting';updateDrawerConnection('Reconnecting',false);$('voiceAlert').textContent='Personal AI is reconnecting. Your trusted login and conversations remain saved.';updateHomeGreeting();enterHomeLanding();setState('background','Waiting for the secure connection…')}return null}}
 function accessError(error){$('enrollStatus').textContent=error.message||'Unable to unlock Personal AI.'}
 $('passwordChoice').onclick=()=>{$('passwordForm').classList.toggle('hidden');$('troubleOptions').classList.add('hidden');$('ownerPassword').focus()};
 $('troubleChoice').onclick=()=>{$('troubleOptions').classList.toggle('hidden');$('passwordForm').classList.add('hidden')};
@@ -778,7 +867,7 @@ async function loadTools(){const [toolData,appData]=await Promise.all([api('/app
 async function loadActivityFeed(){const activityData=await api('/activities?limit=200'),activities=activityData.activities||[];$('moduleBody').innerHTML=`<div class="module-toolbar"><button id="activityRefresh">Refresh</button><span>${activities.length} recent audited events</span></div><div class="module-grid">${activities.map(item=>`<article class="data-card"><strong>${escapeHtml(item.label||item.kind)} · ${escapeHtml(item.action)}</strong><p>${escapeHtml(item.status)} · ${escapeHtml(new Date(item.created_at).toLocaleString())}</p><div class="data-meta"><span>${escapeHtml(JSON.stringify(item.details||{}).slice(0,180))}</span></div></article>`).join('')||'<div class="empty-module">No audited activity yet.</div>'}</div>`;$('activityRefresh').onclick=loadActivityFeed}
 async function loadWorkflows(){const data=await api('/workflows'),workflows=data.workflows||[],runs=data.runs||[];$('moduleBody').innerHTML=`<div class="module-toolbar"><button id="workflowAdd">＋ New workflow</button><button id="workflowRefresh">Refresh</button><span>${runs.length} runs</span></div><h2>Workflows</h2><div class="module-grid">${workflows.map(workflow=>`<article class="data-card"><strong>${escapeHtml(workflow.title)}</strong><p>${(workflow.steps||[]).length} persisted steps · ${workflow.enabled&&!workflow.paused?'Ready':'Paused'}</p><div class="data-actions"><button data-workflow-run="${workflow.id}">Run</button></div></article>`).join('')||'<div class="empty-module">Create a governed workflow for repeatable work.</div>'}</div><h2>Runs &amp; approvals</h2><div class="module-grid">${runs.map(run=>`<article class="data-card"><strong>${escapeHtml(run.status)} · step ${escapeHtml(run.current_step_step||run.current_step)}</strong><p>${escapeHtml(run.error||run.id)}</p><div class="data-actions">${run.status==='waiting_approval'?`<button data-run-approve="${run.id}">Approve once</button><button class="danger" data-run-reject="${run.id}">Reject</button>`:''}${run.status==='recovery_required'?`<button data-run-resume="${run.id}">Resume checkpoint</button>`:''}${!['completed','failed','cancelled'].includes(run.status)?`<button class="danger" data-run-cancel="${run.id}">Cancel</button>`:''}</div></article>`).join('')||'<div class="empty-module">No workflow runs.</div>'}</div>`;$('workflowRefresh').onclick=loadWorkflows;$('workflowAdd').onclick=async()=>{const title=prompt('Workflow name');if(!title)return;const instruction=prompt('What should this workflow do?');if(!instruction)return;await api('/workflows',{method:'POST',body:JSON.stringify({title,trigger:{type:'manual'},steps:[{kind:'prompt',prompt:instruction}]})});loadWorkflows()};document.querySelectorAll('[data-workflow-run]').forEach(button=>button.onclick=async()=>{await api('/workflows/'+button.dataset.workflowRun+'/run',{method:'POST',body:JSON.stringify({context:{surface:'ios-pwa'}})});loadWorkflows()});document.querySelectorAll('[data-run-cancel]').forEach(button=>button.onclick=async()=>{if(confirm('Cancel this workflow run?')){await api('/workflows/runs/'+button.dataset.runCancel+'/cancel',{method:'POST',body:'{}'});loadWorkflows()}});document.querySelectorAll('[data-run-resume]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runResume+'/resume',{method:'POST',body:'{}'});loadWorkflows()});document.querySelectorAll('[data-run-approve]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runApprove+'/approve',{method:'POST',body:'{}'});loadWorkflows()});document.querySelectorAll('[data-run-reject]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runReject+'/reject',{method:'POST',body:'{}'});loadWorkflows()})}
 async function loadDashboard(){const [system,devices,workflows]=await Promise.all([api('/system/status'),api('/devices'),api('/workflows')]);const active=(devices.devices||[]).filter(item=>!item.revoked).length,runs=workflows.runs||[];$('moduleBody').innerHTML=`<div class="settings-summary"><article class="settings-card"><h3>${escapeHtml(modelStateLabel(system.model))}</h3><p>current model state</p></article><article class="settings-card"><h3>${active}</h3><p>trusted devices</p></article><article class="settings-card"><h3>${runs.filter(run=>!['completed','failed','cancelled'].includes(run.status)).length}</h3><p>active workflow runs</p></article></div><article class="settings-card"><h3>Dashboard stays separate from Home</h3><p>This operational overview is available when you ask for it, while the Home environment remains calm and conversation-first.</p></article>`}
-async function openModule(name){closeFloatingMenus();closeAllDrawers();activeModule=name;document.querySelectorAll('[data-app-module]').forEach(button=>button.classList.toggle('active',button.dataset.appModule===name));document.querySelectorAll('[data-module]').forEach(button=>{button.classList.toggle('active',button.dataset.module===name);if(button.closest('.nav')){if(button.dataset.module===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}});if(name==='home'){$('modulePanel').classList.remove('open');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');enterHomeLanding();return}const module=modules[name]||[name[0].toUpperCase()+name.slice(1),'Owner-controlled Personal AI management.',''];$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('moduleTitle').textContent=module[0];$('moduleText').textContent=module[1];$('moduleMetric').textContent=typeof module[2]==='function'?module[2]():module[2];$('modulePanel').classList.add('open');$('moduleBody').innerHTML='<div class="empty-module">Loading…</div>';try{if(name==='memory')await loadMemory();else if(name==='knowledge')await loadKnowledge();else if(name==='activities')await loadActivityFeed();else if(name==='devices')await loadDevices();else if(name==='workflows')await loadWorkflows();else if(name==='tools')await loadTools();else if(name==='dashboard')await loadDashboard();else if(name==='settings')await renderSettings();else if(name==='system')await loadSystem()}catch(error){$('moduleBody').innerHTML=`<div class="empty-module">${escapeHtml(error.message)}</div>`}}
+async function openModule(name){closeFloatingMenus();closeAllDrawers();activeModule=name;document.querySelectorAll('[data-app-module]').forEach(button=>button.classList.toggle('active',button.dataset.appModule===name));document.querySelectorAll('[data-module]').forEach(button=>{button.classList.toggle('active',button.dataset.module===name);if(button.closest('.nav')){if(button.dataset.module===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}});if(name==='home'){$('modulePanel').classList.remove('open');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');enterHomeLanding();refreshToday().catch(todayLoadError);return}const module=modules[name]||[name[0].toUpperCase()+name.slice(1),'Owner-controlled Personal AI management.',''];$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('moduleTitle').textContent=module[0];$('moduleText').textContent=module[1];$('moduleMetric').textContent=typeof module[2]==='function'?module[2]():module[2];$('modulePanel').classList.add('open');$('moduleBody').innerHTML='<div class="empty-module">Loading…</div>';try{if(name==='memory')await loadMemory();else if(name==='knowledge')await loadKnowledge();else if(name==='activities')await loadActivityFeed();else if(name==='devices')await loadDevices();else if(name==='workflows')await loadWorkflows();else if(name==='tools')await loadTools();else if(name==='dashboard')await loadDashboard();else if(name==='settings')await renderSettings();else if(name==='system')await loadSystem()}catch(error){$('moduleBody').innerHTML=`<div class="empty-module">${escapeHtml(error.message)}</div>`}}
 document.querySelectorAll('[data-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.module));
 document.querySelectorAll('[data-app-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.appModule));
 document.querySelectorAll('[data-owner-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.ownerModule));
@@ -792,7 +881,29 @@ $('quickAsk').onclick=()=>focusPrompt();
 $('quickData').onclick=()=>focusPrompt('Help me create ');
 $('quickTask').onclick=()=>{openModule('tools');showToast('Explore available tools for visual creation.')};
 $('quickTools').onclick=()=>openModule('tools');
-$('seeAllRecent').onclick=openDrawer;
+$('todayAdd').onclick=()=>{
+ const open=$('todayForm').classList.contains('hidden');
+ $('todayForm').classList.toggle('hidden',!open);
+ $('todayAdd').setAttribute('aria-expanded',open?'true':'false');
+ if(open)$('todayTitle').focus()
+};
+$('todayCancel').onclick=closeTodayForm;
+$('todayCategory').onchange=()=>$('todayTime').required=$('todayCategory').value==='meeting';
+$('todayForm').onsubmit=async event=>{
+ event.preventDefault();
+ const title=$('todayTitle').value.trim(),category=$('todayCategory').value,time=$('todayTime').value;
+ if(!title)return;
+ if(category==='meeting'&&!time){$('todayTime').setCustomValidity('Choose a meeting time');$('todayTime').reportValidity();return}
+ $('todayTime').setCustomValidity('');
+ const today=todayKey(new Date()),scheduled=time?new Date(today+'T'+time+':00').toISOString():today;
+ const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+ const save=$('todaySave');save.disabled=true;
+ try{
+  await api('/everyday/items',{method:'POST',body:JSON.stringify({category,title,due_at:scheduled,timezone})});
+  $('todayTitle').value='';$('todayTime').value='';closeTodayForm();await refreshToday();showToast('Added to your plan')
+ }catch(error){showToast(error.message||'Unable to add item')}finally{save.disabled=false}
+};
+$('todayTime').oninput=()=>$('todayTime').setCustomValidity('');
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeFloatingMenus();closeAllDrawers();return}trapOverlayFocus(event)});
 $('attachmentButton').onclick=()=>$('attachmentInput').click();$('attachmentInput').onchange=async event=>{const file=event.target.files[0];if(!file)return;showToast('Adding '+file.name+' to Knowledge…');try{await uploadKnowledge(file);showToast('Document added to Knowledge. You can ask about it now.')}catch(error){showToast(error.message)}finally{event.target.value=''}};
 function colorShiftPalette(frame){const stops=[[82,163,255],[72,213,245],[151,123,255],[224,103,220]],step=frame*.004,index=Math.floor(step)%stops.length,t=step-Math.floor(step),a=stops[index],b=stops[(index+1)%stops.length];return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}

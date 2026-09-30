@@ -9,6 +9,14 @@ const conversations = [
   { id: "c3", title: "Onion Cultivation Guide", preview: "Irrigation and fertilizer plan", updated_at: "2026-09-29T09:42:00+05:30" },
 ];
 
+const now = new Date();
+const atToday = (hour, minute = 0) =>
+  new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute).toISOString();
+const everydayItems = [
+  { id: "task-1", kind: "task", context: "personal-ai:today:task", title: "Finish daily review", due_at: atToday(9), status: "scheduled" },
+  { id: "meeting-1", kind: "commitment", context: "personal-ai:today:meeting", title: "Team planning meeting", due_at: atToday(14), status: "scheduled" },
+];
+
 const activeConversation = {
   thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
   events: [
@@ -38,6 +46,19 @@ try {
     let body = {};
     if (path === "/status") {
       body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
+    } else if (path === "/everyday/active" && method === "GET") {
+      body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
+    } else if (path === "/everyday/items" && method === "POST") {
+      const input = JSON.parse(request.postData() || "{}");
+      const item = { id: "created-" + everydayItems.length, title: input.title, kind: input.category === "meeting" ? "commitment" : input.category === "reminder" ? "reminder" : "task",
+        context: "personal-ai:today:" + input.category, due_at: input.due_at, status: "scheduled" };
+      everydayItems.push(item);
+      return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ item }) });
+    } else if (path.startsWith("/everyday/") && path.endsWith("/complete") && method === "POST") {
+      const id = decodeURIComponent(path.split("/")[2]);
+      const item = everydayItems.find(item => item.id === id);
+      if(item)item.status = "completed";
+      body = item || {};
     } else if (path === "/preferences") {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
@@ -69,6 +90,7 @@ try {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
   });
+  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   await page.waitForTimeout(500);
 
   const canvasInk = await page.evaluate(() => {
@@ -88,7 +110,9 @@ try {
     menuButton: document.querySelector("#historyButton").getBoundingClientRect(),
     composer: document.querySelector("#composer").getBoundingClientRect(),
     core: document.querySelector(".core-stage").getBoundingClientRect(),
-    recent: [...document.querySelectorAll("#recentList .recent-row strong")].map(node => node.textContent),
+    timeline: [...document.querySelectorAll("#todayTimeline .today-item strong")].map(node => node.textContent),
+    timelineTimes: [...document.querySelectorAll("#todayTimeline .today-time")].map(node => node.textContent),
+    todayTitle: document.querySelector("#todayHeading").textContent,
     headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
     headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
     actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
@@ -111,13 +135,33 @@ try {
   assert.equal(await page.locator("#attachmentButton").getAttribute("aria-label"), "Add a document", "compact plus must retain the accessible attachment label");
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
-  assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
+  assert.equal(homeState.todayTitle, "Today");
+  assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
+  assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
+  assert.equal(await page.locator("#recentList").count(), 0, "old Recent box must be removed");
   assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "bottom suggestion strip must be fully removed");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
   assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
+  // Today timeline is real: add a meeting, mark a task complete, verify empty-state.
+  await page.click("#todayAdd");
+  assert.ok(await page.locator("#todayForm").isVisible(), "Add control must reveal accessible item form");
+  await page.selectOption("#todayCategory", "meeting");
+  await page.fill("#todayTitle", "Afternoon planning review");
+  await page.fill("#todayTime", "15:30");
+  await page.click("#todaySave");
+  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 3);
+  assert.deepEqual(await page.locator("#todayTimeline .today-item strong").allTextContents(),
+    ["Finish daily review","Team planning meeting","Afternoon planning review"], "Today items must be sorted chronologically");
+  await page.locator("#todayTimeline .today-check").first().click();
+  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
+  assert.ok(!((await page.locator("#todayTimeline").innerText()).includes("Finish daily review")), "completing a task must remove it from today's pending list");
+  await page.evaluate(() => renderToday([]));
+  assert.ok((await page.locator("#todayTimeline").innerText()).includes("Nothing planned yet"), "empty Today panel must not invent calendar meetings");
+  await page.evaluate(() => refreshToday());
+
 
   // Owner Controls remain reachable through the hamburger (top-right icon now opens Recent).
   await page.click("#historyButton");
@@ -237,6 +281,7 @@ try {
     assert.ok(layout.cards.length === 4, "four Home cards required");
     assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
     assert.ok(layout.cards.every(card => card.scrollHeight<=card.clientHeight+2), "Home card content clipped at " + width + "x" + height);
+    assert.ok(layout.cards.every(card => card.height<=70), "Home cards should stay slim at " + width + "x" + height);
     if(height>520)assert.ok(layout.cards.every(card => card.height<=90), "Home cards became oversized at " + width + "x" + height);
     assert.ok(layout.composer.width<=layout.home.width-6, "composer not compact at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
@@ -371,7 +416,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Original small equal-size Home cards and expand-on-focus multiline composer passed focus, Shift+Enter, Enter-to-send, bottom-toolbar positioning, 320px overflow, navigation and eight viewport checks.");
+  console.log("Slim equal Home cards and real Today timeline passed create/complete/empty/sort interactions alongside expanding composer and eight phone viewport checks.");
 } finally {
   await browser.close();
 }
