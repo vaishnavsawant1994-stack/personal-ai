@@ -200,6 +200,11 @@
     .more-sheet{display:none!important}
     button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid rgba(112,177,255,.9);outline-offset:2px}
 
+    /* Empty new conversations use the chat shell, not the Home quick-action layout. */
+    body:not(.home-landing) .home-intro{display:none}
+    body:not(.home-landing) .core-stage{display:block;visibility:hidden;position:absolute;left:0;top:0;pointer-events:none;z-index:-1}
+    body:not(.home-landing) .presence{align-items:stretch}
+    body[data-state="idle"] .state{display:none!important}
     /* Size the canvas instantly between views; transitional ResizeObserver clears are visible as blank frames. */
     .core-stage{transition:none}
     /* Keep the original neural canvas mounted and measurable while chatting:
