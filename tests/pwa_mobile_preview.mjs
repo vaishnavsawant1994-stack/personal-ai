@@ -628,9 +628,9 @@ try {
   // Signing out clears previously loaded private rows, and the drawer must not
   // leave an unauthorized request stuck in its loading state.
   revokeSession=true;
-  await page.click("#appOwnerControls");
+  await page.click("#historyButton");
   page.once("dialog",dialog=>dialog.accept());
-  await page.click("#signOut");
+  await page.click("#drawerSignOut");
   await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
   await page.click("#ownerButton");
   await page.waitForFunction(()=>document.querySelector("#conversationCount").textContent==="Sign in required");
