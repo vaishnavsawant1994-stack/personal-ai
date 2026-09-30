@@ -254,6 +254,8 @@ try {
   await page.click("#appConversations");
   await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden") && document.querySelectorAll(".timeline-row").length === 13);
   await page.waitForFunction(()=>Math.abs(document.querySelector("#conversationDrawer").getBoundingClientRect().right-innerWidth)<=1);
+  await page.waitForFunction(() => document.activeElement?.id === "closeDrawer");
+  assert.equal(await page.locator("#conversationSearch").evaluate(node=>document.activeElement===node), false, "opening a timeline must not automatically open the mobile keyboard");
   const timelineState=await page.evaluate(()=>({right:document.querySelector("#conversationDrawer").getBoundingClientRect().right,width:document.querySelector("#conversationDrawer").getBoundingClientRect().width,viewport:innerWidth,filters:[...document.querySelectorAll(".conversation-filter")].map(x=>x.textContent.trim()),types:[...document.querySelectorAll(".timeline-row")].map(x=>x.dataset.type),titles:[...document.querySelectorAll(".timeline-copy strong")].map(x=>x.textContent.trim())}));
   assert.ok(Math.abs(timelineState.right-timelineState.viewport)<=1,"unified timeline drawer must remain right anchored");
   assert.ok(timelineState.width<=331,"right timeline must preserve compact sidebar width");

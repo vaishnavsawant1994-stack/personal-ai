@@ -1315,7 +1315,7 @@ function openDrawer(){
   $('closeDrawer').setAttribute('aria-label',fromSidebar?'Back to main menu':'Close conversations');
   syncDrawerOverlay();syncConversationViewport();
   refreshConversationList().catch(()=>{});
-  requestAnimationFrame(()=>{if(!$('conversationDrawer').classList.contains('hidden'))$('conversationSearch').focus({preventScroll:true})});
+  requestAnimationFrame(()=>{if(!$('conversationDrawer').classList.contains('hidden'))$('closeDrawer').focus({preventScroll:true})});
 }
 function closeDrawer(returnToMain=true){
   if($('conversationDrawer').classList.contains('hidden'))return;
