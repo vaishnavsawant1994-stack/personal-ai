@@ -2,6 +2,21 @@ import assert from "node:assert/strict";
 import { chromium } from "playwright";
 
 const browser = await chromium.launch({ headless: true });
+
+const conversations = [
+  { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: "2026-09-30T12:30:00+05:30" },
+  { id: "c2", title: "Mushroom Farm Plan", preview: "Shed layout and capacity", updated_at: "2026-09-30T10:15:00+05:30" },
+  { id: "c3", title: "Onion Cultivation Guide", preview: "Irrigation and fertilizer plan", updated_at: "2026-09-29T09:42:00+05:30" },
+];
+
+const activeConversation = {
+  thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
+  events: [
+    { kind: "user_message", payload: { text: "Plan mushroom farm shed layout with complete details" } },
+    { kind: "assistant_message", payload: { text: "I can help with the shed layout, rack design, climate control, and cost planning." } },
+  ],
+};
+
 try {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
@@ -9,45 +24,47 @@ try {
     isMobile: true,
     hasTouch: true,
   });
+
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+
   await page.route("**/iphone/api/**", route => {
-    const isStatus = new URL(route.request().url()).pathname.endsWith("/status");
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(isStatus
-        ? { model: { state: "ready" }, conversations: [], conversation: null }
-        : {}),
-    });
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace("/iphone/api", "");
+    const method = request.method();
+
+    let body = {};
+    if (path === "/status") {
+      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
+    } else if (path === "/preferences") {
+      body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
+    } else if (path.startsWith("/conversations/c1/activate")) {
+      body = activeConversation;
+    } else if (path.startsWith("/conversations/c1")) {
+      body = activeConversation;
+    } else if (path.startsWith("/conversations") && method === "GET") {
+      const q = (url.searchParams.get("q") || "").toLowerCase();
+      body = { conversations: conversations.filter(item => item.title.toLowerCase().includes(q)) };
+    } else if (path === "/conversations" && method === "POST") {
+      body = { thread: { id: "new", title: "New conversation", updated_at: new Date().toISOString() }, events: [] };
+    } else if (path === "/logout") {
+      body = { ok: true };
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
   });
+
   await page.route("https://accounts.google.com/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/iphone/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !document.querySelector("#voicePanel").classList.contains("hidden"));
-  await page.evaluate(() => {
-    document.querySelector("#stateLabel").textContent = "Ready";
-    document.querySelector("#status").textContent = "Tap the microphone once and speak naturally.";
-    const stream = document.querySelector("#messageStream");
-    const fixture = [
-      ["assistant", "Hi, Vaishnav. I can help answer questions, plan, write, and organize information. What would you like to do today?"],
-      ["user", "Can you explain how the whole system works inside you?"],
-      ["assistant", "I’m your personal AI. I can help with questions, planning, writing, and your saved knowledge. Ask me about any part, and I’ll explain it clearly."],
-    ];
-    for (const [role, text] of fixture) {
-      const message = document.createElement("div");
-      message.className = "message " + role;
-      message.textContent = text;
-      stream.append(message);
-    }
-    document.body.classList.add("has-conversation");
-    stream.scrollTop = stream.scrollHeight;
-  });
+  await page.waitForFunction(() => document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
   });
   await page.waitForTimeout(500);
-  const initialCanvasInk = await page.evaluate(() => {
+
+  const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
     const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
     let ink = 0;
@@ -56,54 +73,108 @@ try {
     }
     return ink;
   });
-  assert.ok(initialCanvasInk > 200, "neural mesh did not paint at 390x844");
-  await page.screenshot({ path: "artifacts/personal-ai-iphone-390x844.png" });
+  assert.ok(canvasInk > 200, "existing neural sphere renderer did not paint");
 
-  const checkLayout = async (width, height) => {
+  const homeState = await page.evaluate(() => ({
+    bottomNavPresent: Boolean(document.querySelector(".nav")),
+    quickActions: [...document.querySelectorAll(".quick-action")].map(node => node.textContent.replace(/\s+/g, " ").trim()),
+    menuButton: document.querySelector("#historyButton").getBoundingClientRect(),
+    composer: document.querySelector("#composer").getBoundingClientRect(),
+    core: document.querySelector(".core-stage").getBoundingClientRect(),
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth,
+    innerHeight,
+  }));
+  assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
+  assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
+  assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
+  assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
+  assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
+  assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
+  await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
+
+  await page.click("#historyButton");
+  await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
+  const drawerState = await page.evaluate(() => ({
+    labels: [...document.querySelectorAll("#appDrawer .drawer-row strong")].map(node => node.textContent.trim()),
+    rect: document.querySelector("#appDrawer").getBoundingClientRect(),
+    expanded: document.querySelector("#historyButton").getAttribute("aria-expanded"),
+  }));
+  for (const expected of ["Home", "Conversations", "Memory", "Knowledge", "Activities", "Owner controls", "Settings", "Trusted devices", "System status", "Sign out"]) {
+    assert.ok(drawerState.labels.includes(expected), "missing navigation item: " + expected);
+  }
+  assert.equal(drawerState.expanded, "true", "hamburger aria-expanded must track the drawer");
+  assert.ok(drawerState.rect.width <= 390, "drawer must fit mobile viewport");
+  await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
+
+  await page.click("#appConversations");
+  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
+  const conversationState = await page.evaluate(() => ({
+    groups: [...document.querySelectorAll(".conversation-group-title")].map(node => node.textContent.trim()),
+    filters: [...document.querySelectorAll(".conversation-filter")].map(node => node.textContent.trim()),
+    rows: [...document.querySelectorAll(".conversation-item strong")].map(node => node.textContent.trim()),
+    rect: document.querySelector("#conversationDrawer").getBoundingClientRect(),
+  }));
+  assert.deepEqual(conversationState.filters, ["All", "Recent"], "unsupported favorites/archive filters must not be fabricated");
+  assert.ok(conversationState.groups.length >= 1, "real timestamps should produce conversation date grouping");
+  assert.deepEqual(conversationState.rows, conversations.map(item => item.title));
+  assert.ok(conversationState.rect.width <= 390, "conversation manager must fit viewport");
+  await page.screenshot({ path: "artifacts/personal-ai-conversations-390x844.png", fullPage: true });
+
+  await page.click(".conversation-item");
+  await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
+  await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
+  const chatState = await page.evaluate(() => ({
+    coreDisplay: getComputedStyle(document.querySelector(".core-stage")).display,
+    messageCount: document.querySelectorAll("#messageStream .message").length,
+    messages: document.querySelector("#messageStream").getBoundingClientRect(),
+    composer: document.querySelector("#composer").getBoundingClientRect(),
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth,
+    innerHeight,
+  }));
+  assert.equal(chatState.coreDisplay, "none", "active conversation should prioritize messages instead of duplicating the Home sphere");
+  assert.equal(chatState.messageCount, 2);
+  assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
+  assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
+  assert.ok(chatState.scrollWidth <= chatState.innerWidth, "active conversation must not overflow horizontally");
+  await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
+
+  const viewports = [
+    [320, 568], [360, 780], [375, 812], [390, 844], [393, 852], [402, 874], [414, 896], [430, 932],
+  ];
+  for (const [width, height] of viewports) {
     await page.setViewportSize({ width, height });
-    await page.waitForTimeout(500);
-    if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-iphone-320x568.png" });
-    const data = await page.evaluate(() => {
+    await page.evaluate(() => enterHomeLanding());
+    await page.waitForTimeout(180);
+    const layout = await page.evaluate(() => {
       const rect = selector => {
-        const r = document.querySelector(selector).getBoundingClientRect();
-        return { top: r.top, bottom: r.bottom, width: r.width, height: r.height };
+        const node = document.querySelector(selector);
+        const r = node.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height };
       };
-      const canvas = document.querySelector("#neuralCanvas");
-      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
-      let canvasInk = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) canvasInk++;
-      }
-      const visibleLabels = [...document.querySelectorAll(".nav button")]
-        .filter(item => item.getBoundingClientRect().width > 0)
-        .map(item => item.querySelector("span")?.textContent.trim());
       return {
-        canvasInk,
         viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
         documentWidth: document.documentElement.scrollWidth,
         core: rect(".core-stage"),
-        canvas: rect("#neuralCanvas"),
-        messages: rect("#messageStream"),
         composer: rect("#composer"),
-        nav: rect(".nav"),
-        visibleLabels,
-        finalMessageBottom: document.querySelector("#messageStream").lastElementChild?.getBoundingClientRect().bottom ?? 0,
+        header: rect(".topbar"),
+        quick: rect(".quick-actions"),
       };
     });
-    console.log(`layout diagnostics ${width}x${height}: ${JSON.stringify({data,pageErrors})}`);
-    assert.deepEqual(data.visibleLabels, ["Home", "Memory", "Knowledge", "Activities", "More"], `wrong visible nav labels at ${width}x${height}`);
-    assert.ok(data.documentWidth <= data.viewportWidth, `horizontal overflow at ${width}x${height}`);
-    assert.ok(data.core.height > 0 && data.canvas.height > 0, `Core missing at ${width}x${height}`);
-    assert.ok(data.messages.height > 0, `message viewport missing at ${width}x${height}`);
-    assert.ok(data.canvasInk > 200, `neural mesh did not repaint after viewport change to ${width}x${height}`);
-    assert.ok(data.finalMessageBottom <= data.messages.bottom + 1, `latest message is clipped at ${width}x${height}`);
-    assert.ok(data.composer.bottom < data.nav.top, `composer overlaps nav at ${width}x${height}`);
-  };
-  await checkLayout(320, 568);
-  await checkLayout(390, 844);
-  await checkLayout(430, 932);
+    assert.ok(layout.documentWidth <= layout.viewportWidth, "horizontal overflow at " + width + "x" + height);
+    assert.ok(layout.core.width > 0 && layout.core.height > 0, "sphere missing at " + width + "x" + height);
+    assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
+    assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
+    assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
+    if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
+    if (width === 430) await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
+  }
+
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("PWA mobile layout passed at 320x568, 390x844, and 430x932.");
+  console.log("Final Personal AI mobile redesign passed Home, menu, conversations, chat, sphere preservation, no-bottom-nav, and 8 iPhone viewport checks.");
 } finally {
   await browser.close();
 }
