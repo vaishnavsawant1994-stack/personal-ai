@@ -306,7 +306,7 @@ try {
   await page.click("#appConversations");
 
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-row[data-type=conversation]").length===3);
-  await page.locator(".timeline-row[data-type=conversation]").first().click();
+  await page.locator(".timeline-row[data-type=conversation]").filter({hasText:"Project Planning"}).click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   const chatState = await page.evaluate(() => ({
