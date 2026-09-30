@@ -809,6 +809,24 @@ def test_stage8_stale_server_reauth_blocks_owner_credential_changes(tmp_path):
     assert runtime['owner_access'].recovery_codes_remaining() == 0
 
 
+
+def test_stale_owner_reauthentication_fails_closed_for_conversation_delete(tmp_path):
+    client, runtime = make_client(tmp_path, server_sessions=True)
+    enrolled = client.post('/iphone/api/enroll', json={'code': 'this-is-a-long-owner-code'})
+    assert enrolled.status_code == 200
+    created = client.post('/iphone/api/conversations', json={'title': 'Keep this chat'})
+    assert created.status_code == 200
+    thread_id = created.json()['conversation']['id']
+    session_id = next(iter(runtime['pwa_sessions'].active_for_device(enrolled.json()['device_id']))).id
+    assert runtime['pwa_sessions'].mark_reauthenticated(session_id, at=time.time() - 1000)
+    path = f'/iphone/api/conversations/{thread_id}'
+    rejected = client.delete(path + '?confirm=true')
+    assert rejected.status_code == 401
+    assert rejected.json()['detail']['code'] == 'reauthentication_required'
+    assert client.get(path).status_code == 200
+
+
+
 def test_stage8_rotating_forwarded_addresses_cannot_bypass_global_access_limit(tmp_path):
     client, _ = make_client(tmp_path)
     for index in range(25):
