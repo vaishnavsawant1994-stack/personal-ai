@@ -161,6 +161,7 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "hidden", "active conversation must conceal Home sphere while retaining its original animation loop");
+  assert.equal(await page.locator(".state").isVisible(), false, "idle conversations must not show a redundant READY heading");
   assert.equal(chatState.messageCount, 2);
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
@@ -216,8 +217,26 @@ try {
   await page.fill("#message", "Hello from browser QA");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
   assert.ok(await page.locator("#sendButton").isVisible(), "send control must replace microphone when typing");
+  assert.equal(await page.locator("#homeIntro").isVisible(), false, "new empty chat must not duplicate Home quick actions");
+  assert.equal(await page.locator(".core-stage").evaluate(node => getComputedStyle(node).visibility), "hidden", "new empty chat keeps Home sphere out of view");
+  await page.screenshot({ path: "artifacts/personal-ai-new-chat-390x844.png", fullPage: true });
   await page.locator("#message").focus();
   assert.equal(await page.locator("#message").evaluate(node => document.activeElement === node), true, "composer input must receive keyboard focus");
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.evaluate(() => enterHomeLanding());
+  await page.waitForTimeout(250);
+  const landscape = await page.evaluate(() => ({
+    innerWidth, innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    composerBottom: document.querySelector("#composer").getBoundingClientRect().bottom,
+    headerLeft: document.querySelector(".topbar").getBoundingClientRect().left,
+    headerRight: document.querySelector(".topbar").getBoundingClientRect().right,
+  }));
+  assert.ok(landscape.scrollWidth <= landscape.innerWidth, "landscape must not scroll horizontally");
+  assert.ok(landscape.composerBottom <= landscape.innerHeight + 1, "landscape composer must stay in viewport");
+  assert.ok(landscape.headerLeft >= 0 && landscape.headerRight <= landscape.innerWidth + 1, "landscape header must fit");
+  await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
   console.log("Final Personal AI mobile redesign passed Home, menu, conversations, chat, sphere preservation, no-bottom-nav, and 8 iPhone viewport checks.");
