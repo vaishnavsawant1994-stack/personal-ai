@@ -746,6 +746,11 @@
     @media(orientation:landscape) and (max-height:520px){.conversation-top{padding-top:max(4px,env(safe-area-inset-top))}.conversation-manager-head{padding-bottom:3px!important}.conversation-new-chat{height:40px}.conversation-search{height:40px!important}.conversation-list{padding-bottom:max(5px,env(safe-area-inset-bottom))!important}}
     @media(prefers-reduced-motion:reduce){.conversation-drawer{animation:none!important}}
 
+    /* Unified right-side chronological activity timeline. */
+    .conversation-filters{overflow-x:auto!important;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;white-space:nowrap}.conversation-filters::-webkit-scrollbar{display:none}.conversation-filter{flex:0 0 auto}
+    .timeline-row{position:relative;box-sizing:border-box;width:100%;min-height:56px;padding:8px 9px 8px 49px;border:0;border-radius:10px;background:transparent;color:#d6dde7;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;cursor:pointer}
+    .timeline-row:hover,.timeline-row:focus-visible{background:rgba(219,228,240,.083)}.timeline-row::before{content:"";position:absolute;left:25px;top:0;bottom:0;width:1px;background:rgba(174,188,208,.18)}.timeline-dot{position:absolute;left:20px;top:19px;width:11px;height:11px;border:2px solid #171b23;border-radius:50%;background:#7e8da1;box-shadow:0 0 0 1px rgba(184,199,220,.28)}.timeline-row[data-state="completed"] .timeline-dot{background:#7fbc92}.timeline-row[data-state="pending"] .timeline-dot{background:#c6a86b}.timeline-row[data-state="active"] .timeline-dot{background:#8aaef1}
+    .timeline-copy{min-width:0}.timeline-copy strong{display:block;font-size:.82rem;font-weight:520;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.timeline-copy small{display:block;margin-top:3px;color:#909cad;font-size:.66rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.timeline-row time{font-size:.64rem;color:#8996a8;white-space:nowrap}.timeline-badge{grid-column:1/-1;width:max-content;max-width:100%;font-size:.61rem;color:#a6b2c2;text-transform:capitalize}.timeline-day{padding:11px 10px 4px;font-size:.69rem;font-weight:600;color:#8995a6}.timeline-empty{padding:18px 10px;color:#96a1b2;font-size:.78rem;line-height:1.45}
   </style>
 </head>
 <body>
@@ -869,12 +874,12 @@
   <div class="conversation-top">
     <header class="conversation-manager-head">
       <button id="closeDrawer" class="conversation-close" type="button" aria-label="Close conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
-      <div class="conversation-manager-heading"><h2>Conversations</h2><p>Find and continue your chats</p></div>
+      <div class="conversation-manager-heading"><h2>Timeline</h2><p>Chats, meetings, tasks and work by time</p></div>
     </header>
     <button id="newConversation" class="conversation-new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>New chat</span></button>
     <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search chats" aria-label="Search conversations"/></div>
-    <div class="conversation-filters" role="group" aria-label="Conversation filters"><button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button><button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button></div>
-    <p id="conversationCount" class="conversation-count" aria-live="polite">Loading conversations…</p>
+    <div class="conversation-filters" role="group" aria-label="Timeline filters"><button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button><button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button><button class="conversation-filter" type="button" data-conversation-filter="conversation" aria-pressed="false">Conversations</button><button class="conversation-filter" type="button" data-conversation-filter="meeting" aria-pressed="false">Meetings</button><button class="conversation-filter" type="button" data-conversation-filter="task" aria-pressed="false">Tasks</button><button class="conversation-filter" type="button" data-conversation-filter="workflow" aria-pressed="false">Workflows</button><button class="conversation-filter" type="button" data-conversation-filter="activity" aria-pressed="false">Activities</button></div>
+    <p id="conversationCount" class="conversation-count" aria-live="polite">Loading timeline…</p>
   </div>
   <div id="conversationList" class="conversation-list" aria-label="Conversation history"></div>
 </aside>
@@ -1052,46 +1057,39 @@ function closeSidebarSearch(){
   $('sidebarSearchToggle').setAttribute('aria-expanded','false');
   $('sidebarSearch').value='';sidebarSearchResults=null;renderSidebarChatList();
 }
-function renderConversationList(items,updateCache=true){
-  if(updateCache&&Array.isArray(items))conversationCache=items;
-  const list=$('conversationList');list.replaceChildren();
-  let rows=(Array.isArray(items)?items:conversationCache).slice();
-  if(conversationFilter==='recent'){
-    const cutoff=Date.now()-7*86400000;
-    rows=rows.filter(item=>{const date=conversationDate(item);return date&&date.getTime()>=cutoff});
-  }
-  rows.sort((a,b)=>(conversationDate(b)?.getTime()||0)-(conversationDate(a)?.getTime()||0));
-  $('conversationCount').textContent=rows.length+' '+(rows.length===1?'conversation':'conversations');
-  if(!rows.length){
-    const empty=document.createElement('div');empty.className='conversation-empty';
-    empty.textContent=$('conversationSearch').value?'No conversations match your search.':
-      conversationFilter==='recent'?'No conversations from the past seven days.':
-      'No conversations yet. Start a new conversation when you are ready.';
-    list.append(empty);return
-  }
-  let currentGroup='';
-  for(const item of rows){
-    const group=conversationGroupLabel(item);
-    if(group!==currentGroup){
-      currentGroup=group;
-      const heading=document.createElement('div');heading.className='conversation-group-title';
-      heading.textContent=group;list.append(heading);
-    }
-    const button=document.createElement('button');button.type='button';
-    button.className='conversation-item'+(item.id===currentConversationId?' active':'');
-    button.setAttribute('aria-current',item.id===currentConversationId?'page':'false');
-    button.setAttribute('aria-label','Open '+(item.title||'Conversation'));
-    const copy=document.createElement('span');copy.className='conversation-item-copy';
-    const title=document.createElement('strong');title.textContent=item.title||'Conversation';
-    const preview=document.createElement('span');preview.textContent=item.preview||'Continue this conversation';
-    copy.append(title,preview);
-    const time=document.createElement('time');time.textContent=conversationTimeLabel(item);
-    button.append(copy,time);
-    button.onclick=()=>openConversation(item.id).catch(error=>showToast(error.message));
-    list.append(button);
-  }
+let timelineCache=[],timelineSourceItems={everyday:[],activities:[],runs:[]};
+function timelineDate(raw){if(!raw)return null;const d=new Date(raw);return Number.isNaN(d.getTime())?null:d}
+function timelineStatus(item){const s=String(item.status||'').toLowerCase();if(['completed','done','success','succeeded'].includes(s))return'completed';if(['running','in_progress','active','waiting_approval','recovery_required'].includes(s))return'active';return'pending'}
+function timelineWhen(date){if(!date)return'Anytime';return date.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
+function timelineDay(date){if(!date)return'Unscheduled';const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),day=new Date(date.getFullYear(),date.getMonth(),date.getDate()),diff=Math.round((today-day)/86400000);if(diff===0)return'Today';if(diff===1)return'Yesterday';if(diff===-1)return'Tomorrow';return date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
+function buildTimeline(){
+ const rows=[];
+ for(const item of conversationCache){const date=conversationDate(item);rows.push({id:'conversation:'+item.id,type:'conversation',title:item.title||'Conversation',detail:item.preview||'Conversation',date,state:'completed',source:item})}
+ for(const item of timelineSourceItems.everyday){const due=todayItemDue(item),date=due?.millis&&Number.isFinite(due.millis)?new Date(due.millis):timelineDate(item.due_at||item.snoozed_until),kind=todayItemKind(item);rows.push({id:'everyday:'+item.id,type:kind==='meeting'?'meeting':'task',title:item.title||todayKindLabel(kind),detail:todayKindLabel(kind)+' · '+String(item.status||'pending').replaceAll('_',' '),date,state:timelineStatus(item),source:item})}
+ for(const run of timelineSourceItems.runs){const date=timelineDate(run.updated_at||run.created_at||run.started_at);rows.push({id:'workflow:'+run.id,type:'workflow',title:run.title||run.workflow_title||'Workflow run',detail:String(run.status||'pending').replaceAll('_',' ')+(run.current_step_step||run.current_step?' · step '+(run.current_step_step||run.current_step):''),date,state:timelineStatus(run),source:run})}
+ for(const item of timelineSourceItems.activities){const date=timelineDate(item.created_at||item.updated_at);rows.push({id:'activity:'+(item.id||rows.length),type:'activity',title:item.label||item.kind||'Activity',detail:(item.action?item.action+' · ':'')+String(item.status||'recorded').replaceAll('_',' '),date,state:timelineStatus(item),source:item})}
+ timelineCache=rows.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));return timelineCache
 }
-function setConversationFilter(filter){conversationFilter=filter;document.querySelectorAll('[data-conversation-filter]').forEach(button=>{const active=button.dataset.conversationFilter===filter;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')});renderConversationList(conversationManagerResults||conversationCache,false)}
+function renderConversationList(){
+ const list=$('conversationList');list.replaceChildren();let rows=buildTimeline();
+ if(conversationFilter==='recent'){const cutoff=Date.now()-7*86400000;rows=rows.filter(item=>item.date&&item.date.getTime()>=cutoff)}
+ else if(conversationFilter!=='all')rows=rows.filter(item=>item.type===conversationFilter);
+ const query=$('conversationSearch').value.trim().toLowerCase();if(query)rows=rows.filter(item=>(item.title+' '+item.detail+' '+item.type).toLowerCase().includes(query));
+ $('conversationCount').textContent=rows.length+' '+(rows.length===1?'timeline item':'timeline items');
+ if(!rows.length){const empty=document.createElement('div');empty.className='timeline-empty';empty.textContent=query?'No timeline items match your search.':'Nothing in this timeline view yet.';list.append(empty);return}
+ let group='';
+ for(const item of rows){const label=timelineDay(item.date);if(label!==group){group=label;const day=document.createElement('div');day.className='timeline-day';day.textContent=label;list.append(day)}
+  const row=document.createElement('button');row.type='button';row.className='timeline-row';row.dataset.type=item.type;row.dataset.state=item.state;row.setAttribute('aria-label','Open '+item.title);
+  const dot=document.createElement('span');dot.className='timeline-dot';dot.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='timeline-copy';const title=document.createElement('strong');title.textContent=item.title;const detail=document.createElement('small');detail.textContent=item.detail;copy.append(title,detail);const time=document.createElement('time');time.textContent=timelineWhen(item.date);const badge=document.createElement('span');badge.className='timeline-badge';badge.textContent=item.type+' · '+item.state;row.append(dot,copy,time,badge);
+  row.onclick=()=>{if(item.type==='conversation')openConversation(item.source.id).catch(error=>showToast(error.message));else if(item.type==='meeting'||item.type==='task'){closeAllDrawers();openModule('home').then(()=>$('todayHeading').scrollIntoView({block:'nearest'}))}else if(item.type==='workflow')openModule('workflows');else openModule('activities')};list.append(row)}
+}
+function setConversationFilter(filter){conversationFilter=filter;document.querySelectorAll('[data-conversation-filter]').forEach(button=>{const active=button.dataset.conversationFilter===filter;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')});renderConversationList()}
+async function refreshConversationList(){
+ const epoch=++conversationSearchRequestEpoch;$('conversationCount').textContent='Loading timeline…';
+ try{const [chatData,everydayData,activityData,workflowData]=await Promise.all([api('/conversations'),api('/everyday/active?limit=200'),api('/activities?limit=100'),api('/workflows')]);if(epoch!==conversationSearchRequestEpoch)return;
+  if(Array.isArray(chatData.conversations))conversationCache=chatData.conversations;timelineSourceItems={everyday:Array.isArray(everydayData.items)?everydayData.items:[],activities:Array.isArray(activityData.activities)?activityData.activities:[],runs:Array.isArray(workflowData.runs)?workflowData.runs:[]};renderConversationList()
+ }catch(error){if(epoch!==conversationSearchRequestEpoch)return;$('conversationCount').textContent='Timeline unavailable';$('conversationList').replaceChildren();const empty=document.createElement('div');empty.className='timeline-empty';empty.textContent='Unable to load your activity timeline. Please try again.';$('conversationList').append(empty)}
+}
 function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();renderSidebarChatList()}
 let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false,conversationManagerResults=null;
 async function refreshConversationList(query=''){
@@ -1129,7 +1127,7 @@ function openDrawer(){
   $('conversationDrawer').setAttribute('aria-hidden','false');
   $('closeDrawer').setAttribute('aria-label',fromSidebar?'Back to main menu':'Close conversations');
   syncDrawerOverlay();syncConversationViewport();
-  refreshConversationList($('conversationSearch').value).catch(()=>{});
+  refreshConversationList().catch(()=>{});
   requestAnimationFrame(()=>$('conversationSearch').focus({preventScroll:true}));
 }
 function closeDrawer(returnToMain=true){
@@ -1313,7 +1311,7 @@ $('appConversations').onclick=openDrawer;
 $('sidebarSeeAll').onclick=openDrawer;
 $('closeDrawer').onclick=()=>closeDrawer();
 $('drawerOverlay').onclick=closeAllDrawers;
-$('newConversation').onclick=()=>createConversation().catch(error=>showToast(error.message));$('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(()=>refreshConversationList($('conversationSearch').value).catch(()=>{}),220)};document.querySelectorAll('[data-conversation-filter]').forEach(button=>button.onclick=()=>setConversationFilter(button.dataset.conversationFilter));
+$('newConversation').onclick=()=>createConversation().catch(error=>showToast(error.message));$('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(renderConversationList,120)};document.querySelectorAll('[data-conversation-filter]').forEach(button=>button.onclick=()=>setConversationFilter(button.dataset.conversationFilter));
 $('appOwnerControls').onclick=()=>{closeSidebarAccountMenu();closeAppDrawer();const opening=$('ownerMenu').classList.contains('hidden');closeFloatingMenus();if(opening){$('ownerMenu').classList.remove('hidden');$('ownerButton').setAttribute('aria-expanded','true')}};
 $('ownerButton').onclick=openDrawer;
 async function signOutBrowser(){if(!confirm('Sign out only this browser? Other trusted devices will keep working.'))return;await api('/logout',{method:'POST',body:'{}'});closeFloatingMenus();closeAllDrawers();await check()}

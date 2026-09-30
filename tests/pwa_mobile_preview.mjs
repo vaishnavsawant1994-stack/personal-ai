@@ -16,6 +16,8 @@ const everydayItems = [
   { id: "task-1", kind: "task", context: "personal-ai:today:task", title: "Finish daily review", due_at: atToday(9), status: "scheduled" },
   { id: "meeting-1", kind: "commitment", context: "personal-ai:today:meeting", title: "Team planning meeting", due_at: atToday(14), status: "scheduled" },
 ];
+const auditedActivities=[{id:"a1",kind:"knowledge",label:"Document indexed",action:"index",status:"completed",created_at:atToday(8,30)}];
+const workflowRuns=[{id:"w1",workflow_title:"Morning operations",status:"running",current_step:2,updated_at:atToday(11)}];
 
 const activeConversation = {
   thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
@@ -59,6 +61,10 @@ try {
       const item = everydayItems.find(item => item.id === id);
       if(item)item.status = "completed";
       body = item || {};
+    } else if (path === "/activities" && method === "GET") {
+      body = { activities: auditedActivities };
+    } else if (path === "/workflows" && method === "GET") {
+      body = { workflows: [], runs: workflowRuns };
     } else if (path === "/preferences") {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
@@ -237,60 +243,34 @@ try {
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
   await page.click("#appConversations");
-  await page.waitForFunction(() => {
-    const panel=document.querySelector("#conversationDrawer");
-    return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
-      Math.abs(panel.getBoundingClientRect().right-innerWidth)<=1;
-  });
-  await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
-  assert.equal(await page.locator("#appDrawer").isVisible(),false,"right Conversations must replace the open left drawer");
-  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Back to main menu");
-  const conversationState = await page.evaluate(() => ({
-    groups: [...document.querySelectorAll(".conversation-group-title")].map(node => node.textContent.trim()),
-    filters: [...document.querySelectorAll(".conversation-filter")].map(node => node.textContent.trim()),
-    rows: [...document.querySelectorAll(".conversation-item strong")].map(node => node.textContent.trim()),
-    rect: document.querySelector("#conversationDrawer").getBoundingClientRect(),
-    viewportWidth:innerWidth,
-    color:getComputedStyle(document.querySelector("#conversationDrawer")).backgroundColor,
-    cssRight:getComputedStyle(document.querySelector("#conversationDrawer")).right,
-  }));
-  assert.ok(Math.abs(conversationState.rect.right-conversationState.viewportWidth)<=1,"secondary Conversations must align to the RIGHT edge");
-  assert.ok(conversationState.rect.left > 0,"secondary drawer must leave space to distinguish it from the left menu");
-  assert.equal(conversationState.cssRight,"0px","secondary drawer must be anchored to right edge");
-  assert.equal(await page.locator("#conversationCount").innerText(),"3 conversations");
-  assert.deepEqual(conversationState.filters, ["All", "Recent"], "unsupported favorites/archive filters must not be fabricated");
-  assert.ok(conversationState.groups.length >= 1, "real timestamps should produce conversation date grouping");
-  assert.deepEqual(conversationState.rows, conversations.map(item => item.title));
-  assert.ok(conversationState.rect.width <= 390, "conversation manager must fit viewport");
-  assert.ok(conversationState.color.startsWith("rgba") || conversationState.color.startsWith("rgb"),"right Conversations has its own styled background");
-  assert.equal(await page.locator("#conversationDrawer").getAttribute("aria-hidden"),"false");
-  assert.equal(await page.locator(".conversation-filter.active").getAttribute("aria-pressed"),"true");
-  await page.screenshot({ path: "artifacts/personal-ai-conversations-390x844.png", fullPage: true });
-
-  await page.fill("#conversationSearch", "Onion");
-  await page.waitForFunction(() => {
-    const rows = [...document.querySelectorAll(".conversation-item strong")];
-    return rows.length === 1 && rows[0].textContent.includes("Onion");
-  });
-  assert.equal(await page.locator("#conversationCount").innerText(),"1 conversation");
-  await page.locator('[data-conversation-filter="recent"]').click();
-  assert.equal(await page.locator('[data-conversation-filter="recent"]').getAttribute("aria-pressed"),"true");
-  assert.ok((await page.locator(".conversation-item strong").allTextContents()).includes("Onion Cultivation Guide"),
-    "switching Recent during active search must not clear or swap the server-filtered results");
+  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden") && document.querySelectorAll(".timeline-row").length === 7);
+  const timelineState=await page.evaluate(()=>({right:document.querySelector("#conversationDrawer").getBoundingClientRect().right,width:document.querySelector("#conversationDrawer").getBoundingClientRect().width,viewport:innerWidth,filters:[...document.querySelectorAll(".conversation-filter")].map(x=>x.textContent.trim()),types:[...document.querySelectorAll(".timeline-row")].map(x=>x.dataset.type),titles:[...document.querySelectorAll(".timeline-copy strong")].map(x=>x.textContent.trim())}));
+  assert.ok(Math.abs(timelineState.right-timelineState.viewport)<=1,"unified timeline drawer must remain right anchored");
+  assert.ok(timelineState.width<=331,"right timeline must preserve compact sidebar width");
+  assert.deepEqual(timelineState.filters,["All","Recent","Conversations","Meetings","Tasks","Workflows","Activities"]);
+  assert.ok(timelineState.types.includes("conversation")&&timelineState.types.includes("meeting")&&timelineState.types.includes("task")&&timelineState.types.includes("workflow")&&timelineState.types.includes("activity"),"All must combine every supported real source");
+  assert.ok(timelineState.titles.includes("Team planning meeting")&&timelineState.titles.includes("Finish daily review")&&timelineState.titles.includes("Morning operations")&&timelineState.titles.includes("Document indexed"));
+  assert.equal(await page.locator("#conversationCount").innerText(),"7 timeline items");
+  await page.locator('[data-conversation-filter="meeting"]').click();
+  assert.deepEqual(await page.locator(".timeline-row").evaluateAll(rows=>rows.map(x=>x.dataset.type)),["meeting"],"Meetings filter must isolate real meetings");
+  await page.locator('[data-conversation-filter="task"]').click();
+  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Finish daily review"],"Tasks filter must isolate pending tasks");
+  await page.locator('[data-conversation-filter="workflow"]').click();
+  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Morning operations"]);
+  await page.locator('[data-conversation-filter="activity"]').click();
+  assert.deepEqual(await page.locator(".timeline-copy strong").allTextContents(),["Document indexed"]);
+  await page.locator('[data-conversation-filter="conversation"]').click();
+  assert.equal(await page.locator(".timeline-row").count(),3,"Conversations filter must show only canonical chats");
   await page.locator('[data-conversation-filter="all"]').click();
-  await page.fill("#conversationSearch", "nonexistent title");
-  await page.waitForFunction(() => {
-    return !document.querySelector(".conversation-item") && document.querySelector(".conversation-empty")?.textContent.includes("No conversations match");
-  });
-  await page.fill("#conversationSearch", "");
-  await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
+  await page.fill("#conversationSearch","planning");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===2);
+  assert.deepEqual((await page.locator(".timeline-copy strong").allTextContents()).sort(),["Project Planning","Team planning meeting"].sort(),"search must span chats and scheduled work");
+  await page.fill("#conversationSearch","");
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-row").length===7);
+  await page.screenshot({path:"artifacts/personal-ai-timeline-right-390x844.png",fullPage:true});
   await page.click("#closeDrawer");
-  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden") &&
-    !document.querySelector("#appDrawer").classList.contains("hidden"));
-  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true","Back must restore left main sidebar");
-  assert.equal(await page.locator("#appConversations").isVisible(),true,"returned left menu must remain functional");
-  assert.deepEqual(await page.locator("#sidebarChatList .sidebar-chat-row span").allTextContents(),
-    conversations.map(item=>item.title),"search in right drawer must not destroy main sidebar chat history");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden")&&!document.querySelector("#appDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   await page.locator("#sidebarChatList .sidebar-chat-row").first().click();
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
