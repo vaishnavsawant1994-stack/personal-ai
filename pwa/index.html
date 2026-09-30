@@ -792,6 +792,21 @@
     @media(max-width:350px){.timeline-entry{gap:6px;padding-left:4px}.timeline-content{padding:7px}.timeline-clock{font-size:.63rem}}
 
     .timeline-entry[data-category="workflow"] .timeline-dot{border-color:#87b1ef;background:#4e6082}
+
+    /* Conversation-only ChatGPT-style actions sit LEFT of the right timeline button. */
+    .topbar-actions{grid-column:3;justify-self:end;align-self:center;position:relative;display:flex;align-items:center;gap:3px;z-index:32}
+    .topbar-actions .owner-status{grid-column:auto;justify-self:auto;flex:0 0 46px}
+    .chat-menu-button{display:none;width:44px;height:44px;min-width:44px;min-height:44px;border:0;border-radius:13px;background:transparent;color:#c7d2e3;cursor:pointer;place-items:center}
+    .chat-menu-button:not(.hidden){display:grid}
+    .chat-menu-button svg{width:22px;height:22px;fill:currentColor}
+    .chat-menu-button:hover,.chat-menu-button:focus-visible,.chat-menu-button[aria-expanded="true"]{background:rgba(211,222,238,.09)}
+    .chat-action-menu{position:absolute;right:48px;top:calc(100% + 7px);width:min(274px,calc(100vw - 28px));padding:6px;border:1px solid rgba(205,218,236,.18);border-radius:16px;background:#202630;box-shadow:0 16px 50px rgba(0,0,0,.42);z-index:80}
+    .chat-action-menu button{display:flex;align-items:center;gap:11px;width:100%;min-height:44px;padding:9px 12px;border:0;border-radius:10px;background:transparent;text-align:left;color:#e7ecf4;cursor:pointer;font-size:.85rem}
+    .chat-action-menu button:hover,.chat-action-menu button:focus-visible{background:rgba(225,234,248,.095)}
+    .chat-action-menu .chat-menu-icon{width:20px;flex:0 0 20px;text-align:center;font-size:1.02rem}
+    .chat-action-menu .chat-menu-divider{height:1px;margin:5px 7px;background:rgba(188,205,230,.13)}
+    .chat-action-menu .chat-menu-danger{color:#ffb1b1}
+    @media(max-width:350px){.topbar-actions{gap:0}.chat-action-menu{right:0}}
   </style>
 </head>
 <body>
@@ -799,7 +814,18 @@
   <header class="topbar">
     <button id="historyButton" class="history-button" type="button" aria-label="Open Personal AI menu" aria-expanded="false" aria-controls="appDrawer"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="brand header-core" role="img" aria-label="Personal AI animated neural sphere"><div class="core-stage" aria-hidden="true"><div class="core-glow"></div><canvas id="neuralCanvas"></canvas></div></div>
+    <div class="topbar-actions">
+      <button id="chatMenuButton" class="chat-menu-button hidden" type="button" aria-label="Conversation options" aria-haspopup="menu" aria-expanded="false" aria-controls="chatActionMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
     <button id="ownerButton" class="owner-status" type="button" aria-label="Recent conversations" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5v5.2l3.4 2"/></svg><span class="trust"><span id="greeting">Good day.</span><small id="devicePill">Checking device…</small></span></button>
+      <div id="chatActionMenu" class="chat-action-menu hidden" role="menu" aria-label="Current conversation options">
+        <button id="chatRename" role="menuitem" type="button"><span class="chat-menu-icon" aria-hidden="true">✎</span>Rename</button>
+        <button id="chatShare" role="menuitem" type="button"><span class="chat-menu-icon" aria-hidden="true">↗</span>Share transcript</button>
+        <button id="chatCopy" role="menuitem" type="button"><span class="chat-menu-icon" aria-hidden="true">⧉</span>Copy transcript</button>
+        <button id="chatExport" role="menuitem" type="button"><span class="chat-menu-icon" aria-hidden="true">↓</span>Download JSON</button>
+        <div class="chat-menu-divider" role="separator"></div>
+        <button id="chatDelete" role="menuitem" type="button" class="chat-menu-danger"><span class="chat-menu-icon" aria-hidden="true">⌫</span>Delete conversation</button>
+      </div>
+    </div>
   </header>
   <section id="enrollPanel" class="enroll hidden">
     <h1>Welcome back</h1><p>Unlock your owner-controlled Personal AI.</p>
@@ -960,10 +986,10 @@ function greeting(){const hour=new Date().getHours();return hour<12?'Good mornin
 function ownerDisplayName(){const raw=(appStatus&&appStatus.owner_display_name)||(appStatus&&appStatus.owner&&((appStatus.owner.display_name)||(appStatus.owner.name)))||'';return String(raw||'').trim()}
 function updateDrawerConnection(label,connected){const node=$('drawerConnection');if(!node)return;node.replaceChildren();const dot=document.createElement('i');dot.style.background=connected?'var(--status-success)':'#8794a6';node.append(dot,document.createTextNode(label))}
 function updateHomeGreeting(){const node=$('homeGreeting');if(!node)return;node.textContent=greeting().replace(/\.$/,'')}
-function enterHomeLanding(){document.body.classList.add('home-landing');requestAnimationFrame(resizeCanvas)}
-function enterConversationView(){document.body.classList.remove('home-landing');requestAnimationFrame(()=>{$('messageStream').scrollTop=$('messageStream').scrollHeight;resizeCanvas()})}
+function enterHomeLanding(){document.body.classList.add('home-landing');syncChatMenuAvailability();requestAnimationFrame(resizeCanvas)}
+function enterConversationView(){document.body.classList.remove('home-landing');syncChatMenuAvailability();requestAnimationFrame(()=>{$('messageStream').scrollTop=$('messageStream').scrollHeight;resizeCanvas()})}
 function eventMessage(event){const kind=String(event.kind||''),text=String((event.payload&&event.payload.text)||'');if(!text)return null;if(kind==='user_message')return{role:'user',text};if(kind==='assistant_message')return{role:'assistant',text};if(kind==='approval_rejected')return{role:'system',text};return null}
-function renderMessages(){const stream=$('messageStream');stream.textContent='';const messages=conversationEvents.map(eventMessage).filter(Boolean);document.body.classList.toggle('has-conversation',messages.length>0);messages.forEach(item=>{const node=document.createElement('div');node.className='message '+item.role;node.textContent=item.text;stream.appendChild(node)});conversationPinnedToBottom=true;stream.scrollTop=stream.scrollHeight;resizeCanvas()}
+function renderMessages(){const stream=$('messageStream');stream.textContent='';const messages=conversationEvents.map(eventMessage).filter(Boolean);document.body.classList.toggle('has-conversation',messages.length>0);syncChatMenuAvailability();messages.forEach(item=>{const node=document.createElement('div');node.className='message '+item.role;node.textContent=item.text;stream.appendChild(node)});conversationPinnedToBottom=true;stream.scrollTop=stream.scrollHeight;resizeCanvas()}
 function appendMessage(kind,text){conversationEvents.push({kind,payload:{text}});renderMessages()}
 function conversationDate(item){const value=item&&item.updated_at;const date=value?new Date(value):null;return date&&!Number.isNaN(date.getTime())?date:null}
 function conversationGroupLabel(item){const date=conversationDate(item);if(!date)return'Earlier';const today=new Date(),startToday=new Date(today.getFullYear(),today.getMonth(),today.getDate()),startDate=new Date(date.getFullYear(),date.getMonth(),date.getDate()),days=Math.round((startToday-startDate)/86400000);if(days===0)return'Today';if(days===1)return'Yesterday';return date.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})}
@@ -1289,7 +1315,7 @@ async function refreshUnifiedTimeline(query=''){
  timelineRuns=timelineAvailable.workflows?workflows.value.runs:[];
  timelineLoaded=true;renderUnifiedTimeline();
 }
-function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();renderSidebarChatList()}
+function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();syncChatMenuAvailability();renderSidebarChatList()}
 let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false,conversationManagerResults=null;
 async function refreshConversationList(query=''){
  const epoch=++conversationSearchRequestEpoch;
@@ -1305,6 +1331,7 @@ function syncDrawerOverlay(){const open=!$('appDrawer').classList.contains('hidd
 function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
 function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
 function openDrawer(){
+  closeFloatingMenus();
   const fromSidebar=!$('appDrawer').classList.contains('hidden');
   const origin=fromSidebar?$('historyButton'):document.activeElement;
   conversationDrawerReturnToMain=fromSidebar;
@@ -1380,7 +1407,7 @@ function reportClientVoice(event,detail=''){api('/voice/client-event',{method:'P
 function speakReply(text){if(!synth){const message='Spoken replies are unavailable in this browser. The answer is shown on screen.';reportClientVoice('tts_error','speech_synthesis_unavailable');$('voiceAlert').textContent=message;setState('error',message);scheduleListening(400);return}stopRecognition();let finished=false,attempt=0;const finish=()=>{if(finished)return;finished=true;reportClientVoice('tts_completed');speaking=false;currentUtterance=null;$('voiceAlert').textContent='';if(pendingApproval)setState('approval','Review the requested action below.');else if(handsFree&&preference('continuous_voice',true))scheduleListening(350);else{handsFree=false;setState('idle')}};const finalFailure=detail=>{if(finished)return;finished=true;reportClientVoice('tts_error',detail||'speech_synthesis_blocked');speaking=false;currentUtterance=null;const message='iPhone blocked the spoken reply. Tap the microphone once to reactivate voice.';$('voiceAlert').textContent=message;setState('error',message)};const play=()=>{attempt++;if(currentUtterance){currentUtterance.onstart=null;currentUtterance.onend=null;currentUtterance.onerror=null}synth.cancel();synth.resume();let thisAttemptStarted=false;currentUtterance=makeUtterance(text,{start:()=>{thisAttemptStarted=true;speaking=true;reportClientVoice('tts_started');setState('responding')},end:finish,error:event=>{if(finished)return;if(event&&event.error==='interrupted'&&speaking){finish();return}if(attempt<2)setTimeout(play,80);else finalFailure(event&&event.error)}});synth.speak(currentUtterance);synth.resume();setTimeout(()=>{if(!thisAttemptStarted&&!finished){if(attempt<2)play();else finalFailure('start_timeout')}},1600)};play()}
 function showApproval(approval){pendingApproval=approval;handsFree=false;$('approvalTitle').textContent='Approve '+approval.tool+'?';$('approvalDescription').textContent=approval.description;$('approvalPanel').classList.remove('hidden');setState('approval','Review the requested action below.')}
 function clearApproval(){$('approvalPanel').classList.add('hidden');pendingApproval=null}
-async function sendTurn(text){const clean=String(text||'').trim();if(!clean||turnInFlight)return;enterConversationView();stopRecognition();turnInFlight=true;$('voiceAlert').textContent='';$('transcript').textContent=clean;$('reply').textContent='';appendMessage('user_message',clean);setState('understanding');try{setState('thinking');const result=await api('/voice/turn',{method:'POST',body:JSON.stringify({transcript:clean,conversation_id:currentConversationId})});currentConversationId=result.conversation_id||currentConversationId;if(result.conversation_title){currentConversationTitle=result.conversation_title;$('conversationTitle').textContent=currentConversationTitle}$('reply').textContent=result.reply;turnInFlight=false;if(result.status==='approval_required')showApproval(result.approval);else appendMessage('assistant_message',result.reply);speakReply(result.reply);refreshConversationList($('conversationSearch').value).catch(()=>{})}catch(error){turnInFlight=false;if(error.message!=='turn_cancelled'){$('voiceAlert').textContent=error.message;appendMessage('approval_rejected',error.message);setState('error',error.message)}if(handsFree)scheduleListening(500)}}
+async function sendTurn(text){const clean=String(text||'').trim();if(!clean||turnInFlight)return;enterConversationView();stopRecognition();turnInFlight=true;$('voiceAlert').textContent='';$('transcript').textContent=clean;$('reply').textContent='';appendMessage('user_message',clean);setState('understanding');try{setState('thinking');const result=await api('/voice/turn',{method:'POST',body:JSON.stringify({transcript:clean,conversation_id:currentConversationId})});currentConversationId=result.conversation_id||currentConversationId;syncChatMenuAvailability();if(result.conversation_title){currentConversationTitle=result.conversation_title;$('conversationTitle').textContent=currentConversationTitle}$('reply').textContent=result.reply;turnInFlight=false;if(result.status==='approval_required')showApproval(result.approval);else appendMessage('assistant_message',result.reply);speakReply(result.reply);refreshConversationList($('conversationSearch').value).catch(()=>{})}catch(error){turnInFlight=false;if(error.message!=='turn_cancelled'){$('voiceAlert').textContent=error.message;appendMessage('approval_rejected',error.message);setState('error',error.message)}if(handsFree)scheduleListening(500)}}
 async function interruptAndListen(){const wasSpeaking=speaking||Boolean(synth&&synth.speaking);if(synth)synth.cancel();speaking=false;currentUtterance=null;handsFree=true;try{await api('/voice/barge',{method:'POST',body:JSON.stringify({speaking:wasSpeaking})})}catch{}scheduleListening(100)}
 $('micButton').onclick=async()=>{if(speaking||(synth&&synth.speaking)){await interruptAndListen();return}if(handsFree){handsFree=false;stopRecognition();setState('idle','Voice paused. Tap the microphone to continue.');return}handsFree=true;setState('active','Preparing your secure voice session…');try{await primeVoice();startListening()}catch(error){handsFree=false;$('voiceAlert').textContent=error.message;setState('error',error.message)}};
 function resizeComposerEditor(){
@@ -1445,7 +1472,107 @@ async function loadActivities(){const [activityData,workflowData,qualification]=
 async function loadDevices(){const data=await api('/devices');$('moduleBody').innerHTML=`<div class="module-toolbar"><button id="deviceRefresh">Refresh</button><span>${data.devices.filter(device=>!device.revoked).length} active trusted devices</span></div><div class="module-grid">${data.devices.map(device=>`<article class="data-card"><strong>${escapeHtml(device.name)} ${device.id===data.current_device_id?'· This browser':''}</strong><p>${escapeHtml(device.platform)} · ${device.revoked?'Revoked':'Trusted'}</p><div class="data-meta"><span>Last seen ${escapeHtml(device.last_seen_at||'never')}</span><span>${(device.permissions||[]).length} scopes</span></div>${!device.revoked&&device.id!==data.current_device_id?`<div class="data-actions"><button class="danger" data-device-revoke="${device.id}">Revoke lost device</button></div>`:''}</article>`).join('')}</div>`;$('deviceRefresh').onclick=loadDevices;document.querySelectorAll('[data-device-revoke]').forEach(button=>button.onclick=async()=>{if(!confirm('Immediately revoke this device and all future access?'))return;await api('/devices/'+button.dataset.deviceRevoke+'/revoke',{method:'POST',body:JSON.stringify({confirm:true})});loadDevices()})}
 function showToast(message){$('toast').textContent=message;$('toast').classList.add('show');if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2600)}
 function modelStateLabel(model){const state=String((model&&model.state)||'').replaceAll('_',' ');if(state==='available'||state==='configured')return'Model available';if(state==='not configured')return'Model not configured';return state?'Model '+state:'Model status unavailable'}
-function closeFloatingMenus(){$('ownerMenu').classList.add('hidden');$('ownerButton').setAttribute('aria-expanded','false')}
+
+function closeChatActionMenu(){
+ $('chatActionMenu').classList.add('hidden');
+ $('chatMenuButton').setAttribute('aria-expanded','false');
+}
+function syncChatMenuAvailability(){
+ const show=activeModule==='home'&&!document.body.classList.contains('home-landing')&&
+   document.body.classList.contains('has-conversation')&&Boolean(currentConversationId)&&
+   !$('voicePanel').classList.contains('hidden');
+ $('chatMenuButton').classList.toggle('hidden',!show);
+ if(!show)closeChatActionMenu();
+}
+function chatTranscript(bundle){
+ const thread=bundle.thread||bundle.conversation||{};
+ const lines=(bundle.events||[]).map(eventMessage).filter(Boolean)
+   .map(message=>(message.role==='user'?'You':message.role==='assistant'?'Personal AI':'System')+': '+message.text);
+ return [String(thread.title||currentConversationTitle||'Conversation'),'',...lines].join('\n');
+}
+async function currentChatBundle(){
+ if(!currentConversationId)throw new Error('Open a saved conversation first.');
+ return api('/conversations/'+encodeURIComponent(currentConversationId));
+}
+$('chatMenuButton').onclick=()=>{
+ if($('chatMenuButton').classList.contains('hidden'))return;
+ const opening=$('chatActionMenu').classList.contains('hidden');
+ closeFloatingMenus();
+ if(opening){
+   $('chatActionMenu').classList.remove('hidden');
+   $('chatMenuButton').setAttribute('aria-expanded','true');
+   $('chatRename').focus();
+ }
+};
+$('chatRename').onclick=async()=>{
+ closeChatActionMenu();
+ const id=currentConversationId;
+ if(!id||turnInFlight)return showToast('Finish the current reply first.');
+ const title=prompt('Rename conversation',currentConversationTitle);
+ if(title===null)return;
+ const clean=title.trim();
+ if(!clean||clean.length>120)return showToast('Use a title between 1 and 120 characters.');
+ try{
+   const result=await api('/conversations/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({title:clean})});
+   if(id===currentConversationId){
+     currentConversationTitle=result.conversation.title;
+     $('conversationTitle').textContent=currentConversationTitle;
+   }
+   await refreshConversationList('');
+   showToast('Conversation renamed.');
+ }catch(error){showToast(error.message||'Rename failed.')}
+};
+$('chatCopy').onclick=async()=>{
+ closeChatActionMenu();
+ try{
+   const transcript=chatTranscript(await currentChatBundle());
+   await navigator.clipboard.writeText(transcript);
+   showToast('Transcript copied privately to clipboard.');
+ }catch(error){showToast(error.message||'Clipboard unavailable.')}
+};
+$('chatShare').onclick=async()=>{
+ closeChatActionMenu();
+ try{
+   const bundle=await currentChatBundle(),title=(bundle.thread||bundle.conversation||{}).title||'Conversation',text=chatTranscript(bundle);
+   if(typeof navigator.share==='function'){
+     try{await navigator.share({title,text});}catch(error){if(error.name!=='AbortError')throw error;}
+   }else{
+     await navigator.clipboard.writeText(text);
+     showToast('Transcript copied; paste it wherever you want to share.');
+   }
+ }catch(error){showToast(error.message||'Sharing is unavailable.')}
+};
+$('chatExport').onclick=async()=>{
+ closeChatActionMenu();
+ try{
+   const id=currentConversationId;if(!id)throw Error('Open a saved conversation first.');
+   const data=await api('/conversations/'+encodeURIComponent(id)+'/export');
+   downloadJson('personal-ai-conversation-'+id+'.json',data);
+   showToast('Conversation export ready.');
+ }catch(error){showToast(error.message||'Export failed.')}
+};
+$('chatDelete').onclick=async()=>{
+ closeChatActionMenu();
+ if(turnInFlight)return showToast('Finish the current reply before deleting.');
+ const id=currentConversationId,title=currentConversationTitle;
+ if(!id||!confirm('Permanently delete "'+title+'" and its conversation events on your connected devices? This does not delete separately saved Memories or Knowledge.'))return;
+ try{
+   await api('/conversations/'+encodeURIComponent(id),{method:'DELETE'});
+   if(currentConversationId===id){
+     handsFree=false;stopRecognition();if(synth)synth.cancel();speaking=false;
+     currentConversationId=null;currentConversationTitle='Current conversation';conversationEvents=[];
+     $('conversationTitle').textContent=currentConversationTitle;
+     $('transcript').textContent='';$('reply').textContent='';renderMessages();enterHomeLanding();setState('idle');
+   }
+   await refreshConversationList('');
+   showToast('Conversation deleted.');
+ }catch(error){showToast(error.message||'Delete failed; conversation was not cleared.')}
+};
+document.addEventListener('pointerdown',event=>{
+ if(!$('chatActionMenu').classList.contains('hidden')&&!event.target.closest('.topbar-actions'))closeChatActionMenu();
+});
+
+function closeFloatingMenus(){closeChatActionMenu();$('ownerMenu').classList.add('hidden');$('ownerButton').setAttribute('aria-expanded','false')}
 function preference(name,fallback){return Object.prototype.hasOwnProperty.call(uiPreferences,name)?uiPreferences[name]:fallback}
 async function setPreference(name,value){uiPreferences={...uiPreferences,[name]:value};uiPreferences=await api('/preferences',{method:'PUT',body:JSON.stringify(uiPreferences)});showToast('Preference saved for this trusted browser.')}
 function settingsNav(section){const sections=[['personal','Personal AI'],['voice','Voice'],['models','Models'],['memory','Memory & Privacy'],['apps','Apps & Tools'],['approvals','Approvals'],['devices','Devices'],['notifications','Notifications'],['data','Data & Backup'],['security','Security'],['system','System'],['advanced','Advanced']];return{desktop:`<nav class="settings-nav" aria-label="Settings sections">${sections.map(item=>`<button type="button" class="${item[0]===section?'active':''}" data-settings-section="${item[0]}">${item[1]}</button>`).join('')}</nav>`,mobile:`<select id="settingsMobileNav" class="settings-mobile-nav" aria-label="Settings section">${sections.map(item=>`<option value="${item[0]}" ${item[0]===section?'selected':''}>${item[1]}</option>`).join('')}</select>`}}
@@ -1473,7 +1600,7 @@ async function loadTools(){const [toolData,appData]=await Promise.all([api('/app
 async function loadActivityFeed(){const activityData=await api('/activities?limit=200'),activities=activityData.activities||[];$('moduleBody').innerHTML=`<div class="module-toolbar"><button id="activityRefresh">Refresh</button><span>${activities.length} recent audited events</span></div><div class="module-grid">${activities.map(item=>`<article class="data-card"><strong>${escapeHtml(item.label||item.kind)} · ${escapeHtml(item.action)}</strong><p>${escapeHtml(item.status)} · ${escapeHtml(new Date(item.created_at).toLocaleString())}</p><div class="data-meta"><span>${escapeHtml(JSON.stringify(item.details||{}).slice(0,180))}</span></div></article>`).join('')||'<div class="empty-module">No audited activity yet.</div>'}</div>`;$('activityRefresh').onclick=loadActivityFeed}
 async function loadWorkflows(){const data=await api('/workflows'),workflows=data.workflows||[],runs=data.runs||[];$('moduleBody').innerHTML=`<div class="module-toolbar"><button id="workflowAdd">＋ New workflow</button><button id="workflowRefresh">Refresh</button><span>${runs.length} runs</span></div><h2>Workflows</h2><div class="module-grid">${workflows.map(workflow=>`<article class="data-card"><strong>${escapeHtml(workflow.title)}</strong><p>${(workflow.steps||[]).length} persisted steps · ${workflow.enabled&&!workflow.paused?'Ready':'Paused'}</p><div class="data-actions"><button data-workflow-run="${workflow.id}">Run</button></div></article>`).join('')||'<div class="empty-module">Create a governed workflow for repeatable work.</div>'}</div><h2>Runs &amp; approvals</h2><div class="module-grid">${runs.map(run=>`<article class="data-card"><strong>${escapeHtml(run.status)} · step ${escapeHtml(run.current_step_step||run.current_step)}</strong><p>${escapeHtml(run.error||run.id)}</p><div class="data-actions">${run.status==='waiting_approval'?`<button data-run-approve="${run.id}">Approve once</button><button class="danger" data-run-reject="${run.id}">Reject</button>`:''}${run.status==='recovery_required'?`<button data-run-resume="${run.id}">Resume checkpoint</button>`:''}${!['completed','failed','cancelled'].includes(run.status)?`<button class="danger" data-run-cancel="${run.id}">Cancel</button>`:''}</div></article>`).join('')||'<div class="empty-module">No workflow runs.</div>'}</div>`;$('workflowRefresh').onclick=loadWorkflows;$('workflowAdd').onclick=async()=>{const title=prompt('Workflow name');if(!title)return;const instruction=prompt('What should this workflow do?');if(!instruction)return;await api('/workflows',{method:'POST',body:JSON.stringify({title,trigger:{type:'manual'},steps:[{kind:'prompt',prompt:instruction}]})});loadWorkflows()};document.querySelectorAll('[data-workflow-run]').forEach(button=>button.onclick=async()=>{await api('/workflows/'+button.dataset.workflowRun+'/run',{method:'POST',body:JSON.stringify({context:{surface:'ios-pwa'}})});loadWorkflows()});document.querySelectorAll('[data-run-cancel]').forEach(button=>button.onclick=async()=>{if(confirm('Cancel this workflow run?')){await api('/workflows/runs/'+button.dataset.runCancel+'/cancel',{method:'POST',body:'{}'});loadWorkflows()}});document.querySelectorAll('[data-run-resume]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runResume+'/resume',{method:'POST',body:'{}'});loadWorkflows()});document.querySelectorAll('[data-run-approve]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runApprove+'/approve',{method:'POST',body:'{}'});loadWorkflows()});document.querySelectorAll('[data-run-reject]').forEach(button=>button.onclick=async()=>{await api('/workflows/runs/'+button.dataset.runReject+'/reject',{method:'POST',body:'{}'});loadWorkflows()})}
 async function loadDashboard(){const [system,devices,workflows]=await Promise.all([api('/system/status'),api('/devices'),api('/workflows')]);const active=(devices.devices||[]).filter(item=>!item.revoked).length,runs=workflows.runs||[];$('moduleBody').innerHTML=`<div class="settings-summary"><article class="settings-card"><h3>${escapeHtml(modelStateLabel(system.model))}</h3><p>current model state</p></article><article class="settings-card"><h3>${active}</h3><p>trusted devices</p></article><article class="settings-card"><h3>${runs.filter(run=>!['completed','failed','cancelled'].includes(run.status)).length}</h3><p>active workflow runs</p></article></div><article class="settings-card"><h3>Dashboard stays separate from Home</h3><p>This operational overview is available when you ask for it, while the Home environment remains calm and conversation-first.</p></article>`}
-async function openModule(name){closeFloatingMenus();closeAllDrawers();activeModule=name;document.querySelectorAll('[data-app-module]').forEach(button=>button.classList.toggle('active',button.dataset.appModule===name));document.querySelectorAll('[data-module]').forEach(button=>{button.classList.toggle('active',button.dataset.module===name);if(button.closest('.nav')){if(button.dataset.module===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}});if(name==='home'){$('modulePanel').classList.remove('open');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');enterHomeLanding();refreshToday().catch(todayLoadError);return}const module=modules[name]||[name[0].toUpperCase()+name.slice(1),'Owner-controlled Personal AI management.',''];$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('moduleTitle').textContent=module[0];$('moduleText').textContent=module[1];$('moduleMetric').textContent=typeof module[2]==='function'?module[2]():module[2];$('modulePanel').classList.add('open');$('moduleBody').innerHTML='<div class="empty-module">Loading…</div>';try{if(name==='memory')await loadMemory();else if(name==='knowledge')await loadKnowledge();else if(name==='activities')await loadActivityFeed();else if(name==='devices')await loadDevices();else if(name==='workflows')await loadWorkflows();else if(name==='tools')await loadTools();else if(name==='dashboard')await loadDashboard();else if(name==='settings')await renderSettings();else if(name==='system')await loadSystem()}catch(error){$('moduleBody').innerHTML=`<div class="empty-module">${escapeHtml(error.message)}</div>`}}
+async function openModule(name){closeFloatingMenus();closeAllDrawers();activeModule=name;syncChatMenuAvailability();document.querySelectorAll('[data-app-module]').forEach(button=>button.classList.toggle('active',button.dataset.appModule===name));document.querySelectorAll('[data-module]').forEach(button=>{button.classList.toggle('active',button.dataset.module===name);if(button.closest('.nav')){if(button.dataset.module===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}});if(name==='home'){$('modulePanel').classList.remove('open');$('voicePanel').classList.remove('hidden');$('features').classList.remove('hidden');enterHomeLanding();refreshToday().catch(todayLoadError);return}const module=modules[name]||[name[0].toUpperCase()+name.slice(1),'Owner-controlled Personal AI management.',''];$('voicePanel').classList.add('hidden');$('features').classList.add('hidden');$('moduleTitle').textContent=module[0];$('moduleText').textContent=module[1];$('moduleMetric').textContent=typeof module[2]==='function'?module[2]():module[2];$('modulePanel').classList.add('open');$('moduleBody').innerHTML='<div class="empty-module">Loading…</div>';try{if(name==='memory')await loadMemory();else if(name==='knowledge')await loadKnowledge();else if(name==='activities')await loadActivityFeed();else if(name==='devices')await loadDevices();else if(name==='workflows')await loadWorkflows();else if(name==='tools')await loadTools();else if(name==='dashboard')await loadDashboard();else if(name==='settings')await renderSettings();else if(name==='system')await loadSystem()}catch(error){$('moduleBody').innerHTML=`<div class="empty-module">${escapeHtml(error.message)}</div>`}}
 document.querySelectorAll('[data-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.module));
 document.querySelectorAll('[data-app-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.appModule));
 document.querySelectorAll('[data-owner-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.ownerModule));
