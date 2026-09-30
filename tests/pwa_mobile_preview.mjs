@@ -252,10 +252,66 @@ try {
   await page.click("#appConversations");
   await page.click("#newConversation");
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
+
+  // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
+  await page.locator("#message").focus();
+  assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("is-expanded")), "focus must expand the composer even before typing");
+  const emptyExpanded = await page.evaluate(() => ({
+    composer: document.querySelector("#composer").getBoundingClientRect(),
+    editor: document.querySelector("#message").getBoundingClientRect(),
+    attach: document.querySelector("#attachmentButton").getBoundingClientRect(),
+    mic: document.querySelector("#micButton").getBoundingClientRect(),
+  }));
+  assert.ok(emptyExpanded.composer.height >= 105, "focused composer must extend upward");
+  assert.ok(emptyExpanded.attach.top >= emptyExpanded.editor.bottom - 3 && emptyExpanded.mic.top >= emptyExpanded.editor.bottom - 3, "attachment and microphone must move below the editor");
+  await page.locator("#historyButton").focus();
+  await page.waitForFunction(() => !document.querySelector("#composer").classList.contains("is-expanded"));
+  assert.ok(await page.locator("#composer").evaluate(node => node.getBoundingClientRect().height <= 54), "empty unfocused composer must collapse to the small SMS bar");
   await page.fill("#message", "Hello from browser QA");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
   assert.ok(await page.locator("#sendButton").isVisible(), "send control must appear when typing");
+
   assert.equal(await page.locator("#micButton").isVisible(), false, "mic icon must yield to send while typing");
+  const typedLayout = await page.evaluate(() => ({
+    viewportHeight: innerHeight,
+    form: document.querySelector("#composer").getBoundingClientRect(),
+    editor: document.querySelector("#message").getBoundingClientRect(),
+    plus: document.querySelector("#attachmentButton").getBoundingClientRect(),
+    send: document.querySelector("#sendButton").getBoundingClientRect(),
+  }));
+  assert.ok(typedLayout.plus.top >= typedLayout.editor.bottom - 3 && typedLayout.send.top >= typedLayout.editor.bottom - 3, "typing must place attachment and send on the lower toolbar");
+  assert.ok(typedLayout.form.bottom <= typedLayout.viewportHeight + 1, "expanded composer must remain visible when focused");
+  const singleLineEditorHeight = typedLayout.editor.height;
+  await page.fill("#message", "First line\nSecond line\nThird line\nFourth line");
+  const multiline = await page.evaluate(() => ({
+    viewportHeight: innerHeight,
+    form: document.querySelector("#composer").getBoundingClientRect(),
+    editor: document.querySelector("#message").getBoundingClientRect(),
+    text: document.querySelector("#message").value,
+    plus: document.querySelector("#attachmentButton").getBoundingClientRect(),
+    send: document.querySelector("#sendButton").getBoundingClientRect(),
+  }));
+  assert.ok(multiline.editor.height > singleLineEditorHeight + 20, "multiline text must expand the editor vertically");
+  assert.ok(multiline.plus.top >= multiline.editor.bottom - 3 && multiline.send.top >= multiline.editor.bottom - 3, "icons must remain in the bottom row with multiple lines");
+  assert.ok(multiline.form.bottom <= multiline.viewportHeight + 1, "multiline editor must not push the composer off-screen");
+  await page.locator("#message").press("Shift+Enter");
+  assert.ok((await page.locator("#message").inputValue()).endsWith("\n"), "Shift+Enter must insert a new line instead of submitting");
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.waitForTimeout(100);
+  const narrowTyping = await page.evaluate(() => ({
+    width: innerWidth,viewportHeight:innerHeight,
+    scrollWidth: document.documentElement.scrollWidth,
+    form: document.querySelector("#composer").getBoundingClientRect(),
+    editor: document.querySelector("#message").getBoundingClientRect(),
+    plus: document.querySelector("#attachmentButton").getBoundingClientRect(),
+    send: document.querySelector("#sendButton").getBoundingClientRect(),
+  }));
+  assert.ok(narrowTyping.scrollWidth <= narrowTyping.width, "expanded 320px composer must not overflow horizontally");
+  assert.ok(narrowTyping.form.bottom <= narrowTyping.viewportHeight + 1 && narrowTyping.form.left >= -1 && narrowTyping.form.right <= narrowTyping.width + 1, "expanded 320px composer must remain inside viewport");
+  assert.ok(narrowTyping.plus.top >= narrowTyping.editor.bottom - 3 && narrowTyping.send.top >= narrowTyping.editor.bottom - 3, "320px toolbar buttons must stay under the editor");
+  await page.screenshot({ path: "artifacts/personal-ai-expanded-composer-320x568.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.fill("#message", "Hello from browser QA");
   assert.equal(await page.locator("#homeIntro").isVisible(), false, "new empty chat must not duplicate Home quick actions");
   assert.equal(await page.locator(".core-stage").evaluate(node => getComputedStyle(node).visibility), "visible", "new empty chat retains mini header sphere");
   await page.screenshot({ path: "artifacts/personal-ai-new-chat-390x844.png", fullPage: true });
@@ -269,7 +325,13 @@ try {
   await page.click("#sendButton");
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   assert.ok((await page.locator("#messageStream").innerText()).includes("Hello from browser QA"), "user message must render");
+
   assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Hello from browser QA"), "assistant response must render");
+  await page.waitForFunction(() => document.querySelector("#composer").getBoundingClientRect().height <= 54);
+  await page.fill("#message", "Keyboard submit");
+  await page.locator("#message").press("Enter");
+  await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 4);
+  assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Keyboard submit"), "Enter must submit the multiline editor without requiring a click");
 
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => enterHomeLanding());
@@ -309,7 +371,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Original small equal-size Home cards and compact ChatGPT-style composer passed alongside real Recent, navigation, chat, original sphere, and eight viewport checks.");
+  console.log("Original small equal-size Home cards and expand-on-focus multiline composer passed focus, Shift+Enter, Enter-to-send, bottom-toolbar positioning, 320px overflow, navigation and eight viewport checks.");
 } finally {
   await browser.close();
 }

@@ -454,6 +454,62 @@
       body #composer{width:min(calc(100% - 16px),600px)}
     }
 
+
+    /* Expand-on-focus multiline message composer: actions flow below the editor. */
+    body #composer{flex:0 0 auto;align-content:center}
+    body #composer textarea#message{
+      box-sizing:border-box;
+      grid-column:2;grid-row:1;
+      display:block;width:100%;height:24px;min-height:24px;max-height:144px;
+      margin:0;padding:0 2px;border:0;outline:0;border-radius:0;
+      font-family:inherit;font-size:16px;line-height:24px;font-weight:400;
+      letter-spacing:normal;color:#eff2f8;background:transparent;
+      resize:none;white-space:pre-wrap;overflow-x:hidden;overflow-y:hidden;
+      -webkit-appearance:none;appearance:none;scrollbar-width:thin;
+    }
+    body #composer textarea#message::placeholder{color:#9da7b7;opacity:1}
+    body #composer .attach-button{grid-column:1;grid-row:1}
+    body #composer #micButton,body #composer #sendButton{grid-column:3;grid-row:1}
+    body #composer.is-expanded{
+      box-sizing:border-box;
+      height:auto;min-height:110px;max-height:min(50dvh,240px);
+      grid-template-columns:44px minmax(0,1fr) 44px;
+      grid-template-rows:minmax(38px,auto) 44px;
+      align-content:start;align-items:end;
+      gap:3px 2px;padding:8px 7px 5px;
+      border-radius:25px;
+      transition:border-color .15s ease,box-shadow .15s ease;
+    }
+    body #composer.is-expanded textarea#message{
+      grid-column:1 / -1;grid-row:1;
+      min-height:40px;max-height:144px;
+      align-self:stretch;padding:7px 5px 5px;
+    }
+    body #composer.is-expanded .attach-button{grid-column:1;grid-row:2}
+    body #composer.is-expanded #micButton,
+    body #composer.is-expanded #sendButton{grid-column:3;grid-row:2}
+    body #composer.is-expanded .attach-button,
+    body #composer.is-expanded #micButton,
+    body #composer.is-expanded #sendButton{align-self:end}
+    body #composer.is-expanded #micButton.active{
+      color:#bdefff;background:rgba(45,78,120,.65);
+    }
+    @media(max-width:350px){
+      body #composer.is-expanded{width:calc(100% - 12px);padding:7px 6px 5px}
+    }
+    @media(orientation:landscape) and (max-height:520px){
+      body #composer.is-expanded{max-height:56dvh}
+      body #composer.is-expanded textarea#message{max-height:96px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      body #composer.is-expanded{transition:none}
+    }
+
+    body.keyboard-open .app-shell{
+      height:var(--keyboard-visible-height,100dvh);
+      min-height:var(--keyboard-visible-height,100dvh);
+    }
+
   </style>
 </head>
 <body>
@@ -498,7 +554,7 @@
       <div id="conversationTitle" class="conversation-title">Current conversation</div>
       <div id="messageStream" class="message-stream" aria-live="polite"></div>
       <div class="conversation"><div id="transcript" class="transcript"></div><div id="reply" class="reply"></div></div>
-      <form id="composer" class="composer"><button id="attachmentButton" class="attach-button" type="button" aria-label="Add a document"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="attachmentInput" class="attachment-input" type="file" accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx"/><span class="wave-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><input id="message" autocomplete="off" enterkeyhint="send" aria-label="Message Personal AI" placeholder="Message Personal AI…"/><button id="sendButton" class="round-button" type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button id="micButton" class="round-button" type="button" aria-label="Start hands-free conversation"><svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></form>
+      <form id="composer" class="composer"><button id="attachmentButton" class="attach-button" type="button" aria-label="Add a document"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="attachmentInput" class="attachment-input" type="file" accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx"/><span class="wave-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><textarea id="message" rows="1" autocomplete="off" enterkeyhint="send" aria-label="Message Personal AI" placeholder="Message Personal AI…"></textarea><button id="sendButton" class="round-button" type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button id="micButton" class="round-button" type="button" aria-label="Start hands-free conversation"><svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></form>
       <div id="approvalPanel" class="approval-panel hidden"><div><strong id="approvalTitle">Approval required</strong><span id="approvalDescription"></span></div><button id="rejectApproval" type="button">Cancel</button><button id="approveApproval" class="approve" type="button">Approve once</button></div>
       <div id="sessionConflictPanel" class="approval-panel hidden"><div><strong>Old session found</strong><span>An unfinished session from another trusted browser is blocking this iPhone.</span></div><button id="cancelTakeover" type="button">Cancel</button><button id="confirmTakeover" class="approve" type="button">Continue here</button></div>
       <div class="hint">Tap once to talk continuously · Tap during speech to interrupt · Type at any time</div><div id="voiceAlert" class="voice-alert" role="alert"></div>
@@ -631,7 +687,47 @@ function clearApproval(){$('approvalPanel').classList.add('hidden');pendingAppro
 async function sendTurn(text){const clean=String(text||'').trim();if(!clean||turnInFlight)return;enterConversationView();stopRecognition();turnInFlight=true;$('voiceAlert').textContent='';$('transcript').textContent=clean;$('reply').textContent='';appendMessage('user_message',clean);setState('understanding');try{setState('thinking');const result=await api('/voice/turn',{method:'POST',body:JSON.stringify({transcript:clean,conversation_id:currentConversationId})});currentConversationId=result.conversation_id||currentConversationId;if(result.conversation_title){currentConversationTitle=result.conversation_title;$('conversationTitle').textContent=currentConversationTitle}$('reply').textContent=result.reply;turnInFlight=false;if(result.status==='approval_required')showApproval(result.approval);else appendMessage('assistant_message',result.reply);speakReply(result.reply);refreshConversationList($('conversationSearch').value).catch(()=>{})}catch(error){turnInFlight=false;if(error.message!=='turn_cancelled'){$('voiceAlert').textContent=error.message;appendMessage('approval_rejected',error.message);setState('error',error.message)}if(handsFree)scheduleListening(500)}}
 async function interruptAndListen(){const wasSpeaking=speaking||Boolean(synth&&synth.speaking);if(synth)synth.cancel();speaking=false;currentUtterance=null;handsFree=true;try{await api('/voice/barge',{method:'POST',body:JSON.stringify({speaking:wasSpeaking})})}catch{}scheduleListening(100)}
 $('micButton').onclick=async()=>{if(speaking||(synth&&synth.speaking)){await interruptAndListen();return}if(handsFree){handsFree=false;stopRecognition();setState('idle','Voice paused. Tap the microphone to continue.');return}handsFree=true;setState('active','Preparing your secure voice session…');try{await primeVoice();startListening()}catch(error){handsFree=false;$('voiceAlert').textContent=error.message;setState('error',error.message)}};
-$('composer').onsubmit=event=>{event.preventDefault();primeVoice();const text=$('message').value.trim();if(!text)return;$('message').value='';$('composer').classList.remove('has-text');sendTurn(text)};$('message').oninput=()=>$('composer').classList.toggle('has-text',Boolean($('message').value.trim()));
+function resizeComposerEditor(){
+  const form=$('composer'),editor=$('message'),hasText=Boolean(editor.value.trim());
+  form.classList.toggle('has-text',hasText);
+  const expanded=hasText||document.activeElement===editor;
+  form.classList.toggle('is-expanded',expanded);
+  editor.style.height='auto';
+  if(!expanded){editor.style.height='24px';editor.style.overflowY='hidden';return}
+  const visibleHeight=window.visualViewport?.height||window.innerHeight;
+  const maxEditorHeight=Math.min(144,Math.max(52,Math.floor(visibleHeight*.24)));
+  const contentHeight=editor.scrollHeight;
+  editor.style.height=Math.min(maxEditorHeight,Math.max(40,contentHeight))+'px';
+  editor.style.overflowY=contentHeight>maxEditorHeight?'auto':'hidden';
+}
+$('composer').onsubmit=event=>{
+  event.preventDefault();primeVoice();
+  const text=$('message').value.trim();if(!text)return;
+  $('message').value='';resizeComposerEditor();sendTurn(text);
+};
+$('message').addEventListener('focus',()=>{resizeComposerEditor();requestAnimationFrame(syncComposerViewport)});
+$('message').addEventListener('input',resizeComposerEditor);
+$('message').addEventListener('blur',()=>requestAnimationFrame(syncComposerViewport));
+$('message').addEventListener('keydown',event=>{
+  if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&event.keyCode!==229){
+    event.preventDefault();
+    if($('message').value.trim())$('composer').requestSubmit();
+  }
+});
+function syncComposerViewport(){
+  const viewport=window.visualViewport,editor=$('message');
+  const visible=Boolean(viewport&&document.activeElement===editor&&viewport.height<window.innerHeight-110);
+  document.body.classList.toggle('keyboard-open',visible);
+  if(visible)document.documentElement.style.setProperty('--keyboard-visible-height',Math.round(viewport.height+viewport.offsetTop)+'px');
+  else document.documentElement.style.removeProperty('--keyboard-visible-height');
+  resizeComposerEditor();
+  if(visible&&!document.body.classList.contains('home-landing')){
+    const stream=$('messageStream');
+    requestAnimationFrame(()=>{if(conversationPinnedToBottom)stream.scrollTop=stream.scrollHeight});
+  }
+}
+window.visualViewport?.addEventListener('resize',syncComposerViewport);
+window.visualViewport?.addEventListener('scroll',syncComposerViewport);
 $('approveApproval').onclick=async()=>{if(!pendingApproval)return;const approval=pendingApproval;clearApproval();handsFree=true;setState('active','Running the approved action…');try{const result=await api('/approval/'+encodeURIComponent(approval.id)+'/approve',{method:'POST',body:'{}'});$('reply').textContent=result.reply;appendMessage('assistant_message',result.reply);speakReply(result.reply)}catch(error){handsFree=false;$('voiceAlert').textContent=error.message;setState('error',error.message)}};
 $('rejectApproval').onclick=async()=>{if(!pendingApproval)return;const approval=pendingApproval;clearApproval();handsFree=true;try{const result=await api('/approval/'+encodeURIComponent(approval.id)+'/reject',{method:'POST',body:'{}'});$('reply').textContent=result.reply;appendMessage('approval_rejected',result.reply);speakReply(result.reply)}catch(error){handsFree=false;$('voiceAlert').textContent=error.message;setState('error',error.message)}};
 $('confirmTakeover').onclick=async()=>{$('sessionConflictPanel').classList.add('hidden');$('voiceAlert').textContent='';setState('active','Closing the old session safely…');try{const result=await api('/qualification/takeover',{method:'POST',body:JSON.stringify({confirm:true,environment:sessionEnvironment()})});sessionActive=true;$('report').textContent='Evidence session '+result.session_id+' started on this iPhone.';handsFree=true;startListening()}catch(error){handsFree=false;$('voiceAlert').textContent=error.message;setState('error',error.message)}};
@@ -691,7 +787,7 @@ $('appOwnerControls').onclick=()=>{closeAppDrawer();const opening=$('ownerMenu')
 $('ownerButton').onclick=openDrawer;
 async function signOutBrowser(){if(!confirm('Sign out only this browser? Other trusted devices will keep working.'))return;await api('/logout',{method:'POST',body:'{}'});closeFloatingMenus();closeAllDrawers();await check()}
 $('signOut').onclick=signOutBrowser;$('drawerSignOut').onclick=signOutBrowser;
-function focusPrompt(value=''){if(value){$('message').value=value;$('composer').classList.add('has-text')}$('message').focus()}
+function focusPrompt(value=''){if(value)$('message').value=value;$('message').focus();resizeComposerEditor()}
 $('quickAsk').onclick=()=>focusPrompt();
 $('quickData').onclick=()=>focusPrompt('Help me create ');
 $('quickTask').onclick=()=>{openModule('tools');showToast('Explore available tools for visual creation.')};
