@@ -108,6 +108,7 @@ try {
   assert.equal(await page.locator("#sendButton").isVisible(), false, "idle composer must show microphone, not inactive send");
   assert.equal(await page.locator("#micButton").isVisible(), true, "idle composer microphone must remain available");
   assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must be a compact plus");
+  assert.equal(await page.locator("#attachmentButton").getAttribute("aria-label"), "Add a document", "compact plus must retain the accessible attachment label");
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
