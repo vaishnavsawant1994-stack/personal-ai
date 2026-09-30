@@ -751,6 +751,46 @@
     .timeline-row{position:relative;box-sizing:border-box;width:100%;min-height:56px;padding:8px 9px 8px 49px;border:0;border-radius:10px;background:transparent;color:#d6dde7;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;cursor:pointer}
     .timeline-row:hover,.timeline-row:focus-visible{background:rgba(219,228,240,.083)}.timeline-row::before{content:"";position:absolute;left:25px;top:0;bottom:0;width:1px;background:rgba(174,188,208,.18)}.timeline-dot{position:absolute;left:20px;top:19px;width:11px;height:11px;border:2px solid #171b23;border-radius:50%;background:#7e8da1;box-shadow:0 0 0 1px rgba(184,199,220,.28)}.timeline-row[data-state="completed"] .timeline-dot{background:#7fbc92}.timeline-row[data-state="pending"] .timeline-dot{background:#c6a86b}.timeline-row[data-state="active"] .timeline-dot{background:#8aaef1}
     .timeline-copy{min-width:0}.timeline-copy strong{display:block;font-size:.82rem;font-weight:520;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.timeline-copy small{display:block;margin-top:3px;color:#909cad;font-size:.66rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.timeline-row time{font-size:.64rem;color:#8996a8;white-space:nowrap}.timeline-badge{grid-column:1/-1;width:max-content;max-width:100%;font-size:.61rem;color:#a6b2c2;text-transform:capitalize}.timeline-day{padding:11px 10px 4px;font-size:.69rem;font-weight:600;color:#8995a6}.timeline-empty{padding:18px 10px;color:#96a1b2;font-size:.78rem;line-height:1.45}
+    /* Unified owner timeline inside the existing RIGHT-hand secondary drawer. */
+    .conversation-drawer .conversation-top{padding-bottom:0}
+    .timeline-top-actions{display:flex;align-items:center;gap:3px;min-width:0}
+    .timeline-top-actions .conversation-new-chat{flex:1 1 auto;min-width:0;margin:0}
+    .timeline-plan-button{flex:0 0 auto;min-height:39px;border:1px solid rgba(176,196,225,.22);border-radius:10px;padding:0 10px;background:#242b37;color:#d6e4f7;font-size:.74rem;cursor:pointer}
+    .timeline-plan-button:hover,.timeline-plan-button:focus-visible{background:#343e51}
+    .conversation-drawer .conversation-filters{display:flex!important;flex-wrap:nowrap!important;gap:5px!important;overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:none;scroll-snap-type:x proximity;min-width:0;padding:3px 1px 8px!important}
+    .conversation-drawer .conversation-filters::-webkit-scrollbar{display:none}
+    .conversation-drawer .conversation-filter{white-space:nowrap;flex:0 0 auto;scroll-snap-align:start;min-height:35px!important;padding:0 12px!important;border:1px solid rgba(195,212,232,.11)!important;border-radius:11px!important}
+    .conversation-drawer .conversation-filter.active{border-color:rgba(158,191,233,.36)!important;background:rgba(166,190,225,.19)!important}
+    .conversation-drawer .conversation-list{overflow-y:auto!important;overscroll-behavior:contain;padding:5px 11px max(15px,env(safe-area-inset-bottom))!important;gap:2px!important}
+    .timeline-day{padding:12px 7px 5px;margin:0;color:#9eaab9;font-size:.69rem;font-weight:620}
+    .timeline-entry{position:relative;display:grid;grid-template-columns:12px minmax(0,1fr);gap:8px;padding:7px 3px 7px 6px;border-radius:10px;min-width:0}
+    .timeline-entry:before{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;background:rgba(166,189,221,.18)}
+    .timeline-dot{position:relative;width:9px;height:9px;align-self:start;margin-top:12px;border:2px solid #8db7eb;border-radius:50%;background:#30465e;z-index:1}
+    .timeline-entry[data-category="meeting"] .timeline-dot{border-color:#c3a1eb;background:#5b4672}
+    .timeline-entry[data-category="task"] .timeline-dot,.timeline-entry[data-category="work"] .timeline-dot{border-color:#92d5c3;background:#3b695e}
+    .timeline-entry[data-status="done"] .timeline-dot{border-color:#a5c4b7;background:#5c8b77}
+    .timeline-entry[data-status="overdue"] .timeline-dot{border-color:#f0b58a;background:#835b3c}
+    .timeline-content{min-width:0;padding:7px 9px;border:1px solid rgba(191,207,229,.07);border-radius:11px;background:rgba(232,240,250,.027)}
+    .timeline-entry:hover .timeline-content{background:rgba(224,235,250,.06)}
+    .timeline-head{display:flex;gap:8px;justify-content:space-between;align-items:center;min-width:0}
+    .timeline-type{font-size:.65rem;font-weight:630;color:#b9cbe4;white-space:nowrap}
+    .timeline-clock{font-size:.67rem;color:#95a3b8;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .timeline-title{width:100%;margin:5px 0 3px;padding:0;border:0;background:transparent;color:#f0f3f9;text-align:left;font-size:.82rem;font-weight:540;line-height:1.35;overflow-wrap:anywhere;cursor:pointer}
+    .timeline-title:hover{text-decoration:underline}
+    .timeline-preview{margin:3px 0 5px;color:#9caabb;font-size:.69rem;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    .timeline-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px;font-size:.65rem;color:#9caabc}
+    .timeline-status{display:inline-flex;align-items:center;border:1px solid rgba(172,193,222,.16);border-radius:8px;padding:3px 7px;color:#cad7e8;font-size:.63rem}
+    .timeline-status.done{color:#bdebd1;border-color:rgba(139,213,174,.21)}
+    .timeline-status.overdue{color:#f4c49f;border-color:rgba(238,176,125,.25)}
+    .timeline-complete{margin-left:auto;min-height:32px;padding:4px 9px;border:1px solid rgba(145,204,179,.36);border-radius:8px;background:rgba(60,119,98,.21);color:#c4efdd;font-size:.67rem;cursor:pointer}
+    .timeline-complete:disabled{opacity:.5;cursor:default}
+    .timeline-details{margin-top:6px;border-top:1px solid rgba(177,192,214,.12);padding-top:7px;color:#aab7ca;font-size:.67rem;line-height:1.5;white-space:normal}
+    .timeline-notice{font-size:.68rem;color:#c0b28f;padding:6px 11px;line-height:1.4}
+    .timeline-empty{padding:26px 8px;color:#a9b6c7;text-align:center;font-size:.78rem;line-height:1.5}
+    .timeline-retry{display:block;margin:10px auto;min-height:38px;border-radius:10px;border:1px solid rgba(170,191,218,.25);background:#2a3444;color:#e4ecf5;padding:6px 12px}
+    @media(max-width:350px){.timeline-entry{gap:6px;padding-left:4px}.timeline-content{padding:7px}.timeline-clock{font-size:.63rem}}
+
+    .timeline-entry[data-category="workflow"] .timeline-dot{border-color:#87b1ef;background:#4e6082}
   </style>
 </head>
 <body>
@@ -874,14 +914,25 @@
   <div class="conversation-top">
     <header class="conversation-manager-head">
       <button id="closeDrawer" class="conversation-close" type="button" aria-label="Close conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
-      <div class="conversation-manager-heading"><h2>Timeline</h2><p>Chats, meetings, tasks and work by time</p></div>
+      <div class="conversation-manager-heading"><h2>Timeline</h2><p>Chats, plans and activity</p></div>
     </header>
-    <button id="newConversation" class="conversation-new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>New chat</span></button>
-    <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search chats" aria-label="Search conversations"/></div>
-    <div class="conversation-filters" role="group" aria-label="Timeline filters"><button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button><button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button><button class="conversation-filter" type="button" data-conversation-filter="conversation" aria-pressed="false">Conversations</button><button class="conversation-filter" type="button" data-conversation-filter="meeting" aria-pressed="false">Meetings</button><button class="conversation-filter" type="button" data-conversation-filter="task" aria-pressed="false">Tasks</button><button class="conversation-filter" type="button" data-conversation-filter="workflow" aria-pressed="false">Workflows</button><button class="conversation-filter" type="button" data-conversation-filter="activity" aria-pressed="false">Activities</button></div>
-    <p id="conversationCount" class="conversation-count" aria-live="polite">Loading timeline…</p>
+    <div class="timeline-top-actions"><button id="newConversation" class="conversation-new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>New chat</span></button><button id="timelineAddPlan" class="timeline-plan-button" type="button" aria-label="Add task, work or meeting">+ Plan</button></div>
+    <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search everything…" aria-label="Search timeline entries"/></div>
+    <div class="conversation-filters" role="group" aria-label="Timeline filters">
+      <button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="conversation" aria-pressed="false">Chats</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="meeting" aria-pressed="false">Meetings</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="task" aria-pressed="false">Tasks</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="work" aria-pressed="false">Work</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="reminder" aria-pressed="false">Reminders</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="workflow" aria-pressed="false">Workflows</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="done" aria-pressed="false">Done</button>
+      <button class="conversation-filter" type="button" data-conversation-filter="activity" aria-pressed="false">Activity</button>
+    </div>
+    <p id="conversationCount" class="conversation-count" aria-live="polite">Loading your timeline…</p>
   </div>
-  <div id="conversationList" class="conversation-list" aria-label="Conversation history"></div>
+  <div id="conversationList" class="conversation-list timeline-list" role="list" aria-label="Your activity timeline"></div>
 </aside>
 <aside id="ownerMenu" class="owner-menu hidden" aria-label="Owner controls">
   <div class="owner-menu-head"><span class="owner-orb"></span><div><strong>Owner controls</strong><span id="ownerMenuStatus">Checking Personal AI…</span></div></div>
@@ -1057,41 +1108,198 @@ function closeSidebarSearch(){
   $('sidebarSearchToggle').setAttribute('aria-expanded','false');
   $('sidebarSearch').value='';sidebarSearchResults=null;renderSidebarChatList();
 }
-let timelineCache=[],timelineSourceItems={everyday:[],activities:[],runs:[]};
-function timelineDate(raw){if(!raw)return null;const d=new Date(raw);return Number.isNaN(d.getTime())?null:d}
-function timelineStatus(item){const s=String(item.status||'').toLowerCase();if(['completed','done','success','succeeded'].includes(s))return'completed';if(['running','in_progress','active','waiting_approval','recovery_required'].includes(s))return'active';return'pending'}
-function timelineWhen(date){if(!date)return'Anytime';return date.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
-function timelineDay(date){if(!date)return'Unscheduled';const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate()),day=new Date(date.getFullYear(),date.getMonth(),date.getDate()),diff=Math.round((today-day)/86400000);if(diff===0)return'Today';if(diff===1)return'Yesterday';if(diff===-1)return'Tomorrow';return date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}
-function buildTimeline(){
- const rows=[];
- for(const item of conversationCache){const date=conversationDate(item);rows.push({id:'conversation:'+item.id,type:'conversation',title:item.title||'Conversation',detail:item.preview||'Conversation',date,state:'completed',source:item})}
- for(const item of timelineSourceItems.everyday){const due=todayItemDue(item),date=due?.millis&&Number.isFinite(due.millis)?new Date(due.millis):timelineDate(item.due_at||item.snoozed_until),kind=todayItemKind(item);rows.push({id:'everyday:'+item.id,type:kind==='meeting'?'meeting':'task',title:item.title||todayKindLabel(kind),detail:todayKindLabel(kind)+' · '+String(item.status||'pending').replaceAll('_',' '),date,state:timelineStatus(item),source:item})}
- for(const run of timelineSourceItems.runs){const date=timelineDate(run.updated_at||run.created_at||run.started_at);rows.push({id:'workflow:'+run.id,type:'workflow',title:run.title||run.workflow_title||'Workflow run',detail:String(run.status||'pending').replaceAll('_',' ')+(run.current_step_step||run.current_step?' · step '+(run.current_step_step||run.current_step):''),date,state:timelineStatus(run),source:run})}
- for(const item of timelineSourceItems.activities){const date=timelineDate(item.created_at||item.updated_at);rows.push({id:'activity:'+(item.id||rows.length),type:'activity',title:item.label||item.kind||'Activity',detail:(item.action?item.action+' · ':'')+String(item.status||'recorded').replaceAll('_',' '),date,state:timelineStatus(item),source:item})}
- timelineCache=rows.sort((a,b)=>(b.date?.getTime()||0)-(a.date?.getTime()||0));return timelineCache
+let timelineItems=[],timelineAudit=[],timelineRuns=[],timelineAvailable={conversations:false,plans:false,activity:false,workflows:false},timelineQuery='',timelineRequestEpoch=0,timelineLoaded=false;
+function timelineDate(raw,allDay=false){
+ if(!raw)return null;
+ const date=allDay&&/^\d{4}-\d{2}-\d{2}$/.test(raw)?new Date(raw+'T23:59:00'):new Date(raw);
+ return Number.isNaN(date.getTime())?null:date
 }
-function renderConversationList(){
- const list=$('conversationList');list.replaceChildren();let rows=buildTimeline();
- if(conversationFilter==='recent'){const cutoff=Date.now()-7*86400000;rows=rows.filter(item=>item.date&&item.date.getTime()>=cutoff)}
- else if(conversationFilter!=='all')rows=rows.filter(item=>item.type===conversationFilter);
- const query=$('conversationSearch').value.trim().toLowerCase();if(query)rows=rows.filter(item=>(item.title+' '+item.detail+' '+item.type).toLowerCase().includes(query));
- $('conversationCount').textContent=rows.length+' '+(rows.length===1?'timeline item':'timeline items');
- if(!rows.length){const empty=document.createElement('div');empty.className='timeline-empty';empty.textContent=query?'No timeline items match your search.':'Nothing in this timeline view yet.';list.append(empty);return}
- let group='';
- for(const item of rows){const label=timelineDay(item.date);if(label!==group){group=label;const day=document.createElement('div');day.className='timeline-day';day.textContent=label;list.append(day)}
-  const row=document.createElement('button');row.type='button';row.className='timeline-row';row.dataset.type=item.type;row.dataset.state=item.state;row.setAttribute('aria-label','Open '+item.title);
-  const dot=document.createElement('span');dot.className='timeline-dot';dot.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='timeline-copy';const title=document.createElement('strong');title.textContent=item.title;const detail=document.createElement('small');detail.textContent=item.detail;copy.append(title,detail);const time=document.createElement('time');time.textContent=timelineWhen(item.date);const badge=document.createElement('span');badge.className='timeline-badge';badge.textContent=item.type+' · '+item.state;row.append(dot,copy,time,badge);
-  row.onclick=()=>{if(item.type==='conversation')openConversation(item.source.id).catch(error=>showToast(error.message));else if(item.type==='meeting'||item.type==='task'){closeAllDrawers();openModule('home').then(()=>$('todayHeading').scrollIntoView({block:'nearest'}))}else if(item.type==='workflow')openModule('workflows');else openModule('activities')};list.append(row)}
+function timelineDayLabel(date){
+ const day=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+ const today=new Date(),start=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+ const delta=Math.round((day-start)/86400000);
+ if(delta===0)return'Today';if(delta===1)return'Tomorrow';if(delta===-1)return'Yesterday';
+ return date.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:date.getFullYear()!==today.getFullYear()?'numeric':undefined})
 }
-function setConversationFilter(filter){conversationFilter=filter;document.querySelectorAll('[data-conversation-filter]').forEach(button=>{const active=button.dataset.conversationFilter===filter;button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')});renderConversationList()}
-async function refreshConversationList(){
- const epoch=++conversationSearchRequestEpoch;$('conversationCount').textContent='Loading timeline…';
- try{const [chatData,everydayData,activityData,workflowData]=await Promise.all([api('/conversations'),api('/everyday/active?limit=200'),api('/activities?limit=100'),api('/workflows')]);if(epoch!==conversationSearchRequestEpoch)return;
-  if(Array.isArray(chatData.conversations))conversationCache=chatData.conversations;timelineSourceItems={everyday:Array.isArray(everydayData.items)?everydayData.items:[],activities:Array.isArray(activityData.activities)?activityData.activities:[],runs:Array.isArray(workflowData.runs)?workflowData.runs:[]};renderConversationList()
- }catch(error){if(epoch!==conversationSearchRequestEpoch)return;$('conversationCount').textContent='Timeline unavailable';$('conversationList').replaceChildren();const empty=document.createElement('div');empty.className='timeline-empty';empty.textContent='Unable to load your activity timeline. Please try again.';$('conversationList').append(empty)}
+function timelineTime(date,allDay=false){return allDay?'Anytime':date.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
+function timelineCategory(item){
+ const context=String(item.context||'').match(/^personal-ai:today:(task|work|meeting|reminder)$/);
+ if(context)return context[1];
+ const kind=String(item.kind||'').toLowerCase();
+ if(kind==='task'||kind==='reminder')return kind;
+ if(kind==='commitment')return'commitment';
+ return'work'
+}
+function timelineEntries(){
+ const entries=[],convos=conversationManagerResults!==null?conversationManagerResults:conversationCache;
+ for(const item of (Array.isArray(convos)?convos:[])){
+  const date=timelineDate(item.updated_at||item.created_at);
+  if(!date)continue;
+  entries.push({key:'chat:'+item.id,category:'conversation',title:item.title||'Conversation',
+    preview:item.preview||'',date,recentAt:date,allDay:false,status:'recorded',source:item,
+    details:'Last active '+date.toLocaleString()});
+ }
+ for(const item of timelineItems){
+  const category=timelineCategory(item);
+  const done=item.status==='completed',cancelled=['cancelled','dismissed','superseded'].includes(item.status);
+  const raw=done?(item.completed_at||item.updated_at):(cancelled?(item.cancelled_at||item.dismissed_at||item.updated_at):(item.status==='snoozed'&&item.snoozed_until?item.snoozed_until:item.due_at))||item.created_at;
+  const allDay=typeof raw==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const date=timelineDate(raw,allDay);if(!date)continue;
+  const updated=timelineDate(done?(item.completed_at||item.updated_at):(item.updated_at||item.created_at))||date;
+  const status=done?'done':cancelled?'cancelled':(item.due_at||item.snoozed_until)&&date.getTime()<Date.now()?'overdue':'pending';
+  const planned=item.due_at?timelineDate(item.due_at,/^\d{4}-\d{2}-\d{2}$/.test(item.due_at)):null;
+  let details=done?'Marked complete '+updated.toLocaleString():cancelled?'Status updated '+updated.toLocaleString():'Last updated '+updated.toLocaleString();
+  if(planned)details+=' · Scheduled '+(item.due_at.length===10?item.due_at:planned.toLocaleString());
+  entries.push({key:'item:'+item.id,category,title:item.title||'Planned item',
+    preview:item.status==='snoozed'?'Rescheduled':item.context&&item.context.startsWith('personal-ai:today:')?'Personal AI plan':'Saved Personal AI item',
+    date,recentAt:updated,allDay,status,source:item,details});
+ }
+ for(const run of timelineRuns){
+  const date=timelineDate(run.updated_at||run.started_at||run.created_at);if(!date)continue;
+  const raw=String(run.status||'pending').toLowerCase();
+  const status=['completed','success','succeeded'].includes(raw)?'done':raw==='failed'?'error':['running','in_progress','waiting_approval','recovery_required'].includes(raw)?'running':'pending';
+  entries.push({key:'workflow:'+run.id,category:'workflow',title:run.title||run.workflow_title||'Workflow run',
+    preview:raw.replaceAll('_',' ')+(run.current_step_step||run.current_step?' · step '+String(run.current_step_step||run.current_step):''),
+    date,recentAt:date,allDay:false,status,source:run,details:'Workflow updated '+date.toLocaleString()});
+ }
+ for(const item of timelineAudit){
+  const date=timelineDate(item.created_at);if(!date)continue;
+  const status=item.status==='completed'?'done':item.status==='error'?'error':item.status||'recorded';
+  const label=item.label||item.kind||'Activity';
+  entries.push({key:'audit:'+item.id,category:'activity',title:String(label),
+   preview:String(item.action||'Audited event').replaceAll('_',' '),date,recentAt:date,allDay:false,status,
+   source:item,details:'Recorded '+date.toLocaleString()+' · '+String(item.action||'activity')});
+ }
+ return entries.sort((a,b)=>b.date.getTime()-a.date.getTime()||a.key.localeCompare(b.key))
+}
+function renderUnifiedTimeline(){
+ const host=$('conversationList');host.replaceChildren();
+ if(!timelineLoaded){
+  $('conversationCount').textContent='Loading your timeline…';
+  const p=document.createElement('p');p.className='timeline-empty';p.textContent='Loading real Personal AI activity…';host.append(p);return
+ }
+ const query=$('conversationSearch').value.trim().toLowerCase(),cutoff=Date.now()-7*86400000;
+ let rows=timelineEntries().filter(item=>{
+  if(conversationFilter==='recent'&&item.recentAt.getTime()<cutoff)return false;
+  if(conversationFilter==='done'&&item.status!=='done')return false;
+  if(!['all','recent','done'].includes(conversationFilter)&&item.category!==conversationFilter)return false;
+  if(query&&!((item.title+' '+item.preview+' '+item.category+' '+item.status).toLowerCase().includes(query)))return false;
+  return true
+ });
+ const pending=rows.filter(item=>['pending','overdue'].includes(item.status)).length,done=rows.filter(item=>item.status==='done').length;
+ $('conversationCount').textContent=rows.length+' '+(rows.length===1?'entry':'entries')+' · '+pending+' pending · '+done+' done';
+ if(!timelineAvailable.plans||!timelineAvailable.conversations){
+  const warning=document.createElement('p');warning.className='timeline-notice';
+  warning.textContent='Some timeline sources are unavailable. Refresh to retry.';host.append(warning);
+ }
+ if(!timelineAvailable.activity&&['all','activity'].includes(conversationFilter)){
+  const notice=document.createElement('p');notice.className='timeline-notice';
+  notice.textContent='Audited activity is unavailable or not permitted on this device.';host.append(notice);
+ }
+ if(!timelineAvailable.workflows&&conversationFilter==='workflow'){
+  const notice=document.createElement('p');notice.className='timeline-notice';notice.textContent='Workflow history is unavailable or not permitted.';host.append(notice);
+ }
+ if(!rows.length){
+  const p=document.createElement('p');p.className='timeline-empty';
+  p.textContent=query?'No matching timeline entries.':
+   conversationFilter==='recent'?'Nothing updated in the last seven days.':
+   'Nothing here yet. Your real activities will appear when available.';
+  const retry=document.createElement('button');retry.className='timeline-retry';retry.type='button';retry.textContent='Refresh';
+  retry.onclick=()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{});
+  p.append(retry);host.append(p);return
+ }
+ let prevDay='';
+ for(const item of rows){
+  const group=timelineDayLabel(item.date);
+  if(group!==prevDay){
+   prevDay=group;const heading=document.createElement('h3');heading.className='timeline-day';heading.textContent=group;host.append(heading);
+  }
+  const article=document.createElement('article');article.className='timeline-entry';article.dataset.category=item.category;article.dataset.status=item.status;article.setAttribute('role','listitem');
+  const dot=document.createElement('span');dot.className='timeline-dot';dot.setAttribute('aria-hidden','true');
+  const card=document.createElement('div');card.className='timeline-content';
+  const head=document.createElement('div');head.className='timeline-head';
+  const kind=document.createElement('span');kind.className='timeline-type';
+  kind.textContent=({conversation:'Conversation',meeting:'Meeting',task:'Task',work:'Work',reminder:'Reminder',commitment:'Commitment',activity:'Activity',workflow:'Workflow'})[item.category]||'Plan';
+  const clock=document.createElement('time');clock.className='timeline-clock';clock.dateTime=item.date.toISOString();clock.textContent=timelineTime(item.date,item.allDay);head.append(kind,clock);
+  const name=document.createElement('button');name.type='button';name.className='timeline-title';name.textContent=item.title;
+  const preview=document.createElement('p');preview.className='timeline-preview';preview.textContent=item.preview;
+  const meta=document.createElement('div');meta.className='timeline-meta';
+  const status=document.createElement('span');status.className='timeline-status '+item.status;
+  status.textContent=({done:'Done',pending:'Pending',overdue:'Overdue',cancelled:'Cancelled',recorded:'Updated',running:'Running',error:'Error'})[item.status]||item.status;
+  meta.append(status);
+  const details=document.createElement('div');details.className='timeline-details';details.textContent=item.details;details.hidden=true;
+  if(item.category==='conversation'){
+    name.setAttribute('aria-label','Open conversation '+item.title);
+    name.onclick=()=>openConversation(item.source.id).catch(error=>showToast(error.message));
+  }else{
+    name.setAttribute('aria-expanded','false');name.setAttribute('aria-label','Show details for '+item.title);
+    name.onclick=()=>{details.hidden=!details.hidden;name.setAttribute('aria-expanded',String(!details.hidden))}
+    if(['pending','overdue'].includes(item.status)&&!['activity','workflow'].includes(item.category)){
+      const complete=document.createElement('button');complete.className='timeline-complete';complete.type='button';complete.textContent='Mark done';complete.setAttribute('aria-label','Mark '+item.title+' done');
+      complete.onclick=async()=>{complete.disabled=true;try{
+        await api('/everyday/'+encodeURIComponent(item.source.id)+'/complete',{method:'POST',body:'{}'});
+        await Promise.all([refreshUnifiedTimeline($('conversationSearch').value),refreshToday()]);
+        showToast('Marked complete');
+      }catch(error){complete.disabled=false;showToast(error.message||'Unable to complete item')}};
+      meta.append(complete);
+    }
+  }
+  card.append(head,name,preview,meta,details);article.append(dot,card);host.append(article);
+ }
+}
+function renderConversationList(items,updateCache=true){
+ if(updateCache&&Array.isArray(items)){
+  conversationCache=items;
+  if(!$('appDrawer').classList.contains('hidden'))renderSidebarChatList();
+ }
+ if(!$('conversationDrawer').classList.contains('hidden'))renderUnifiedTimeline();
+}
+function setConversationFilter(filter){
+ conversationFilter=filter;
+ document.querySelectorAll('[data-conversation-filter]').forEach(button=>{
+  const active=button.dataset.conversationFilter===filter;
+  button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false');
+ });
+ renderUnifiedTimeline();
+}
+async function refreshUnifiedTimeline(query=''){
+ const epoch=++timelineRequestEpoch;
+ timelineLoaded=false;renderUnifiedTimeline();
+ const requests=await Promise.allSettled([
+  api('/conversations?q='+encodeURIComponent(query)+'&limit=100'),
+  api('/everyday/timeline?limit=500'),
+  api('/activities?limit=100'),
+  api('/workflows')
+ ]);
+ if(epoch!==timelineRequestEpoch)return;
+ const [convos,plans,activities,workflows]=requests;
+ timelineAvailable={
+  conversations:convos.status==='fulfilled'&&Array.isArray(convos.value.conversations),
+  plans:plans.status==='fulfilled'&&Array.isArray(plans.value.items),
+  activity:activities.status==='fulfilled'&&Array.isArray(activities.value.activities),
+  workflows:workflows.status==='fulfilled'&&Array.isArray(workflows.value.runs)
+ };
+ if(timelineAvailable.conversations){
+  conversationManagerResults=query?convos.value.conversations:null;
+  if(!query){conversationCache=convos.value.conversations;if(!$('appDrawer').classList.contains('hidden'))renderSidebarChatList()}
+ }else{conversationManagerResults=query?[]:null}
+ timelineItems=timelineAvailable.plans?plans.value.items:[];
+ timelineAudit=timelineAvailable.activity?activities.value.activities:[];
+ timelineRuns=timelineAvailable.workflows?workflows.value.runs:[];
+ timelineLoaded=true;renderUnifiedTimeline();
 }
 function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversation)return;const thread=bundle.thread||bundle.conversation;currentConversationId=thread.id;currentConversationTitle=thread.title||'Conversation';conversationEvents=Array.isArray(bundle.events)?bundle.events:[];$('conversationTitle').textContent=currentConversationTitle;$('transcript').textContent='';$('reply').textContent='';renderMessages();renderSidebarChatList()}
-let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false;
+let conversationSearchRequestEpoch=0,conversationDrawerReturnToMain=false,conversationManagerResults=null;
+async function refreshConversationList(query=''){
+ const epoch=++conversationSearchRequestEpoch;
+ const data=await api('/conversations?q='+encodeURIComponent(query)+'&limit=100');
+ if(epoch!==conversationSearchRequestEpoch)return data;
+ if(!query&&Array.isArray(data.conversations)){
+  conversationCache=data.conversations;
+  if(!$('appDrawer').classList.contains('hidden'))renderSidebarChatList();
+ }
+ return data;
+}
 function syncDrawerOverlay(){const open=!$('appDrawer').classList.contains('hidden')||!$('conversationDrawer').classList.contains('hidden');$('drawerOverlay').classList.toggle('hidden',!open)}
 function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
 function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
@@ -1105,7 +1313,7 @@ function openDrawer(){
   $('conversationDrawer').setAttribute('aria-hidden','false');
   $('closeDrawer').setAttribute('aria-label',fromSidebar?'Back to main menu':'Close conversations');
   syncDrawerOverlay();syncConversationViewport();
-  refreshConversationList().catch(()=>{});
+  refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{});
   requestAnimationFrame(()=>$('conversationSearch').focus({preventScroll:true}));
 }
 function closeDrawer(returnToMain=true){
@@ -1113,6 +1321,7 @@ function closeDrawer(returnToMain=true){
   const back=returnToMain&&conversationDrawerReturnToMain;
   conversationDrawerReturnToMain=false;
   ++conversationSearchRequestEpoch;
+  ++timelineRequestEpoch;
   conversationManagerResults=null;
   $('conversationDrawer').classList.add('hidden');
   $('conversationDrawer').setAttribute('aria-hidden','true');
@@ -1289,7 +1498,7 @@ $('appConversations').onclick=openDrawer;
 $('sidebarSeeAll').onclick=openDrawer;
 $('closeDrawer').onclick=()=>closeDrawer();
 $('drawerOverlay').onclick=closeAllDrawers;
-$('newConversation').onclick=()=>createConversation().catch(error=>showToast(error.message));$('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(renderConversationList,120)};document.querySelectorAll('[data-conversation-filter]').forEach(button=>button.onclick=()=>setConversationFilter(button.dataset.conversationFilter));
+$('newConversation').onclick=()=>createConversation().catch(error=>showToast(error.message));$('timelineAddPlan').onclick=async()=>{closeAllDrawers();await openModule('home');if($('todayForm').classList.contains('hidden'))$('todayAdd').click();$('todayTitle').focus()};$('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{}),220)};document.querySelectorAll('[data-conversation-filter]').forEach(button=>button.onclick=()=>setConversationFilter(button.dataset.conversationFilter));
 $('appOwnerControls').onclick=()=>{closeSidebarAccountMenu();closeAppDrawer();const opening=$('ownerMenu').classList.contains('hidden');closeFloatingMenus();if(opening){$('ownerMenu').classList.remove('hidden');$('ownerButton').setAttribute('aria-expanded','true')}};
 $('ownerButton').onclick=openDrawer;
 async function signOutBrowser(){if(!confirm('Sign out only this browser? Other trusted devices will keep working.'))return;await api('/logout',{method:'POST',body:'{}'});closeFloatingMenus();closeAllDrawers();await check()}

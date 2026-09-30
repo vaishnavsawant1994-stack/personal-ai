@@ -27,6 +27,14 @@ class Everyday:
         self.records['item-1'] = {'id': 'item-1', 'kind': kind, 'title': title, **kwargs}
         return 'item-1'
 
+    def items(self, *, status, limit):
+        self.calls.append(('items', status, limit))
+        return [
+            {'id': 'open-task', 'kind': 'task', 'status': 'scheduled', 'title': 'Review'},
+            {'id': 'done-meeting', 'kind': 'commitment', 'status': 'completed',
+             'title': 'Meeting completed', 'completed_at': '2026-09-30T14:30:00+02:00'},
+        ]
+
     def get(self, item_id):
         return self.records.get(item_id)
 
@@ -85,3 +93,22 @@ def test_today_rejects_untrusted_categories_malformed_dates_and_blank_titles():
     ]:
         assert client.post('/iphone/api/everyday/items', cookies=auth(), json=payload).status_code == 422
     assert everyday.calls == []
+
+
+def test_combined_timeline_requires_owner_and_includes_real_completed_records():
+    client, registry, everyday = client_for_today()
+    assert client.get('/iphone/api/everyday/timeline').status_code == 401
+    registry.allowed = False
+    assert client.get('/iphone/api/everyday/timeline', cookies=auth()).status_code == 403
+    assert everyday.calls == []
+    registry.allowed = True
+    result = client.get('/iphone/api/everyday/timeline?limit=250', cookies=auth())
+    assert result.status_code == 200, result.text
+    assert [item['id'] for item in result.json()['items']] == [
+        'open-task', 'done-meeting',
+    ]
+    assert result.json()['items'][1]['completed_at'] == '2026-09-30T14:30:00+02:00'
+    assert everyday.calls == [('items', 'all', 250)]
+    for limit in ['0', '-1', '501', 'abc']:
+        assert client.get('/iphone/api/everyday/timeline?limit=' + limit,
+                          cookies=auth()).status_code == 422
