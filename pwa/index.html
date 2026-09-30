@@ -607,6 +607,35 @@
 
     .sidebar-account-copy small i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#8794a6;margin-right:5px;vertical-align:middle}
     .sidebar-nav-row:active,.sidebar-chat-row:active,.sidebar-action:active{transform:scale(.992)}
+
+    /* Keep the extended history manager visually consistent with the main sidebar. */
+    .conversation-drawer{
+      box-sizing:border-box;width:min(360px,calc(100vw - 8px));height:100dvh;
+      background:#171b23;border-right:1px solid rgba(224,230,239,.12);
+      border-radius:0 17px 17px 0;box-shadow:20px 0 58px rgba(0,0,0,.53);
+      padding:max(15px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));gap:11px;
+    }
+    .conversation-manager-head{gap:8px;grid-template-columns:44px minmax(0,1fr) 44px}
+    .conversation-manager-head h2{text-align:left;font-size:1.02rem;font-weight:620;letter-spacing:-.01em}
+    .conversation-close,.conversation-add{border:0;border-radius:11px;background:transparent;color:#dce4ee}
+    .conversation-close:hover,.conversation-add:hover{background:rgba(222,233,249,.085)}
+    .conversation-search{height:44px;border:1px solid rgba(186,200,221,.17);border-radius:11px;background:#242a34;padding-left:40px;font-size:16px}
+    .conversation-search-wrap svg{width:18px;height:18px;color:#b5c0d2}
+    .conversation-filters{gap:5px}
+    .conversation-filter{min-height:36px;padding:0 13px;border:0;border-radius:10px;color:#b6c0cf;background:transparent;font-size:.8rem}
+    .conversation-filter.active{background:#343b47;border:0;color:#eef1f7}
+    .conversation-list{gap:2px;scrollbar-width:thin;scrollbar-color:#4e5867 transparent}
+    .conversation-group-title{color:#a7b2c1;font-size:.72rem;font-weight:610;padding:14px 9px 4px}
+    .conversation-item{min-height:49px;border:0;background:transparent;grid-template-columns:minmax(0,1fr) auto;gap:6px;border-radius:10px;padding:8px 10px}
+    .conversation-item:hover,.conversation-item:focus-visible{background:rgba(226,235,248,.08)}
+    .conversation-item.active{background:rgba(210,223,243,.12);border:0}
+    .conversation-item-icon{display:none!important}
+    .conversation-item-copy strong{font-size:.85rem;font-weight:500}
+    .conversation-item-copy span{font-size:.68rem;margin-top:3px;color:#a0aabd}
+    .conversation-item time{font-size:.66rem;color:#8e9cad}
+    .conversation-empty{font-size:.83rem;line-height:1.5;background:#202631;border:0}
+    @media(max-width:360px){.conversation-drawer{padding-inline:9px}}
+    @media(orientation:landscape) and (max-height:520px){.conversation-drawer{padding-top:max(5px,env(safe-area-inset-top));padding-bottom:max(5px,env(safe-area-inset-bottom))}}
   </style>
 </head>
 <body>
@@ -884,6 +913,21 @@ function closeSidebarAccountMenu(){
   $('sidebarAccountMenu').classList.add('hidden');
   $('sidebarAccountButton').setAttribute('aria-expanded','false');
 }
+function syncSidebarViewport(){
+  const viewport=window.visualViewport;
+  const active=!$('appDrawer').classList.contains('hidden') &&
+    document.activeElement===$('sidebarSearch');
+  if(active&&viewport&&viewport.height<window.innerHeight-90){
+    document.documentElement.style.setProperty('--sidebar-visible-height',Math.round(viewport.height+viewport.offsetTop)+'px');
+  }else{
+    document.documentElement.style.removeProperty('--sidebar-visible-height');
+  }
+}
+window.visualViewport?.addEventListener('resize',syncSidebarViewport);
+window.visualViewport?.addEventListener('scroll',syncSidebarViewport);
+$('sidebarSearch').addEventListener('focus',syncSidebarViewport);
+$('sidebarSearch').addEventListener('blur',()=>requestAnimationFrame(syncSidebarViewport));
+
 function closeSidebarSearch(){
   ++sidebarSearchEpoch;
   if(sidebarSearchTimer)clearTimeout(sidebarSearchTimer);
@@ -897,7 +941,7 @@ function applyConversation(bundle){if(!bundle||!bundle.thread&&!bundle.conversat
 async function refreshConversationList(query=''){const data=await api('/conversations?q='+encodeURIComponent(query));renderConversationList(data.conversations);return data}
 function syncDrawerOverlay(){const open=!$('appDrawer').classList.contains('hidden')||!$('conversationDrawer').classList.contains('hidden');$('drawerOverlay').classList.toggle('hidden',!open)}
 function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
-function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
+function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
 function openDrawer(){const fromSidebar=!$('appDrawer').classList.contains('hidden'),origin=fromSidebar?$('historyButton'):document.activeElement;closeAppDrawer();lastFocusedElement=origin;$('conversationDrawer').classList.remove('hidden');syncDrawerOverlay();refreshConversationList($('conversationSearch').value).catch(()=>{});setTimeout(()=>$('conversationSearch').focus(),20)}
 function closeDrawer(){if($('conversationDrawer').classList.contains('hidden'))return;$('conversationDrawer').classList.add('hidden');syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
 function closeAllDrawers(){closeAppDrawer();closeDrawer();syncDrawerOverlay()}
@@ -1037,7 +1081,7 @@ $('sidebarSearchToggle').onclick=()=>{
  if(!open){closeSidebarSearch();return}
  $('sidebarSearchPanel').classList.remove('hidden');
  $('sidebarSearchToggle').setAttribute('aria-expanded','true');
- $('sidebarSearch').focus();renderSidebarChatList();
+ closeSidebarAccountMenu();$('sidebarSearch').focus();syncSidebarViewport();renderSidebarChatList();
 };
 $('sidebarSearch').oninput=searchSidebarChats;
 $('sidebarSearchClear').onclick=()=>{$('sidebarSearch').value='';searchSidebarChats();$('sidebarSearch').focus()};

@@ -205,6 +205,14 @@ try {
   await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
   await page.click("#sidebarSearchToggle");
   assert.equal(await page.locator("#sidebarSearchToggle").getAttribute("aria-expanded"), "true");
+  await page.evaluate(() => document.documentElement.style.setProperty("--sidebar-visible-height","540px"));
+  const keyboardSidebar = await page.evaluate(() => ({
+    pane: document.querySelector("#appDrawer").getBoundingClientRect(),
+    account: document.querySelector("#sidebarAccountButton").getBoundingClientRect(),
+  }));
+  assert.ok(keyboardSidebar.pane.height <= 541 && keyboardSidebar.account.bottom <= 541,
+    "sidebar footer must remain within reduced keyboard-height viewport");
+  await page.evaluate(() => syncSidebarViewport());
   await page.fill("#sidebarSearch", "Onion");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 1 && document.querySelector("#sidebarChatList").textContent.includes("Onion"));
   await page.fill("#sidebarSearch", "not-a-real-chat");
@@ -227,6 +235,8 @@ try {
   assert.ok(conversationState.groups.length >= 1, "real timestamps should produce conversation date grouping");
   assert.deepEqual(conversationState.rows, conversations.map(item => item.title));
   assert.ok(conversationState.rect.width <= 390, "conversation manager must fit viewport");
+  assert.equal(await page.locator("#conversationDrawer").evaluate(node=>getComputedStyle(node).backgroundColor),"rgb(23, 27, 35)",
+    "full conversation manager should share the refined sidebar design");
   await page.screenshot({ path: "artifacts/personal-ai-conversations-390x844.png", fullPage: true });
 
   await page.fill("#conversationSearch", "Onion");
@@ -471,7 +481,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("ChatGPT-inspired integrated sidebar passed new chat, live search, real chats, account/owner actions, drawer responsiveness, Today timeline, expanding composer and eight viewport checks.");
+  console.log("Integrated main and full-history sidebars passed real new chat, search, account, keyboard-height, responsive drawer, Today and multiline composer checks across eight viewports.");
 } finally {
   await browser.close();
 }
