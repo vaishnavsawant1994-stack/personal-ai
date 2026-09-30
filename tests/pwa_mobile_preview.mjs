@@ -92,6 +92,8 @@ try {
     headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
     headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
     actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
+    cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
+    homeWidth: document.querySelector(".home-intro").getBoundingClientRect().width,
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     innerHeight,
@@ -99,6 +101,8 @@ try {
   assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
   assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
+  assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "four Home cards must be exactly equal sized");
+  assert.ok(homeState.composer.width <= homeState.homeWidth-10, "Home composer must be narrower than the cards");
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
@@ -213,6 +217,9 @@ try {
         composer: rect("#composer"),
         header: rect(".topbar"),
         quick: rect(".quick-actions"),
+        home: rect(".home-intro"),
+        cards: [...document.querySelectorAll(".quick-action")].map(node => {const r=node.getBoundingClientRect();return {width:r.width,height:r.height,scrollHeight:node.scrollHeight,clientHeight:node.clientHeight}}),
+        controls: ["#attachmentButton","#sendButton","#micButton"].map(selector => rect(selector)),
       };
     });
     assert.ok(layout.documentWidth <= layout.viewportWidth, "horizontal overflow at " + width + "x" + height);
@@ -221,6 +228,12 @@ try {
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
+    assert.ok(layout.cards.length === 4, "four Home cards required");
+    assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
+    assert.ok(layout.cards.every(card => card.scrollHeight<=card.clientHeight+2), "Home card content clipped at " + width + "x" + height);
+    assert.ok(layout.composer.width<=layout.home.width-6, "composer not compact at " + width + "x" + height);
+    assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
+    assert.ok(layout.controls.every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
     if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
     if (width === 430) await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
   }
@@ -287,7 +300,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Compact neural header Home redesign passed real Recent data, prompt chips, navigation, chat, original sphere geometry, and 8 viewport checks.");
+  console.log("Equal-size Home cards and compact mobile composer passed alongside real Recent, navigation, chat, original sphere, and eight viewport checks.");
 } finally {
   await browser.close();
 }
