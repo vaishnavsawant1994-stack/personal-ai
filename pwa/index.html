@@ -1039,7 +1039,6 @@ function renderMessages(){
    function setReaction(value){const next=messageReactions.get(key)===value?'':value;messageReactions.set(key,next);up.setAttribute('aria-pressed',String(next==='up'));down.setAttribute('aria-pressed',String(next==='down'));showToast(next?'Feedback noted on this device.':'Feedback cleared.')}
    messageAction(bar,'speak','Read response aloud',()=>{if(!synth)return showToast('Speech playback unavailable');synth.cancel();const utterance=new SpeechSynthesisUtterance(item.text);utterance.lang=navigator.language||'en-US';synth.speak(utterance)});
    messageAction(bar,'share','Share response',async()=>{try{if(navigator.share)await navigator.share({title:'Personal AI response',text:item.text});else{await navigator.clipboard.writeText(item.text);showToast('Copied for sharing')}}catch(error){if(error.name!=='AbortError')showToast('Sharing unavailable')}});
-   messageAction(bar,'more','More response options',()=>{const value=prompt('Response actions: type COPY, SHARE, or READ','');if(!value)return;const choice=value.trim().toUpperCase();if(choice==='COPY')bar.querySelector('[aria-label="Copy message"]').click();else if(choice==='SHARE')bar.querySelector('[aria-label="Share response"]').click();else if(choice==='READ')bar.querySelector('[aria-label="Read response aloud"]').click();else showToast('Choose Copy, Share or Read')});
   }
   entry.append(node,bar);stream.append(entry);
  });
