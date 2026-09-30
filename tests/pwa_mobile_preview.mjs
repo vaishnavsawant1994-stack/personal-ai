@@ -365,6 +365,15 @@ try {
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
   assert.equal(await page.locator(".state").isVisible(), false, "idle conversations must not show a redundant READY heading");
   assert.equal(chatState.messageCount, 2);
+  assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
+  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
+  await page.locator('.message-entry.assistant [aria-label="Good response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
+  await page.locator('.message-entry.assistant [aria-label="Bad response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Bad response"]').getAttribute("aria-pressed"),"true");
+
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
   assert.ok(chatState.scrollWidth <= chatState.innerWidth, "active conversation must not overflow horizontally");
