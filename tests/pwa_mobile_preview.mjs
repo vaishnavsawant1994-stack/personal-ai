@@ -182,6 +182,20 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
 
+  // Direct header history opens the secondary panel from the right, without the main sidebar.
+  await page.click("#ownerButton");
+  await page.waitForFunction(() => {
+    const drawer = document.querySelector("#conversationDrawer");
+    const rect=drawer.getBoundingClientRect();
+    return !drawer.classList.contains("hidden") && rect.left>=-1 && Math.abs(rect.right-innerWidth)<=1;
+  });
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"direct history must not open the main hamburger sidebar");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
+  await page.screenshot({ path: "artifacts/personal-ai-right-conversations-direct-390x844.png", fullPage: true });
+  await page.click("#closeDrawer");
+  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"closing directly-opened conversations must not show the main sidebar");
+
   await page.click("#historyButton");
   await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
@@ -223,20 +237,34 @@ try {
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
   await page.click("#appConversations");
-  await page.waitForFunction(() => !document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.waitForFunction(() => {
+    const panel=document.querySelector("#conversationDrawer");
+    return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
+      Math.abs(panel.getBoundingClientRect().right-innerWidth)<=1;
+  });
   await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"right Conversations must replace the open left drawer");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Back to main menu");
   const conversationState = await page.evaluate(() => ({
     groups: [...document.querySelectorAll(".conversation-group-title")].map(node => node.textContent.trim()),
     filters: [...document.querySelectorAll(".conversation-filter")].map(node => node.textContent.trim()),
     rows: [...document.querySelectorAll(".conversation-item strong")].map(node => node.textContent.trim()),
     rect: document.querySelector("#conversationDrawer").getBoundingClientRect(),
+    viewportWidth:innerWidth,
+    color:getComputedStyle(document.querySelector("#conversationDrawer")).backgroundColor,
+    cssRight:getComputedStyle(document.querySelector("#conversationDrawer")).right,
   }));
+  assert.ok(Math.abs(conversationState.rect.right-conversationState.viewportWidth)<=1,"secondary Conversations must align to the RIGHT edge");
+  assert.ok(conversationState.rect.left > 0,"secondary drawer must leave space to distinguish it from the left menu");
+  assert.equal(conversationState.cssRight,"0px","secondary drawer must be anchored to right edge");
+  assert.equal(await page.locator("#conversationCount").innerText(),"3 conversations");
   assert.deepEqual(conversationState.filters, ["All", "Recent"], "unsupported favorites/archive filters must not be fabricated");
   assert.ok(conversationState.groups.length >= 1, "real timestamps should produce conversation date grouping");
   assert.deepEqual(conversationState.rows, conversations.map(item => item.title));
   assert.ok(conversationState.rect.width <= 390, "conversation manager must fit viewport");
-  assert.equal(await page.locator("#conversationDrawer").evaluate(node=>getComputedStyle(node).backgroundColor),"rgb(23, 27, 35)",
-    "full conversation manager should share the refined sidebar design");
+  assert.ok(conversationState.color.startsWith("rgba") || conversationState.color.startsWith("rgb"),"right Conversations has its own styled background");
+  assert.equal(await page.locator("#conversationDrawer").getAttribute("aria-hidden"),"false");
+  assert.equal(await page.locator(".conversation-filter.active").getAttribute("aria-pressed"),"true");
   await page.screenshot({ path: "artifacts/personal-ai-conversations-390x844.png", fullPage: true });
 
   await page.fill("#conversationSearch", "Onion");
@@ -244,6 +272,12 @@ try {
     const rows = [...document.querySelectorAll(".conversation-item strong")];
     return rows.length === 1 && rows[0].textContent.includes("Onion");
   });
+  assert.equal(await page.locator("#conversationCount").innerText(),"1 conversation");
+  await page.locator('[data-conversation-filter="recent"]').click();
+  assert.equal(await page.locator('[data-conversation-filter="recent"]').getAttribute("aria-pressed"),"true");
+  assert.ok((await page.locator(".conversation-item strong").allTextContents()).includes("Onion Cultivation Guide"),
+    "switching Recent during active search must not clear or swap the server-filtered results");
+  await page.locator('[data-conversation-filter="all"]').click();
   await page.fill("#conversationSearch", "nonexistent title");
   await page.waitForFunction(() => {
     return !document.querySelector(".conversation-item") && document.querySelector(".conversation-empty")?.textContent.includes("No conversations match");
@@ -251,8 +285,12 @@ try {
   await page.fill("#conversationSearch", "");
   await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
   await page.click("#closeDrawer");
-  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
-  await page.click("#historyButton");
+  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden") &&
+    !document.querySelector("#appDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true","Back must restore left main sidebar");
+  assert.equal(await page.locator("#appConversations").isVisible(),true,"returned left menu must remain functional");
+  assert.deepEqual(await page.locator("#sidebarChatList .sidebar-chat-row span").allTextContents(),
+    conversations.map(item=>item.title),"search in right drawer must not destroy main sidebar chat history");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   await page.locator("#sidebarChatList .sidebar-chat-row").first().click();
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
@@ -343,6 +381,21 @@ try {
       assert.ok(narrowSidebar.newChat.height >= 44, "new chat must preserve touch target on narrow screens");
       await page.screenshot({ path: "artifacts/personal-ai-sidebar-320x568.png", fullPage: true });
       await page.click("#closeAppDrawer");
+      await page.click("#ownerButton");
+      await page.waitForFunction(() => {
+        const r=document.querySelector("#conversationDrawer").getBoundingClientRect();
+        return r.left>=0 && Math.abs(r.right-innerWidth)<=1;
+      });
+      const right320=await page.evaluate(()=>({
+        width:innerWidth,
+        drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
+        back:document.querySelector("#closeDrawer").getBoundingClientRect(),
+        search:document.querySelector("#conversationSearch").getBoundingClientRect(),
+      }));
+      assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
+      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px");
+      await page.screenshot({ path: "artifacts/personal-ai-conversations-right-320x568.png", fullPage: true });
+      await page.click("#closeDrawer");
     }
     if (width === 430) {
       await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
@@ -481,7 +534,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Integrated main and full-history sidebars passed real new chat, search, account, keyboard-height, responsive drawer, Today and multiline composer checks across eight viewports.");
+  console.log("Distinct right-edge Conversations and left main sidebar passed direct entry, Back navigation, real search/filter, history preservation, new chat, 320px responsive checks, Today and multiline composer across eight viewports.");
 } finally {
   await browser.close();
 }
