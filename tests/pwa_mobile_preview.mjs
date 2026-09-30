@@ -23,6 +23,7 @@ const everydayItems = [
 const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
+let revokeSession=false;
 const deletedConversationIds=[];
 const exportedConversationIds=[];
 
@@ -54,7 +55,8 @@ try {
 
     let body = {};
     if (path === "/status") {
-      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3 };
+      if(revokeSession)return route.fulfill({status:401,contentType:"application/json",body:JSON.stringify({detail:"Owner verification required"})});
+      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3, active_qualification: true };
     } else if (path === "/everyday/active" && method === "GET") {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/timeline" && method === "GET") {
@@ -622,6 +624,23 @@ try {
   await page.click("#chatDelete");
   await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
+
+  // Signing out clears previously loaded private rows, and the drawer must not
+  // leave an unauthorized request stuck in its loading state.
+  revokeSession=true;
+  await page.click("#historyButton");
+  await page.click("#sidebarAccountButton");
+  page.once("dialog",dialog=>dialog.accept());
+  await page.click("#drawerSignOut");
+  await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
+  await page.click("#ownerButton");
+  await page.waitForFunction(()=>document.querySelector("#conversationCount").textContent==="Sign in required");
+  assert.match(await page.locator("#conversationList").innerText(),/Sign in to view your conversations, plans, and activity\./);
+  assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Project Planning|Team planning meeting|Finish daily review/,
+    "signed-out timeline must not retain authenticated conversation or activity rows");
+  assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Loading your timeline|Loading real Personal AI activity/,
+    "signed-out timeline must not spin indefinitely");
+  await page.screenshot({path:"artifacts/personal-ai-signed-out-timeline-390x844.png",fullPage:true});
 
   // Authentication presentation only: real password, Google and passkey authority
   // are exercised separately by the server integration/security suite.
