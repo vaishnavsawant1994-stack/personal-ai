@@ -93,6 +93,16 @@ try {
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
 
+  // Capture Owner Controls independently from the hamburger navigation.
+  await page.click("#ownerButton");
+  await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
+  for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
+    assert.ok((await page.locator("#ownerMenu").innerText()).includes(item), "Owner Controls missing " + item);
+  }
+  await page.screenshot({ path: "artifacts/personal-ai-owner-controls-390x844.png", fullPage: true });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
+
   await page.click("#historyButton");
   await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
   const drawerState = await page.evaluate(() => ({
@@ -121,6 +131,22 @@ try {
   assert.deepEqual(conversationState.rows, conversations.map(item => item.title));
   assert.ok(conversationState.rect.width <= 390, "conversation manager must fit viewport");
   await page.screenshot({ path: "artifacts/personal-ai-conversations-390x844.png", fullPage: true });
+
+  await page.fill("#conversationSearch", "Onion");
+  await page.waitForFunction(() => {
+    const rows = [...document.querySelectorAll(".conversation-item strong")];
+    return rows.length === 1 && rows[0].textContent.includes("Onion");
+  });
+  await page.fill("#conversationSearch", "nonexistent title");
+  await page.waitForFunction(() => {
+    return !document.querySelector(".conversation-item") && document.querySelector(".conversation-empty")?.textContent.includes("No conversations match");
+  });
+  await page.fill("#conversationSearch", "");
+  await page.waitForFunction(() => document.querySelectorAll(".conversation-item").length === 3);
+  await page.click("#closeDrawer");
+  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.click("#historyButton");
+  await page.click("#appConversations");
 
   await page.click(".conversation-item");
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
@@ -180,6 +206,18 @@ try {
     if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
     if (width === 430) await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
   }
+
+  // Keyboard and creation controls use the existing application bindings.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.click("#historyButton");
+  await page.click("#appConversations");
+  await page.click("#newConversation");
+  await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
+  await page.fill("#message", "Hello from browser QA");
+  assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
+  assert.ok(await page.locator("#sendButton").isVisible(), "send control must replace microphone when typing");
+  await page.locator("#message").focus();
+  assert.equal(await page.locator("#message").evaluate(node => document.activeElement === node), true, "composer input must receive keyboard focus");
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
   console.log("Final Personal AI mobile redesign passed Home, menu, conversations, chat, sphere preservation, no-bottom-nav, and 8 iPhone viewport checks.");
