@@ -142,7 +142,7 @@ try {
   assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "four Home cards must be exactly equal sized");
   assert.ok(homeState.composer.width <= homeState.homeWidth-10, "Home composer must be narrower than the cards");
   assert.ok(homeState.cardRects.every(card => card.height <= 90), "Home tiles must remain the SMALL original card size");
-  assert.ok(homeState.composer.height >= 50 && homeState.composer.height <= 54, "Home composer must be compact, close to an SMS field");
+  assert.ok(homeState.composer.height >= 47 && homeState.composer.height <= 50, "Home composer must be compact, close to an SMS field");
   assert.equal(await page.locator("#sendButton").isVisible(), false, "idle composer must show microphone, not inactive send");
   assert.equal(await page.locator("#micButton").isVisible(), true, "idle composer microphone must remain available");
   assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must be a compact plus");
@@ -402,7 +402,7 @@ try {
     assert.ok(layout.composer.width<=layout.home.width-6, "composer not compact at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
     assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
-    assert.ok(layout.composer.height>=50 && layout.composer.height<=54, "composer is too tall at " + width + "x" + height);
+    assert.ok(layout.composer.height>=47 && layout.composer.height<=50, "composer is too tall at " + width + "x" + height);
     if (width === 320) {
       await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
       await page.click("#historyButton");
