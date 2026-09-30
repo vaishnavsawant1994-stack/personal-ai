@@ -154,7 +154,14 @@ try {
         const r = node.getBoundingClientRect();
         return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height };
       };
+      const canvas = document.querySelector("#neuralCanvas");
+      const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+      let sphereInk = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] > 12 && (pixels[i] > 80 || pixels[i + 1] > 100 || pixels[i + 2] > 150)) sphereInk++;
+      }
       return {
+        sphereInk,
         viewportWidth: innerWidth,
         viewportHeight: innerHeight,
         documentWidth: document.documentElement.scrollWidth,
@@ -166,6 +173,7 @@ try {
     });
     assert.ok(layout.documentWidth <= layout.viewportWidth, "horizontal overflow at " + width + "x" + height);
     assert.ok(layout.core.width > 0 && layout.core.height > 0, "sphere missing at " + width + "x" + height);
+    assert.ok(layout.sphereInk > 200, "sphere animation did not repaint after chat at " + width + "x" + height);
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
