@@ -1557,7 +1557,7 @@ $('chatDelete').onclick=async()=>{
  const id=currentConversationId,title=currentConversationTitle;
  if(!id||!confirm('Permanently delete "'+title+'" and its conversation events on your connected devices? This does not delete separately saved Memories or Knowledge.'))return;
  try{
-   await api('/conversations/'+encodeURIComponent(id),{method:'DELETE'});
+   await api('/conversations/'+encodeURIComponent(id)+'?confirm=true',{method:'DELETE'});
    if(currentConversationId===id){
      handsFree=false;stopRecognition();if(synth)synth.cancel();speaking=false;
      currentConversationId=null;currentConversationTitle='Current conversation';conversationEvents=[];
