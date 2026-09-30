@@ -126,7 +126,7 @@ try {
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   const chatState = await page.evaluate(() => ({
-    coreDisplay: getComputedStyle(document.querySelector(".core-stage")).display,
+    coreVisibility: getComputedStyle(document.querySelector(".core-stage")).visibility,
     messageCount: document.querySelectorAll("#messageStream .message").length,
     messages: document.querySelector("#messageStream").getBoundingClientRect(),
     composer: document.querySelector("#composer").getBoundingClientRect(),
@@ -134,7 +134,7 @@ try {
     innerWidth,
     innerHeight,
   }));
-  assert.equal(chatState.coreDisplay, "none", "active conversation should prioritize messages instead of duplicating the Home sphere");
+  assert.equal(chatState.coreVisibility, "hidden", "active conversation must conceal Home sphere while retaining its original animation loop");
   assert.equal(chatState.messageCount, 2);
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
