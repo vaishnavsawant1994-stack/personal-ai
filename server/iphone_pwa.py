@@ -840,6 +840,40 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
         resolve_conversation(device_id, conversation_id)
         return {'conversation': continuity.rename_thread(conversation_id, body.title)}
 
+    @router.get('/api/conversations/{conversation_id}/export')
+    def conversation_export(
+        conversation_id: str,
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        device_id = auth_device(pa_device, pa_token)
+        if continuity is None:
+            raise HTTPException(503, 'Conversation continuity is unavailable')
+        thread = continuity.thread(conversation_id)
+        if not thread or thread.get('closed_at'):
+            raise HTTPException(404, 'Conversation not found')
+        return continuity.export_thread(thread['id'])
+
+    @router.delete('/api/conversations/{conversation_id}')
+    def conversation_delete(
+        conversation_id: str,
+        confirm: Literal[True],
+        pa_device: str | None = Cookie(default=None),
+        pa_token: str | None = Cookie(default=None),
+    ):
+        device_id = auth_device(pa_device, pa_token)
+        if continuity is None:
+            raise HTTPException(503, 'Conversation continuity is unavailable')
+        thread = continuity.thread(conversation_id)
+        if not thread or thread.get('closed_at'):
+            raise HTTPException(404, 'Conversation not found')
+        # Destruction is owner-authorized, explicitly confirmed and
+        # requires recent verification when production sessions exist.
+        require_fresh_owner_verification(device_id)
+        if not continuity.delete_thread(thread['id']):
+            raise HTTPException(404, 'Conversation not found')
+        return {'deleted': True, 'conversation_id': thread['id']}
+
     @router.post('/api/voice/barge')
     def voice_barge(
         body: BargeBody,
