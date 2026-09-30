@@ -708,7 +708,11 @@ def test_pwa_home_is_conversation_first_and_qualification_lives_in_advanced(tmp_
 
     assert 'id="messageStream"' in page
     assert 'id="attachmentButton"' in page
-    assert 'data-module="more"' in page
+    assert 'id="appDrawer"' in page
+    assert 'id="appConversations"' in page
+    assert 'data-app-module="memory"' in page
+    assert '<nav class="nav"' not in page
+    assert 'id="moreSheet"' not in page
     assert 'data-owner-module="settings"' in page
     assert 'Models &amp; Intelligence' in page
     assert "renderSettings('advanced')" in page
