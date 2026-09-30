@@ -102,7 +102,7 @@ try {
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
-  assert.equal(await page.locator(".prompt-chips button").count(), 4);
+  assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "bottom suggestion strip must be fully removed");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
   assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");

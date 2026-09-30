@@ -290,15 +290,11 @@
     #sendButton:not(.ready){opacity:.78}#sendButton svg{width:24px;height:24px;stroke-width:2}
     #micButton{width:38px;height:38px;min-width:38px;min-height:38px;background:transparent;border:0;box-shadow:none;color:#aebfdb}
     .composer.has-text #micButton{display:grid!important}.composer.has-text #sendButton{display:grid!important}
-    .prompt-chips{display:none;gap:7px;width:min(100%,690px);overflow-x:auto;padding:2px 0 max(1px,env(safe-area-inset-bottom));scrollbar-width:none;flex:0 0 auto}
-    body.home-landing .prompt-chips{display:flex}
-    .prompt-chips button{border:1px solid rgba(156,174,206,.15);border-radius:999px;flex:1 0 auto;min-height:42px;padding:8px 10px;white-space:nowrap;background:linear-gradient(160deg,#252b36,#1c222c);color:#d9e2f2;font-size:clamp(.67rem,2.7vw,.84rem);cursor:pointer}
-    .prompt-chips button span{margin-left:4px}.prompt-chips button:hover{border-color:rgba(121,169,235,.48)}
     .state{flex:0 0 auto}.voice-alert{max-height:45px;overflow:auto}
     button:focus-visible{outline:2px solid #76bdff;outline-offset:2px}
-    @media(max-width:350px){.quick-action{grid-template-columns:30px minmax(0,1fr) 8px;padding:8px 6px;gap:5px}.quick-icon{width:30px;height:30px}.quick-icon svg{width:20px;height:20px}.recent-panel{padding:9px 10px}.prompt-chips button{padding:7px 9px}}
-    @media(max-height:700px) and (max-width:900px){.topbar{min-height:56px}.header-core.brand,.topbar .header-core .core-stage,body.home-landing .topbar .header-core .core-stage,body:not(.home-landing) .topbar .header-core .core-stage{width:56px!important;height:56px!important;min-width:56px!important;flex-basis:56px!important}.home-intro,body.home-landing .home-intro{gap:9px;padding-top:4px}.home-greeting{margin-bottom:0}.home-greeting h1{font-size:1.48rem}.home-greeting p{font-size:.8rem;margin-top:5px}.quick-action{min-height:68px;padding:7px}.quick-copy span{margin-top:3px}.recent-panel{min-height:102px}.recent-row{min-height:51px}.prompt-chips button{min-height:36px}.composer{min-height:54px}}
-    @media(orientation:landscape) and (max-height:520px){.topbar{min-height:46px}.header-core.brand,.topbar .header-core .core-stage,body.home-landing .topbar .header-core .core-stage,body:not(.home-landing) .topbar .header-core .core-stage{width:48px!important;height:48px!important;min-width:48px!important;flex-basis:48px!important}.home-intro,body.home-landing .home-intro{overflow:auto}.home-greeting{display:none}.quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.quick-action{grid-template-columns:28px minmax(0,1fr);min-height:50px}.quick-copy span,.action-arrow{display:none}.recent-panel{display:none}.prompt-chips{display:none!important}}
+    @media(max-width:350px){.quick-action{grid-template-columns:30px minmax(0,1fr) 8px;padding:8px 6px;gap:5px}.quick-icon{width:30px;height:30px}.quick-icon svg{width:20px;height:20px}.recent-panel{padding:9px 10px}}
+    @media(max-height:700px) and (max-width:900px){.topbar{min-height:56px}.header-core.brand,.topbar .header-core .core-stage,body.home-landing .topbar .header-core .core-stage,body:not(.home-landing) .topbar .header-core .core-stage{width:56px!important;height:56px!important;min-width:56px!important;flex-basis:56px!important}.home-intro,body.home-landing .home-intro{gap:9px;padding-top:4px}.home-greeting{margin-bottom:0}.home-greeting h1{font-size:1.48rem}.home-greeting p{font-size:.8rem;margin-top:5px}.quick-action{min-height:68px;padding:7px}.quick-copy span{margin-top:3px}.recent-panel{min-height:102px}.recent-row{min-height:51px}.composer{min-height:54px}}
+    @media(orientation:landscape) and (max-height:520px){.topbar{min-height:46px}.header-core.brand,.topbar .header-core .core-stage,body.home-landing .topbar .header-core .core-stage,body:not(.home-landing) .topbar .header-core .core-stage{width:48px!important;height:48px!important;min-width:48px!important;flex-basis:48px!important}.home-intro,body.home-landing .home-intro{overflow:auto}.home-greeting{display:none}.quick-actions{grid-template-columns:repeat(4,minmax(0,1fr))}.quick-action{grid-template-columns:28px minmax(0,1fr);min-height:50px}.quick-copy span,.action-arrow{display:none}.recent-panel{display:none}}
 
   </style>
 </head>
@@ -348,12 +344,6 @@
       <div id="approvalPanel" class="approval-panel hidden"><div><strong id="approvalTitle">Approval required</strong><span id="approvalDescription"></span></div><button id="rejectApproval" type="button">Cancel</button><button id="approveApproval" class="approve" type="button">Approve once</button></div>
       <div id="sessionConflictPanel" class="approval-panel hidden"><div><strong>Old session found</strong><span>An unfinished session from another trusted browser is blocking this iPhone.</span></div><button id="cancelTakeover" type="button">Cancel</button><button id="confirmTakeover" class="approve" type="button">Continue here</button></div>
       <div class="hint">Tap once to talk continuously · Tap during speech to interrupt · Type at any time</div><div id="voiceAlert" class="voice-alert" role="alert"></div>
-      <div class="prompt-chips" aria-label="Suggested prompts">
-        <button type="button" data-prompt="Help me brainstorm ideas for ">✦ <span>Brainstorm</span></button>
-        <button type="button" data-prompt="Please summarize ">▤ <span>Summarize</span></button>
-        <button type="button" data-prompt="Teach me about ">◇ <span>Learn</span></button>
-        <button type="button" data-prompt="Help me analyze ">▥ <span>Analyze</span></button>
-      </div>
     </div>
     <aside class="side-quote">“Intelligence in service of a meaningful life.”</aside>
   </section>
@@ -549,7 +539,6 @@ $('quickData').onclick=()=>focusPrompt('Help me create ');
 $('quickTask').onclick=()=>{openModule('tools');showToast('Explore available tools for visual creation.')};
 $('quickTools').onclick=()=>openModule('tools');
 $('seeAllRecent').onclick=openDrawer;
-document.querySelectorAll('[data-prompt]').forEach(button=>button.onclick=()=>focusPrompt(button.dataset.prompt));
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeFloatingMenus();closeAllDrawers();return}trapOverlayFocus(event)});
 $('attachmentButton').onclick=()=>$('attachmentInput').click();$('attachmentInput').onchange=async event=>{const file=event.target.files[0];if(!file)return;showToast('Adding '+file.name+' to Knowledge…');try{await uploadKnowledge(file);showToast('Document added to Knowledge. You can ask about it now.')}catch(error){showToast(error.message)}finally{event.target.value=''}};
 function colorShiftPalette(frame){const stops=[[82,163,255],[72,213,245],[151,123,255],[224,103,220]],step=frame*.004,index=Math.floor(step)%stops.length,t=step-Math.floor(step),a=stops[index],b=stops[(index+1)%stops.length];return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
