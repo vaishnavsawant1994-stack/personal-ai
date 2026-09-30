@@ -354,6 +354,106 @@
       .composer{width:min(calc(100% - 24px),600px)}
     }
 
+
+    /* Owner correction: return ALL four tiles to the original small-card feel.
+       Compact message composer uses an understated ChatGPT-style layout. */
+    .quick-actions{
+      --home-card-height:84px;
+      grid-template-rows:repeat(2,var(--home-card-height));
+      grid-auto-rows:var(--home-card-height);
+      gap:9px;
+    }
+    .quick-action{
+      height:var(--home-card-height);
+      min-height:0;
+      padding:7px 8px;
+      grid-template-columns:34px minmax(0,1fr) 8px;
+      gap:6px;
+      border-radius:16px;
+      align-content:center;
+    }
+    .quick-icon{width:34px;height:34px;border-radius:10px}
+    .quick-icon svg{width:19px;height:19px}
+    .quick-copy strong{font-size:clamp(.78rem,3.25vw,.94rem);line-height:1.15}
+    .quick-copy span{font-size:clamp(.62rem,2.65vw,.74rem);line-height:1.3;margin-top:3px}
+    .action-arrow{font-size:1.1rem}
+    body #composer{
+      width:min(calc(100% - 12px),600px);
+      height:52px;
+      min-height:52px;
+      max-height:52px;
+      margin:0 auto;
+      padding:3px 4px;
+      gap:2px;
+      display:grid;
+      grid-template-columns:44px minmax(0,1fr) 44px;
+      align-items:center;
+      border:1px solid rgba(146,157,175,.26);
+      border-radius:28px;
+      background:#20242d;
+      box-shadow:0 3px 14px rgba(0,0,0,.18);
+      transition:border-color .15s ease,box-shadow .15s ease;
+    }
+    body #composer:focus-within{
+      border-color:rgba(174,185,209,.45);
+      box-shadow:0 0 0 2px rgba(116,151,215,.1),0 3px 14px rgba(0,0,0,.2);
+    }
+    body #composer input{
+      width:100%;min-width:0;
+      font-size:16px;line-height:20px;
+      padding:8px 2px;
+      color:#eff2f8;
+    }
+    body #composer input::placeholder{color:#9da7b7}
+    body #composer .attach-button,
+    body #composer #micButton,
+    body #composer #sendButton{
+      box-sizing:border-box;
+      display:grid;
+      place-items:center;
+      position:relative;
+      width:44px;height:44px;min-width:44px;min-height:44px;
+      padding:0;margin:0;border:0;box-shadow:none;
+      border-radius:50%;
+      color:#d4dce9;
+      background:transparent;
+    }
+    body #composer .attach-button svg{width:20px;height:20px;stroke-width:1.8}
+    body #composer #micButton svg{width:19px;height:19px;stroke-width:1.7}
+    body #composer #sendButton{display:none!important;color:#18202d}
+    body #composer.has-text #sendButton{display:grid!important}
+    body #composer.has-text #micButton{display:none!important}
+    body #composer #sendButton::before{
+      content:"";position:absolute;inset:5px;border-radius:50%;
+      background:#eef2f8;
+      transition:background .15s ease;
+    }
+    body #composer #sendButton svg{
+      width:18px;height:18px;stroke:#17202c;stroke-width:2.2;
+      position:relative;z-index:1;
+    }
+    body #composer .attach-button:hover,
+    body #composer #micButton:hover{background:rgba(187,198,219,.1)}
+    body #composer #sendButton:hover::before{background:#ffffff}
+    @media(max-width:350px){
+      .quick-actions{--home-card-height:88px;gap:7px}
+      .quick-action{padding:6px;grid-template-columns:30px minmax(0,1fr) 7px;gap:5px}
+      .quick-icon{width:30px;height:30px}
+      .quick-copy strong{font-size:.74rem}
+      .quick-copy span{font-size:.6rem;line-height:1.25}
+      body #composer{width:calc(100% - 4px)}
+    }
+    @media(max-height:700px) and (max-width:900px){
+      .quick-actions{--home-card-height:84px}
+      .home-intro,body.home-landing .home-intro{overflow-y:auto}
+    }
+    @media(orientation:landscape) and (max-height:520px){
+      .quick-actions{--home-card-height:62px;grid-template-rows:62px;grid-auto-rows:62px}
+      .quick-action{height:62px;min-height:0}
+      .quick-copy span,.action-arrow{display:none}
+      body #composer{width:min(calc(100% - 16px),600px)}
+    }
+
   </style>
 </head>
 <body>
@@ -387,7 +487,7 @@
           <button id="quickAsk" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v11H9l-4 3z"/></svg></span><span class="quick-copy"><strong>Chat</strong><span>Ask anything,<br/>get clear answers.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
           <button id="quickData" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v5h4M10 13h5M10 16h5"/></svg></span><span class="quick-copy"><strong>Create</strong><span>Write, plan, and<br/>bring ideas to life.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
           <button id="quickTask" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1"/><path d="m4 18 6-6 4 3 3-4 4 5"/></svg></span><span class="quick-copy"><strong>Imagine</strong><span>Explore available<br/>visual tools.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
-          <button id="quickTools" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><rect x="14" y="14" width="7" height="7" rx="1.3"/></svg></span><span class="quick-copy"><strong>Tools</strong><span>Summarize, analyze,<br/>organize and more.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
+          <button id="quickTools" class="quick-action" type="button"><span class="quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.3"/><rect x="14" y="3" width="7" height="7" rx="1.3"/><rect x="3" y="14" width="7" height="7" rx="1.3"/><rect x="14" y="14" width="7" height="7" rx="1.3"/></svg></span><span class="quick-copy"><strong>Tools</strong><span>Apps, workflows,<br/>and more.</span></span><span class="action-arrow" aria-hidden="true">›</span></button>
         </div>
         <section class="recent-panel" aria-labelledby="recentHeading">
           <div class="recent-heading"><h2 id="recentHeading">Recent</h2><button id="seeAllRecent" type="button">See all <span aria-hidden="true">›</span></button></div>
@@ -398,7 +498,7 @@
       <div id="conversationTitle" class="conversation-title">Current conversation</div>
       <div id="messageStream" class="message-stream" aria-live="polite"></div>
       <div class="conversation"><div id="transcript" class="transcript"></div><div id="reply" class="reply"></div></div>
-      <form id="composer" class="composer"><button id="attachmentButton" class="attach-button" type="button" aria-label="Add a document"><svg viewBox="0 0 24 24"><path d="m9 12 5.7-5.7a3 3 0 0 1 4.2 4.2l-8.1 8.1a5 5 0 0 1-7.1-7.1l8-8"/></svg></button><input id="attachmentInput" class="attachment-input" type="file" accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx"/><span class="wave-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><input id="message" autocomplete="off" enterkeyhint="send" aria-label="Message Personal AI" placeholder="Message Personal AI…"/><button id="sendButton" class="round-button" type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button id="micButton" class="round-button" type="button" aria-label="Start hands-free conversation"><svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></form>
+      <form id="composer" class="composer"><button id="attachmentButton" class="attach-button" type="button" aria-label="Add attachment"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="attachmentInput" class="attachment-input" type="file" accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx"/><span class="wave-mini" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><input id="message" autocomplete="off" enterkeyhint="send" aria-label="Message Personal AI" placeholder="Message Personal AI…"/><button id="sendButton" class="round-button" type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button><button id="micButton" class="round-button" type="button" aria-label="Start hands-free conversation"><svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="12" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8.5 21h7"/></svg></button></form>
       <div id="approvalPanel" class="approval-panel hidden"><div><strong id="approvalTitle">Approval required</strong><span id="approvalDescription"></span></div><button id="rejectApproval" type="button">Cancel</button><button id="approveApproval" class="approve" type="button">Approve once</button></div>
       <div id="sessionConflictPanel" class="approval-panel hidden"><div><strong>Old session found</strong><span>An unfinished session from another trusted browser is blocking this iPhone.</span></div><button id="cancelTakeover" type="button">Cancel</button><button id="confirmTakeover" class="approve" type="button">Continue here</button></div>
       <div class="hint">Tap once to talk continuously · Tap during speech to interrupt · Type at any time</div><div id="voiceAlert" class="voice-alert" role="alert"></div>

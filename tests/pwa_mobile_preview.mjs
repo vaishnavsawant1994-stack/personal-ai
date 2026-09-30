@@ -103,6 +103,11 @@ try {
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
   assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "four Home cards must be exactly equal sized");
   assert.ok(homeState.composer.width <= homeState.homeWidth-10, "Home composer must be narrower than the cards");
+  assert.ok(homeState.cardRects.every(card => card.height <= 90), "Home tiles must remain the SMALL original card size");
+  assert.ok(homeState.composer.height >= 50 && homeState.composer.height <= 54, "Home composer must be compact, close to an SMS field");
+  assert.equal(await page.locator("#sendButton").isVisible(), false, "idle composer must show microphone, not inactive send");
+  assert.equal(await page.locator("#micButton").isVisible(), true, "idle composer microphone must remain available");
+  assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must be a compact plus");
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.deepEqual(homeState.recent, conversations.map(c => c.title), "Recent must show real conversation data");
@@ -231,9 +236,11 @@ try {
     assert.ok(layout.cards.length === 4, "four Home cards required");
     assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
     assert.ok(layout.cards.every(card => card.scrollHeight<=card.clientHeight+2), "Home card content clipped at " + width + "x" + height);
+    if(height>520)assert.ok(layout.cards.every(card => card.height<=90), "Home cards became oversized at " + width + "x" + height);
     assert.ok(layout.composer.width<=layout.home.width-6, "composer not compact at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
-    assert.ok(layout.controls.every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
+    assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
+    assert.ok(layout.composer.height>=50 && layout.composer.height<=54, "composer is too tall at " + width + "x" + height);
     if (width === 320) await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
     if (width === 430) await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
   }
@@ -246,7 +253,8 @@ try {
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.fill("#message", "Hello from browser QA");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
-  assert.ok(await page.locator("#sendButton").isVisible(), "send control must remain visible when typing");
+  assert.ok(await page.locator("#sendButton").isVisible(), "send control must appear when typing");
+  assert.equal(await page.locator("#micButton").isVisible(), false, "mic icon must yield to send while typing");
   assert.equal(await page.locator("#homeIntro").isVisible(), false, "new empty chat must not duplicate Home quick actions");
   assert.equal(await page.locator(".core-stage").evaluate(node => getComputedStyle(node).visibility), "visible", "new empty chat retains mini header sphere");
   await page.screenshot({ path: "artifacts/personal-ai-new-chat-390x844.png", fullPage: true });
@@ -300,7 +308,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Equal-size Home cards and compact mobile composer passed alongside real Recent, navigation, chat, original sphere, and eight viewport checks.");
+  console.log("Original small equal-size Home cards and compact ChatGPT-style composer passed alongside real Recent, navigation, chat, original sphere, and eight viewport checks.");
 } finally {
   await browser.close();
 }
