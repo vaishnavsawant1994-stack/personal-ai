@@ -18,6 +18,8 @@ PUBLIC_PATHS = {
     '/iphone/',
     '/iphone/manifest.webmanifest',
     '/iphone/sw.js',
+    '/iphone/layout.css',
+    '/iphone/design-system.css',
     '/iphone/api/access/options',
     '/iphone/api/access/google/login',
     '/iphone/api/access/password/login',

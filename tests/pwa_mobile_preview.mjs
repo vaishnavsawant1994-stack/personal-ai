@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const axePath = process.env.PERSONAL_AI_AXE_PATH || require.resolve("axe-core/axe.min.js");
 import { chromium } from "playwright";
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
 
 const conversations = [
   { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: "2026-09-30T12:30:00+05:30" },
@@ -52,7 +55,7 @@ try {
 
   const pageErrors = [];
   const uploadedDocuments = [];
-  page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("pageerror", error => pageErrors.push(error.stack || error.message));
 
   await page.route("**/iphone/api/**", route => {
     const request = route.request();
@@ -84,6 +87,24 @@ try {
       const item = everydayItems.find(item => item.id === id);
       if(item){item.status="completed";item.completed_at=new Date().toISOString();item.updated_at=item.completed_at}
       body = item || {};
+    } else if (path === '/memory/graph') {
+      body={nodes:[{id:'memory-qa',subject:'Project context',type:'note'}],edges:[]};
+    } else if (path === '/memory/tree') {
+      body={roots:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',children:[]}]};
+    } else if (path === '/memory') {
+      body={memories:[{id:'memory-qa',subject:'Project context',type:'note',content:'Browser qualification fixture with source evidence',source:'owner',confidence:1}]};
+    } else if (path === '/knowledge' && method==='GET') {
+      body={documents:[{id:'knowledge-qa',title:'Project notes',filename:'notes.md',source:'owner-upload',access_class:'private',size_bytes:1024}]};
+    } else if (path === '/system/status') {
+      body={model:{state:'available',primary_provider:'private',providers:[{id:'self_hosted',configured:true,private:true,model:'Owner model',health:{state:'available'}}]},tools:[]};
+    } else if (path === '/devices') {
+      body={devices:[{id:'qa-browser',name:'Qualification browser',platform:'browser',permissions:['ai:chat']}],current_device_id:'qa-browser'};
+    } else if (path === '/apps-tools/tools') {
+      body={tools:[{tool_id:'qa-tool',name:'Approved tool',description:'Browser qualification fixture',availability:'available',approval_policy:'owner'}]};
+    } else if (path === '/apps-tools/apps') {
+      body={apps:[]};
+    } else if (path === '/access/security') {
+      body={passkeys:[],password_configured:true,recovery_codes_remaining:1,google_configured:false};
     } else if (path === "/preferences") {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
@@ -195,7 +216,7 @@ try {
   assert.equal(homeState.todayTitle, "Today");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
   assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
-  assert.equal(await page.locator("#recentList").count(), 0, "old Recent box must be removed");
+  assert.equal(await page.locator("#recentList .recent-feed-row").count(), 3, "Recent must show canonical saved conversations alongside Today tasks");
   assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "bottom suggestion strip must be fully removed");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
@@ -293,7 +314,16 @@ try {
   await page.click("#sidebarSearchToggle");
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
-  await page.click("#appConversations");
+  await page.click('#appConversations');
+  await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===3);
+  assert.equal(await page.locator('#conversationDrawer').isVisible(),false,'History must be independent from Timeline');
+  await page.fill('#historySearch','Onion');
+  await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===1);
+  assert.match(await page.locator('#historyList').innerText(),/Onion/);
+  await page.screenshot({path:'artifacts/personal-ai-history-390x844.png',fullPage:true});
+  await page.click('#historyClose');
+  assert.equal(await page.locator('#appDrawer').isVisible(),true,'History close returns to its originating menu');
+  await page.evaluate(()=>openDrawer());
   await page.waitForFunction(() => {
     const panel=document.querySelector("#conversationDrawer");
     return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
@@ -376,7 +406,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
   assert.ok((await page.locator("#messageStream").innerText()).includes("Plan mushroom farm"), "sidebar chat selection must open the actual persisted conversation");
   await page.click("#historyButton");
-  await page.click("#appConversations");
+  await page.evaluate(()=>openDrawer());
 
   await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
@@ -439,8 +469,9 @@ try {
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("#chatActionMenu").isVisible(),false,"Escape must close the conversation menu");
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.accept("Mushroom Session Notes"));
   await page.click("#chatRename");
+  await page.fill("#uiDialogInput","Mushroom Session Notes");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>document.querySelector("#conversationTitle").textContent==="Mushroom Session Notes");
   assert.equal(conversations[0].title,"Mushroom Session Notes","rename must call the real conversation API");
   await page.evaluate(()=>{
@@ -586,7 +617,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.click("#historyButton");
   await page.click("#appConversations");
-  await page.click("#newConversation");
+  await page.click("#historyNew");
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
 
   // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
@@ -706,28 +737,60 @@ try {
   await page.evaluate(()=>openConversation("new"));
   await page.waitForFunction(()=>!document.querySelector("#chatMenuButton").classList.contains("hidden"));
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.dismiss());
   await page.click("#chatDelete");
+  await page.click("#uiDialogCancel");
   assert.deepEqual(deletedConversationIds,[],"cancel must leave conversation untouched");
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.accept());
   await page.click("#chatDelete");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
+
+  // Product-wide responsive qualification, using API fixtures only in tests.
+  const productViewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[820,1180],[1024,768],[1280,800],[1440,900]];
+  for(const [width,height] of productViewports){
+    await page.setViewportSize({width,height});
+    for(const name of ['memory','knowledge','activities','devices','workflows','tools','dashboard','settings','system']){
+      await page.evaluate(name=>openModule(name),name);
+      assert.equal(await page.locator('#modulePanel').isVisible(),true,name+' must render');
+      assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Unable to load this section/,name+' API fixture must render successfully');
+      const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
+      assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
+      assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
+      if(width===390){await page.addScriptTag({path:axePath});const violations=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})));assert.deepEqual(violations,[],name+' accessibility');}
+      if([320,390,820,1440].includes(width))await page.screenshot({path:`artifacts/personal-ai-${name}-${width}x${height}.png`,fullPage:true});
+    }
+    await page.evaluate(()=>openModule('home'));
+    assert.ok(await page.locator('#composer').isVisible(),'Home composer must survive module switching');
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>openModule('memory'));
+  await page.click('#memoryGraph');await page.waitForSelector('.graph-view');
+  await page.screenshot({path:'artifacts/personal-ai-memory-graph-390x844.png',fullPage:true});
+  await page.click('#memoryTree');await page.waitForSelector('.tree-branch');
+  await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
+  await page.evaluate(()=>openModule('settings'));
+  for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
+    await page.evaluate(section=>renderSettings(section),section);
+    assert.ok(await page.locator('.settings-content h2').count(),section+' must have a settings heading');
+  }
+  await page.evaluate(()=>openModule('home'));
 
   // Signing out clears previously loaded private rows, and the drawer must not
   // leave an unauthorized request stuck in its loading state.
   revokeSession=true;
   await page.click("#historyButton");
   await page.click("#sidebarAccountButton");
-  page.once("dialog",dialog=>dialog.accept());
   await page.click("#drawerSignOut");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
   await page.click("#ownerButton");
   await page.waitForFunction(()=>document.querySelector("#conversationCount").textContent==="Sign in required");
   assert.match(await page.locator("#conversationList").innerText(),/Sign in to view your conversations, plans, and activity\./);
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Project Planning|Team planning meeting|Finish daily review/,
     "signed-out timeline must not retain authenticated conversation or activity rows");
+  assert.equal(await page.locator("#recentList .recent-feed-row").count(),0,"sign-out must clear the Recent feed");
+  assert.equal(await page.locator("#historyList .history-row").count(),0,"sign-out must clear the independent history panel");
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Loading your timeline|Loading real Personal AI activity/,
     "signed-out timeline must not spin indefinitely");
   await page.screenshot({path:"artifacts/personal-ai-signed-out-timeline-390x844.png",fullPage:true});

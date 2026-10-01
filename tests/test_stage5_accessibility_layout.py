@@ -128,8 +128,12 @@ def test_home_keyboard_text_alternatives_reduced_motion_and_responsive_breakpoin
 
     # Reduced-motion and software-responsive contracts cover desktop default,
     # tablet/mobile width, and short mobile/PWA height without claiming devices.
-    assert '@media(prefers-reduced-motion:reduce)' in page
-    assert '@media(max-width:900px)' in page
+    styles = (ROOT / 'pwa' / 'layout.css').read_text(encoding='utf-8')
+    assert '/iphone/layout.css' in page
+    assert '/iphone/design-system.css' in page
+    page += styles
+    assert '@media(prefers-reduced-motion:reduce)' in styles
+    assert '@media(max-width:900px)' in styles
     assert '@media(max-height:760px) and (max-width:900px)' in page
     assert 'width:min(1120px,100%)' in page
     assert 'width:calc(100% - 28px)' in page
