@@ -26,6 +26,7 @@ let allowActivity=true;
 let revokeSession=false;
 const deletedConversationIds=[];
 const exportedConversationIds=[];
+const logicalRequestIds=[];
 
 const activeConversation = {
   thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
@@ -101,7 +102,9 @@ try {
     } else if (path === "/conversations" && method === "POST") {
       body = { thread: { id: "new", title: "New conversation", updated_at: new Date().toISOString() }, events: [] };
     } else if (path === "/voice/turn" && method === "POST") {
-      const text = JSON.parse(request.postData() || "{}").transcript;
+      const input = JSON.parse(request.postData() || "{}");
+      logicalRequestIds.push(input.request_id);
+      const text = input.transcript;
       body = { status: "ok", conversation_id: "new", conversation_title: "New conversation", reply: "Received: " + text };
     } else if (path === "/knowledge" && method === "POST") {
       uploadedDocuments.push(JSON.parse(request.postData() || "{}"));
@@ -588,6 +591,7 @@ try {
   assert.ok(uploadedDocuments[0].content_base64, "attachment bytes must be sent to Knowledge");
   await page.click("#sendButton");
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
+  assert.match(logicalRequestIds.at(-1) || "", /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, "chat turn must include a canonical request ID");
   assert.ok((await page.locator("#messageStream").innerText()).includes("Hello from browser QA"), "user message must render");
 
   assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Hello from browser QA"), "assistant response must render");
