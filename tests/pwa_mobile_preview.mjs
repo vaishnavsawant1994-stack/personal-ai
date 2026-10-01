@@ -458,6 +458,7 @@ try {
   await page.click("#chatExport");
   await exportDownload;
   assert.deepEqual(exportedConversationIds,["c1"],"download must request the authenticated canonical export");
+  await page.evaluate(()=>{messageReactions.clear();renderMessages();setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
 
@@ -470,6 +471,7 @@ try {
   await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
+  await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-long-response-390x844.png", fullPage: true });
 
   await page.evaluate(()=>openConversation("c1"));
@@ -673,6 +675,7 @@ try {
   assert.equal(await page.evaluate(() => currentConversationId),"new");
   assert.equal(await page.locator(".message-time").count(),4,"every canonical user and AI message must keep an individual timestamp");
   assert.equal(await page.locator(".message-time.pending").count(),0);
+  await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-short-390x844.png", fullPage: true });
 
   await page.setViewportSize({ width: 844, height: 390 });
