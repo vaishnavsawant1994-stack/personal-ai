@@ -102,6 +102,8 @@ try {
       body = { deleted:true, conversation_id:"new" };
     } else if (path === "/conversations/new" && method === "GET") {
       body = newConversation;
+    } else if (path === "/conversations/new/activate" && method === "POST") {
+      body = newConversation;
     } else if (path.startsWith("/conversations/c1")) {
       body = activeConversation;
     } else if (path.startsWith("/conversations") && method === "GET") {
