@@ -83,6 +83,8 @@ def test_client_adapter_keeps_pending_request_until_terminal_result():
     assert "sessionStorage.setItem(PENDING_KEY" in text
     assert "samePending" in text
     assert "if(!clean||turnInFlight)return;enterConversationView();" in text
+    assert "const startNewConversation=document.body.classList.contains('home-landing')" in text
+    assert "if(startNewConversation){currentConversationId=null;" in text
     assert "for(let attempt=0;attempt<2;attempt++)" in text
     assert "clearPending(pending.request_id)" in text
     assert "if(!samePending)appendMessage('user_message',clean)" in text
