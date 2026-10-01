@@ -680,7 +680,11 @@ try {
   // Let the headless browser's synthetic TTS attempt settle, then capture the
   // stable text-chat state rather than a transient autoplay-voice warning.
   await page.waitForTimeout(3500);
-  await page.evaluate(()=>{$('voiceAlert').textContent='';setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
+  await page.evaluate(()=>{
+    if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    $('voiceAlert').textContent='';setState('idle');document.querySelector('#toast')?.classList.add('hidden');
+  });
+  await page.waitForFunction(()=>document.querySelector("#composer").getBoundingClientRect().height<=54);
   await page.screenshot({ path: "artifacts/personal-ai-chat-short-390x844.png", fullPage: true });
 
   await page.setViewportSize({ width: 844, height: 390 });
