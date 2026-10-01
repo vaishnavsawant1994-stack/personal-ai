@@ -74,6 +74,8 @@ def test_pwa_middleware_requires_client_uuid_on_turn_and_injects_adapter():
     assert 'Math.random' not in adapter.text
     assert 'Date.now()' not in adapter.text.split('const uuid=()=>{',1)[1].split('};',1)[0]
     assert 'request_id:pending.request_id' in adapter.text
+    assert 'isRequestId(pending.request_id)' in adapter.text
+    assert "const isRequestId=value=>typeof value==='string'" in adapter.text
 
 
 def test_client_adapter_keeps_pending_request_until_terminal_result():
@@ -120,3 +122,12 @@ def test_request_aware_voice_cancel_is_bound_to_exact_active_request(monkeypatch
     assert state.cancel('device-1', request_id=current['request_id']) is True
     assert active.is_set()
     assert cancelled == ['22222222-2222-4222-8222-222222222222']
+
+
+def test_pwa_api_error_formatter_never_stringifies_unknown_objects_as_object_object():
+    text=(Path(__file__).resolve().parent.parent/'pwa'/'index.html').read_text()
+    assert 'function apiErrorMessage(detail,status)' in text
+    assert 'detail.message' in text
+    assert "item.msg==='string'?item.msg:''" in text
+    assert "return 'Request failed ('+status+')'" in text
+    assert 'new Error(apiErrorMessage(detail,response.status))' in text
