@@ -42,6 +42,10 @@ def make_client(tmp_path):
             'reauthenticated_at': context.reauthenticated_at if context else None,
         }
 
+    @app.get('/iphone/v1-runtime.js')
+    def pwa_runtime_adapter():
+        return Response('window.personalAiRuntimeAdapter = true;', media_type='application/javascript')
+
     @app.post('/iphone/api/logout')
     def logout(response: Response):
         response.delete_cookie('pa_device', path='/iphone')
@@ -59,6 +63,16 @@ def test_device_bearer_alone_cannot_access_protected_pwa_api(tmp_path):
     response = client.get('/iphone/api/protected')
     assert response.status_code == 401
     assert response.json()['detail']['code'] == 'session_expired'
+
+
+def test_logical_request_adapter_is_available_before_owner_login(tmp_path):
+    client, _, _ = make_client(tmp_path)
+
+    response = client.get('/iphone/v1-runtime.js')
+
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('application/javascript')
+    assert 'personalAiRuntimeAdapter' in response.text
 
 
 def test_login_issues_server_session_and_binds_request_context(tmp_path):
