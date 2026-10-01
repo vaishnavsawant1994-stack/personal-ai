@@ -131,3 +131,4 @@ def test_pwa_api_error_formatter_never_stringifies_unknown_objects_as_object_obj
     assert "item.msg==='string'?item.msg:''" in text
     assert "return 'Request failed ('+status+')'" in text
     assert 'new Error(apiErrorMessage(detail,response.status))' in text
+    assert "fetch('/iphone/api'+path,{...options,credentials:'same-origin',headers:{'Content-Type':'application/json',...(options.headers||{})}})" in text
