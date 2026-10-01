@@ -689,7 +689,7 @@ try {
   await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
   assert.equal(await page.locator("#chatMenuButton").isVisible(),false,"conversation actions must disappear on Home even when old chat exists");
   await page.setViewportSize({width:390,height:844});
-  await page.evaluate(()=>enterConversationView());
+  await page.evaluate(()=>openConversation("new"));
   await page.waitForFunction(()=>!document.querySelector("#chatMenuButton").classList.contains("hidden"));
   await page.click("#chatMenuButton");
   page.once("dialog",dialog=>dialog.dismiss());
