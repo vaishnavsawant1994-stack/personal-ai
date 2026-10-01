@@ -675,7 +675,10 @@ try {
   assert.equal(await page.evaluate(() => currentConversationId),"new");
   assert.equal(await page.locator(".message-time").count(),4,"every canonical user and AI message must keep an individual timestamp");
   assert.equal(await page.locator(".message-time.pending").count(),0);
-  await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
+  // Let the headless browser's synthetic TTS attempt settle, then capture the
+  // stable text-chat state rather than a transient autoplay-voice warning.
+  await page.waitForTimeout(3500);
+  await page.evaluate(()=>{$('voiceAlert').textContent='';setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-short-390x844.png", fullPage: true });
 
   await page.setViewportSize({ width: 844, height: 390 });
