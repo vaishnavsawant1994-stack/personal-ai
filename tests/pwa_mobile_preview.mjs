@@ -26,13 +26,20 @@ let allowActivity=true;
 let revokeSession=false;
 const deletedConversationIds=[];
 const exportedConversationIds=[];
+const turnConversationIds=[];
+let conversationCreateCount=0;
+let turnClock=Date.now();
 
 const activeConversation = {
-  thread: { id: "c1", title: "Project Planning", updated_at: conversations[0].updated_at },
+  thread: { id: "c1", title: "Project Planning", created_at: atDayOffset(-1,23), updated_at: conversations[0].updated_at },
   events: [
-    { kind: "user_message", payload: { text: "Plan mushroom farm shed layout with complete details" } },
-    { kind: "assistant_message", payload: { text: "I can help with the shed layout, rack design, climate control, and cost planning." } },
+    { event_id:"c1-user-1", kind: "user_message", created_at: atDayOffset(-1,23), payload: { text: "Plan mushroom farm shed layout with complete details" } },
+    { event_id:"c1-assistant-1", kind: "assistant_message", created_at: atToday(0,5), payload: { text: "I can help with the shed layout, rack design, climate control, and cost planning.\n\n1. Start with rack spacing\n2. Confirm ventilation\n3. Keep `humidity` monitored" } },
   ],
+};
+let newConversation = {
+  thread: { id:"new", title:"New conversation", created_at:new Date(turnClock).toISOString(), updated_at:new Date(turnClock).toISOString() },
+  events: [],
 };
 
 try {
@@ -56,7 +63,7 @@ try {
     let body = {};
     if (path === "/status") {
       if(revokeSession)return route.fulfill({status:401,contentType:"application/json",body:JSON.stringify({detail:"Owner verification required"})});
-      body = { model: { state: "ready" }, conversations, conversation: null, memory_count: 3, active_qualification: true };
+      body = { model: { state: "ready" }, conversations, conversation: activeConversation, memory_count: 3, active_qualification: true };
     } else if (path === "/everyday/active" && method === "GET") {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/timeline" && method === "GET") {
@@ -93,16 +100,31 @@ try {
       if(url.searchParams.get("confirm") !== "true")return route.fulfill({ status: 422, contentType:"application/json",body:JSON.stringify({detail:"Confirmation required"})});
       deletedConversationIds.push("new");
       body = { deleted:true, conversation_id:"new" };
+    } else if (path === "/conversations/new" && method === "GET") {
+      body = newConversation;
     } else if (path.startsWith("/conversations/c1")) {
       body = activeConversation;
     } else if (path.startsWith("/conversations") && method === "GET") {
       const q = (url.searchParams.get("q") || "").toLowerCase();
       body = { conversations: conversations.filter(item => item.title.toLowerCase().includes(q)) };
     } else if (path === "/conversations" && method === "POST") {
-      body = { thread: { id: "new", title: "New conversation", updated_at: new Date().toISOString() }, events: [] };
+      conversationCreateCount++;
+      const createdAt=new Date(++turnClock).toISOString();
+      newConversation={thread:{id:"new",title:"New conversation",created_at:createdAt,updated_at:createdAt},events:[]};
+      body = { conversation: { ...newConversation.thread }, events: [] };
     } else if (path === "/voice/turn" && method === "POST") {
-      const text = JSON.parse(request.postData() || "{}").transcript;
-      body = { status: "ok", conversation_id: "new", conversation_title: "New conversation", reply: "Received: " + text };
+      const input = JSON.parse(request.postData() || "{}");
+      const text = input.transcript;
+      turnConversationIds.push(input.conversation_id);
+      const userAt=new Date(turnClock+=60000).toISOString(),assistantAt=new Date(turnClock+=60000).toISOString();
+      const reply="Received: "+text;
+      newConversation.events.push(
+        {event_id:"new-"+newConversation.events.length+"-u",kind:"user_message",created_at:userAt,payload:{text}},
+        {event_id:"new-"+newConversation.events.length+"-a",kind:"assistant_message",created_at:assistantAt,payload:{text:reply}}
+      );
+      newConversation.thread.title=newConversation.events.length===2?text.slice(0,72):newConversation.thread.title;
+      newConversation.thread.updated_at=assistantAt;
+      body = { status: "ok", conversation_id: "new", conversation_title: newConversation.thread.title, reply };
     } else if (path === "/knowledge" && method === "POST") {
       uploadedDocuments.push(JSON.parse(request.postData() || "{}"));
       body = { id: "browser-test-document", filename: uploadedDocuments.at(-1).filename };
@@ -153,6 +175,8 @@ try {
     innerHeight,
   }));
   assert.equal(await page.locator("#chatMenuButton").isVisible(), false, "three-dot conversation menu must be absent on Home");
+  assert.equal(await page.evaluate(() => currentConversationId), null, "Home must not remain bound to the previously active conversation");
+  assert.equal(await page.locator("#messageStream .message").count(), 0, "Home must clear the resumed chat from the new-chat draft surface");
   assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
   assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
@@ -367,6 +391,24 @@ try {
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
   assert.equal(await page.locator(".state").isVisible(), false, "idle conversations must not show a redundant READY heading");
   assert.equal(chatState.messageCount, 2);
+  assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
+  assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
+  assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
+  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
+  assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
+  const messageVisual=await page.evaluate(()=>({
+    assistantBackground:getComputedStyle(document.querySelector(".message.assistant")).backgroundColor,
+    assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
+    user:document.querySelector(".message.user").getBoundingClientRect(),
+    stream:document.querySelector("#messageStream").getBoundingClientRect(),
+    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
+  }));
+  assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
+  assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
+  assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
+  assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
+  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
   assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
@@ -415,6 +457,30 @@ try {
   await exportDownload;
   assert.deepEqual(exportedConversationIds,["c1"],"download must request the authenticated canonical export");
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
+  await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
+
+  await page.evaluate(()=>{
+    conversationEvents.push({
+      event_id:"visual-long-response",kind:"assistant_message",created_at:new Date().toISOString(),
+      payload:{text:"## Detailed plan\n\nThis is a deliberately long Personal AI response used to verify that open assistant content stays readable and wide without being forced into a phone-chat bubble.\n\n- Preserve the original neural sphere\n- Keep the composer visible above the safe area\n- Keep actions close to the response\n\n```text\nLong content remains inside the same response block.\nNo token-sized bubbles are created.\n```\n\n| Check | Result |\n| --- | --- |\n| Wrapping | Correct |\n| Overflow | None |"}
+    });renderMessages();
+  });
+  await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
+  assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
+  assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
+  await page.screenshot({ path: "artifacts/personal-ai-chat-long-response-390x844.png", fullPage: true });
+
+  await page.evaluate(()=>openConversation("c1"));
+  await page.waitForFunction(()=>document.querySelectorAll("#messageStream .message").length===2);
+  const persistedTimesBeforeRefresh=await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>({dateTime:node.dateTime,text:node.textContent})));
+  await page.reload({waitUntil:"domcontentloaded"});
+  await page.waitForFunction(()=>document.body.classList.contains("home-landing"));
+  assert.equal(await page.evaluate(()=>currentConversationId),null,"refresh must still land on a fresh Home draft instead of silently reopening an old chat");
+  await page.evaluate(()=>openConversation("c1"));
+  await page.waitForFunction(()=>document.querySelectorAll("#messageStream .message").length===2);
+  const persistedTimesAfterRefresh=await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>({dateTime:node.dateTime,text:node.textContent})));
+  assert.deepEqual(persistedTimesAfterRefresh,persistedTimesBeforeRefresh,"refresh must preserve original canonical message timestamps");
+  await page.screenshot({ path: "artifacts/personal-ai-chat-after-refresh-390x844.png", fullPage: true });
 
   const viewports = [
     [320, 568], [360, 780], [375, 812], [390, 844], [393, 852], [402, 874], [414, 896], [430, 932],
@@ -589,13 +655,23 @@ try {
   await page.click("#sendButton");
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   assert.ok((await page.locator("#messageStream").innerText()).includes("Hello from browser QA"), "user message must render");
-
   assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Hello from browser QA"), "assistant response must render");
+  assert.equal(conversationCreateCount,1,"the first Home/New Chat message must create exactly one fresh conversation");
+  assert.deepEqual(turnConversationIds,["new"],"the first message must be sent to the newly created conversation, never the old active chat");
+  assert.equal(await page.evaluate(() => currentConversationId),"new","the UI must remain inside the newly created conversation");
+  assert.equal(await page.locator(".message-time").count(),2,"canonical timestamps must render for both sides of the first turn");
+  assert.equal(await page.locator(".message-time.pending").count(),0,"canonical sync must replace optimistic Syncing timestamps");
   await page.waitForFunction(() => document.querySelector("#composer").getBoundingClientRect().height <= 54);
   await page.fill("#message", "Keyboard submit");
   await page.locator("#message").press("Enter");
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 4);
   assert.ok((await page.locator("#messageStream").innerText()).includes("Received: Keyboard submit"), "Enter must submit the multiline editor without requiring a click");
+  assert.equal(conversationCreateCount,1,"subsequent messages must reuse the same newly created conversation");
+  assert.deepEqual(turnConversationIds,["new","new"],"every later turn must stay in that newly created conversation");
+  assert.equal(await page.evaluate(() => currentConversationId),"new");
+  assert.equal(await page.locator(".message-time").count(),4,"every canonical user and AI message must keep an individual timestamp");
+  assert.equal(await page.locator(".message-time.pending").count(),0);
+  await page.screenshot({ path: "artifacts/personal-ai-chat-short-390x844.png", fullPage: true });
 
   await page.setViewportSize({ width: 844, height: 390 });
   await page.evaluate(() => enterHomeLanding());
