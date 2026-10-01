@@ -82,6 +82,7 @@ def test_client_adapter_keeps_pending_request_until_terminal_result():
     text=(Path(__file__).resolve().parent.parent/'pwa'/'v1-runtime.js').read_text()
     assert "sessionStorage.setItem(PENDING_KEY" in text
     assert "samePending" in text
+    assert "if(!clean||turnInFlight)return;enterConversationView();" in text
     assert "for(let attempt=0;attempt<2;attempt++)" in text
     assert "clearPending(pending.request_id)" in text
     assert "if(!samePending)appendMessage('user_message',clean)" in text
