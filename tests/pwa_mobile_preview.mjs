@@ -36,6 +36,7 @@ const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'comp
 let allowActivity=true;
 let revokeSession=false;
 const deletedConversationIds=[];
+const renamedConversationIds=[];
 const exportedConversationIds=[];
 const turnConversationIds=[];
 let conversationCreateCount=0;
@@ -71,6 +72,8 @@ try {
     const url = new URL(request.url());
     const path = url.pathname.replace("/iphone/api", "");
     const method = request.method();
+    if(path.startsWith('/conversations/')&&method==='PATCH')renamedConversationIds.push(decodeURIComponent(path.split('/')[2]));
+    if(path.startsWith('/conversations/')&&method==='DELETE')deletedConversationIds.push(decodeURIComponent(path.split('/')[2]));
     if(path==='/memory'){
       if(memoryMode==='loading')await new Promise(resolve=>{releaseMemory=resolve});
       if(memoryMode==='permission')return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
@@ -133,7 +136,7 @@ try {
       body = { version: 1, conversation: activeConversation.thread, events: activeConversation.events };
     } else if (path === "/conversations/new" && method === "DELETE") {
       if(url.searchParams.get("confirm") !== "true")return route.fulfill({ status: 422, contentType:"application/json",body:JSON.stringify({detail:"Confirmation required"})});
-      deletedConversationIds.push("new");
+
       body = { deleted:true, conversation_id:"new" };
     } else if (path === "/conversations/new" && method === "GET") {
       body = newConversation;
@@ -336,6 +339,17 @@ try {
   await page.fill('#historySearch','Onion');
   await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===1);
   assert.match(await page.locator('#historyList').innerText(),/Onion/);
+  await page.click('#historyList summary');
+  await audit(page,'History context actions');
+  await page.screenshot({path:'artifacts/personal-ai-history-context-menu-390x844.png',fullPage:true});
+  await page.keyboard.press('Escape');
+  assert.ok(await page.locator('#historyDrawer').isVisible(),'Escape closes history actions before closing the panel');
+  await page.click('#historyList summary');await page.click('#historyList .history-action-list button:not(.danger)');
+  await page.click('#uiDialogCancel');
+  assert.deepEqual(renamedConversationIds,[],'cancelled history rename must not change canonical data');
+  await page.click('#historyList summary');await page.click('#historyList .history-action-list button.danger');
+  await page.click('#uiDialogCancel');
+  assert.deepEqual(deletedConversationIds,[],'cancelled history delete must leave the conversation intact');
   await audit(page,"history-390x844");
   await page.screenshot({path:'artifacts/personal-ai-history-390x844.png',fullPage:true});
   await page.click('#historyClose');
@@ -483,7 +497,7 @@ try {
   await page.click("#chatMenuButton");
   assert.equal(await page.locator("#chatActionMenu").isVisible(),true,"three-dot menu must open");
   assert.deepEqual(await page.locator("#chatActionMenu [role=menuitem]").allTextContents(),
-    ["✎Rename","↗Share transcript","⧉Copy transcript","↓Download JSON","⌫Delete conversation"],"conversation menu must expose only connected actions");
+    ["Rename","Share transcript","Copy transcript","Download JSON","Delete conversation"],"conversation menu must expose only connected actions");
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("#chatActionMenu").isVisible(),false,"Escape must close the conversation menu");
   await page.click("#chatMenuButton");
@@ -514,18 +528,21 @@ try {
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
 
-  await page.evaluate(()=>{
-    conversationEvents.push({
+  const longResponseFixture=await page.evaluate(()=>{
+    const event={
       event_id:"visual-long-response",kind:"assistant_message",created_at:new Date().toISOString(),
       payload:{text:"## Detailed plan\n\nThis is a deliberately long Personal AI response used to verify that open assistant content stays readable and wide without being forced into a phone-chat bubble.\n\n- Preserve the original neural sphere\n- Keep the composer visible above the safe area\n- Keep actions close to the response\n\n```text\nLong content remains inside the same response block.\nNo token-sized bubbles are created.\n```\n\n| Check | Result |\n| --- | --- |\n| Wrapping | Correct |\n| Overflow | None |"}
-    });renderMessages();
+    };conversationEvents.push(event);renderMessages();return event;
   });
+  activeConversation.events.push(longResponseFixture);
   await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
   await page.locator('.code-copy').last().click();
   assert.match(await page.evaluate(()=>window.__copiedTranscript),/Long content remains/,'code copy uses only the canonical block text');
-  await page.evaluate(()=>{const stream=$('messageStream');stream.scrollTop=0;stream.dispatchEvent(new Event('scroll'))});
+  await page.evaluate(()=>{const stream=$('messageStream');stream.scrollTop=80;stream.dispatchEvent(new Event('scroll'));const before=stream.scrollTop;renderMessages();window.__preservedOffset={before,after:stream.scrollTop}});
+  const preservedOffset=await page.evaluate(()=>window.__preservedOffset);
+  assert.ok(preservedOffset.before>0&&Math.abs(preservedOffset.before-preservedOffset.after)<1,'updating messages must preserve the reader’s scroll position');
   assert.ok(await page.locator('#scrollLatest').isVisible(),'show latest control when reading older messages');
   await page.click('#scrollLatest');
   await page.waitForFunction(()=>{const stream=$('messageStream');return stream.scrollHeight-stream.clientHeight-stream.scrollTop<48});
@@ -533,6 +550,18 @@ try {
   await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-long-response-390x844.png", fullPage: true });
 
+  const longThreadPerformance=await page.evaluate(()=>{
+    const original=conversationEvents;let result;
+    try{
+      const canonicalTime=original.find(event=>event.created_at)?.created_at;
+      conversationEvents=Array.from({length:300},(_,index)=>({kind:index%2?'assistant_message':'user_message',created_at:canonicalTime,payload:{text:'Performance fixture message '+index}}));
+      const start=performance.now();renderMessages();result={messages:document.querySelectorAll('.message-entry').length,renderMs:performance.now()-start};
+    }finally{conversationEvents=original;conversationPinnedToBottom=true;renderMessages()}
+    return result;
+  });
+  assert.equal(longThreadPerformance.messages,300,'large histories remain one message per canonical event');
+  assert.ok(longThreadPerformance.renderMs<3000,'large conversation must render within a bounded interval');
+  activeConversation.events=activeConversation.events.filter(event=>event.event_id!=="visual-long-response");
   await page.evaluate(()=>openConversation("c1"));
   await page.waitForFunction(()=>document.querySelectorAll("#messageStream .message").length===2);
   const persistedTimesBeforeRefresh=await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>({dateTime:node.dateTime,text:node.textContent})));
@@ -613,10 +642,11 @@ try {
         const r=document.querySelector("#conversationDrawer").getBoundingClientRect();
         return r.left>=0 && Math.abs(r.right-innerWidth)<=1;
       });
+      await page.locator("#conversationDrawer").evaluate(async node=>{await Promise.all(node.getAnimations().map(animation=>animation.finished.catch(()=>{})))});
       const right320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
-        back:document.querySelector("#closeDrawer").getBoundingClientRect(),
+        back:{width:document.querySelector("#closeDrawer").offsetWidth},
         search:document.querySelector("#conversationSearch").getBoundingClientRect(),
       }));
       assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
@@ -866,7 +896,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,viewports:productViewports,accessibility:auditResults,uncaughtErrors:pageErrors},null,2));
+  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,viewports:productViewports,accessibility:auditResults,longThreadPerformance,uncaughtErrors:pageErrors},null,2));
   console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eleven viewports.");
 } finally {
   await browser.close();

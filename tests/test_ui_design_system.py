@@ -47,3 +47,33 @@ def test_desktop_all_routes_render_and_composer_icons_are_accessible(monkeypatch
         assert window.conversation_mic_btn.accessibleName() == 'Stop voice'
     finally:
         window.close()
+
+
+def test_desktop_settings_descriptions_do_not_force_horizontal_overflow(monkeypatch):
+    monkeypatch.setenv('QT_QPA_PLATFORM', 'offscreen')
+    from PyQt6.QtWidgets import QApplication, QScrollArea
+    from ui.settings_panel import SettingsPanel
+    from types import SimpleNamespace
+
+    class Preferences(dict):
+        def snapshot(self):
+            return dict(self)
+
+    runtime = {
+        'preferences': Preferences(),
+        'telemetry': SimpleNamespace(snapshot=lambda: {}),
+        'memory': SimpleNamespace(graph=lambda: {'nodes': [], 'edges': []}),
+        'device_registry': SimpleNamespace(list=lambda: []),
+        'plugins': SimpleNamespace(list=lambda: []),
+        'backups': SimpleNamespace(backup_dir=Path('/tmp')),
+    }
+    app = QApplication.instance() or QApplication([])
+    dialog = SettingsPanel(runtime)
+    dialog.show()
+    app.processEvents()
+    try:
+        scroll = dialog.findChild(QScrollArea)
+        assert scroll.horizontalScrollBar().maximum() == 0
+        assert scroll.verticalScrollBar().maximum() > 0
+    finally:
+        dialog.close()

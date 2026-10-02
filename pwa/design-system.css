@@ -221,3 +221,23 @@ body.home-landing .home-intro {overflow-y:auto;min-height:0;flex:1 1 auto;width:
 body #composer #sendButton::before {background:var(--action-primary)}
 body #composer #sendButton:hover::before {background:var(--action-hover)}
 body #composer #sendButton svg {stroke:var(--text-primary)}
+
+[data-ui-icon] svg,.module-toolbar button svg,.module-toolbar label svg,.settings-back svg {width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.module-toolbar button,.module-toolbar label,.settings-back {display:inline-flex;align-items:center;gap:8px}
+.face-icon {border:0}
+
+.history-item {display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;position:relative}
+.history-row {min-width:0}
+.history-actions summary {display:grid;place-items:center;list-style:none;cursor:pointer;width:44px;height:44px;color:var(--text-tertiary);border-radius:var(--radius-md)}
+.history-actions summary::-webkit-details-marker {display:none}
+.history-actions summary svg {width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.history-actions summary:hover {background:var(--surface-hover);color:var(--text-primary)}
+.history-action-list {position:absolute;right:0;top:44px;z-index:var(--z-popover);width:160px;padding:6px;background:var(--glass-solid);border:1px solid var(--border-default);border-radius:var(--radius-md);box-shadow:var(--shadow-panel)}
+.history-action-list button {display:block;text-align:left;width:100%;min-height:44px;border:0;border-radius:var(--radius-sm);background:transparent;padding:10px 12px;color:var(--text-secondary);font-size:14px}
+.history-action-list button:hover {background:var(--surface-hover);color:var(--text-primary)}
+.history-action-list button.danger {color:var(--danger)}
+@media(hover:hover) and (pointer:fine){.history-actions summary {opacity:0}.history-item:hover summary,.history-item:focus-within summary,.history-actions[open] summary {opacity:1}}
+/* Keep toast text fully readable throughout its brief entrance/exit motion. */
+.toast {transition:transform var(--motion-normal) var(--ease)}
+.toast:not(.show) {visibility:hidden}
+.toast.show {visibility:visible}

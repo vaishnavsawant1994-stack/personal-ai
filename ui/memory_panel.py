@@ -16,7 +16,8 @@ class MemoryPanel(QDialog):
         self.rows_by_id = {}
         self.setWindowTitle('Second Brain')
         self.resize(1040,720)
-        self.setStyleSheet(stylesheet())
+        prefs=getattr(parent,'runtime',{}).get('preferences',{})
+        self.setStyleSheet(stylesheet(bool(prefs.get('high_contrast'))))
         lay=QVBoxLayout(self)
         top=QHBoxLayout(); self.search=QLineEdit(); self.search.setPlaceholderText('Search memory…')
         btn=QPushButton('Search'); btn.clicked.connect(self.refresh); top.addWidget(self.search,1); top.addWidget(btn); lay.addLayout(top)
