@@ -201,7 +201,7 @@ try {
   assert.equal(homeState.quickActions.length, 4, "Home must expose exactly four real primary actions");
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
   assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "the four approved Home cards must be exactly equal sized");
-  assert.ok(homeState.cardRects.every(card => card.height>=70 && card.height<=110), "Home action cards must remain compact and reference-like");
+  assert.ok(homeState.cardRects.every(card => card.height>=58 && card.height<=86), "Home action cards must remain compact and reference-like");
   assert.ok(Math.abs(homeState.composer.width-homeState.home.width)<=3, "Home composer must align to the same outer content grid");
   assert.ok(homeState.composer.height >= 56 && homeState.composer.height <= 66, "idle Home composer must match the approved pill height");
   assert.equal(await page.locator("#sendButton").isVisible(), false, "idle Home composer must show microphone, not inactive send");
@@ -213,12 +213,12 @@ try {
   assert.equal(homeState.headerGreenDot, false, "old header status dot must stay removed");
   assert.ok(Math.abs(homeState.menuButton.width-homeState.timelineButton.width)<1 && Math.abs(homeState.menuButton.height-homeState.timelineButton.height)<1, "menu and Timeline controls must use identical geometry");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "Home header controls must preserve accessible touch targets");
-  assert.ok(homeState.core.width >= 56 && homeState.core.width <= 72, "Home sphere must use the approved compact scale");
+  assert.ok(homeState.core.width >= 46 && homeState.core.width <= 58, "Home sphere must use the approved compact scale");
   assert.equal(homeState.toolsSubtitle.text, "Apps & workflows", "Tools subtitle must render fully");
   assert.ok(homeState.toolsSubtitle.scrollWidth <= homeState.toolsSubtitle.clientWidth+2, "Tools subtitle must not be clipped with an ellipsis");
   assert.deepEqual(homeState.recentTitles, conversations.map(item=>item.title), "Home Recent must use REAL canonical conversation data");
   assert.deepEqual(homeState.recentDateTimes, conversations.map(item=>new Date(item.updated_at).toISOString()), "Home Recent timestamps must derive from stored canonical conversation times");
-  assert.ok(homeState.recentRowHeights.every(height=>height>=60&&height<=82), "Recent rows must use compact premium density");
+  assert.ok(homeState.recentRowHeights.every(height=>height>=48&&height<=64), "Recent rows must use compact premium density");
   assert.equal(await page.locator(".home-recent-menu").count(), conversations.length, "every Recent row must expose its real conversation options entry point");
   assert.equal(homeState.todayTitle, "Today");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today must continue to show real canonical plan items");
@@ -594,7 +594,7 @@ try {
     assert.ok(layout.cards.length === 4, "four Home cards required");
     assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
     assert.ok(layout.cards.every(card => card.scrollHeight<=card.clientHeight+2), "Home card content clipped at " + width + "x" + height);
-    assert.ok(layout.cards.every(card => card.height>=68&&card.height<=110), "Home cards lost approved compact proportions at " + width + "x" + height);
+    assert.ok(layout.cards.every(card => card.height>=58&&card.height<=86), "Home cards lost approved compact proportions at " + width + "x" + height);
     assert.ok(Math.abs(layout.composer.width-layout.home.width)<=4, "Home composer must share the same outer grid at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
     assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
