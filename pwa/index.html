@@ -899,7 +899,8 @@
     }
     body.home-landing .history-button,
     body.home-landing .owner-status{
-      width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;
+      box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;
+      padding:0;margin:0;border-radius:50%;display:grid;place-items:center;justify-self:center;
       border:1px solid rgba(137,177,237,.14);background:rgba(27,38,56,.68);
       color:#edf3fc;box-shadow:0 5px 16px rgba(0,0,0,.12);
       transition:background .16s ease,border-color .16s ease,transform .16s ease;
@@ -998,7 +999,7 @@
     }
     body.home-landing .home-recent-row{
       position:relative;display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:stretch;
-      min-height:70px;
+      min-height:52px;
     }
     body.home-landing .home-recent-row:not(:last-child)::after{
       content:"";position:absolute;left:60px;right:12px;bottom:0;height:1px;background:rgba(255,255,255,.055);
