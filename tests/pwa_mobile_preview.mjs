@@ -158,50 +158,102 @@ try {
   });
   assert.ok(canvasInk > 90, "original mini neural sphere renderer did not paint");
 
-  const homeState = await page.evaluate(() => ({
-    bottomNavPresent: Boolean(document.querySelector(".nav")),
-    quickActions: [...document.querySelectorAll(".quick-action")].map(node => node.textContent.replace(/\s+/g, " ").trim()),
-    menuButton: document.querySelector("#historyButton").getBoundingClientRect(),
-    composer: document.querySelector("#composer").getBoundingClientRect(),
-    core: document.querySelector(".core-stage").getBoundingClientRect(),
-    timeline: [...document.querySelectorAll("#todayTimeline .today-item strong")].map(node => node.textContent),
-    timelineTimes: [...document.querySelectorAll("#todayTimeline .today-time")].map(node => node.textContent),
-    todayTitle: document.querySelector("#todayHeading").textContent,
-    headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
-    headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
-    actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
-    cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
-    homeWidth: document.querySelector(".home-intro").getBoundingClientRect().width,
-    scrollWidth: document.documentElement.scrollWidth,
-    innerWidth,
-    innerHeight,
-  }));
+  const homeState = await page.evaluate(() => {
+    const rect = selector => {
+      const r=document.querySelector(selector).getBoundingClientRect();
+      return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};
+    };
+    return {
+      bottomNavPresent: Boolean(document.querySelector(".nav")),
+      quickActions: [...document.querySelectorAll(".quick-action")].map(node => node.textContent.replace(/\s+/g, " ").trim()),
+      menuButton: rect("#historyButton"),
+      timelineButton: rect("#ownerButton"),
+      header: rect(".topbar"),
+      composer: rect("#composer"),
+      core: rect(".topbar .core-stage"),
+      quick: rect(".quick-actions"),
+      recent: rect("#homeRecentSection"),
+      recentList: rect("#homeRecentList"),
+      today: rect(".today-panel"),
+      calendar: rect(".calendar-status-row"),
+      timeline: [...document.querySelectorAll("#todayTimeline .today-item strong")].map(node => node.textContent),
+      timelineTimes: [...document.querySelectorAll("#todayTimeline .today-time")].map(node => node.textContent),
+      todayTitle: document.querySelector("#todayHeading").textContent,
+      headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
+      headerActive: document.querySelector(".home-header-active")?.textContent.trim(),
+      headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
+      actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
+      cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
+      toolsSubtitle: {text:document.querySelector("#quickTools .quick-copy span").textContent,scrollWidth:document.querySelector("#quickTools .quick-copy span").scrollWidth,clientWidth:document.querySelector("#quickTools .quick-copy span").clientWidth},
+      home: rect(".home-intro"),
+      recentTitles:[...document.querySelectorAll(".home-recent-copy strong")].map(node=>node.textContent),
+      recentDateTimes:[...document.querySelectorAll(".home-recent-time")].map(node=>node.dateTime),
+      recentRowHeights:[...document.querySelectorAll(".home-recent-row")].map(node=>node.getBoundingClientRect().height),
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth,
+      innerHeight,
+    };
+  });
   assert.equal(await page.locator("#chatMenuButton").isVisible(), false, "three-dot conversation menu must be absent on Home");
   assert.equal(await page.evaluate(() => currentConversationId), null, "Home must not remain bound to the previously active conversation");
   assert.equal(await page.locator("#messageStream .message").count(), 0, "Home must clear the resumed chat from the new-chat draft surface");
-  assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must be removed");
-  assert.equal(homeState.quickActions.length, 4, "home must expose four real quick actions");
+  assert.equal(homeState.bottomNavPresent, false, "persistent bottom navigation must remain removed");
+  assert.equal(homeState.quickActions.length, 4, "Home must expose exactly four real primary actions");
   assert.deepEqual(homeState.actionTitles, ["Chat", "Create", "Imagine", "Tools"]);
-  assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "four Home cards must be exactly equal sized");
-  assert.ok(homeState.composer.width <= homeState.homeWidth-10, "Home composer must be narrower than the cards");
-  assert.ok(homeState.cardRects.every(card => card.height <= 90), "Home tiles must remain the SMALL original card size");
-  assert.ok(homeState.composer.height >= 47 && homeState.composer.height <= 50, "Home composer must be compact, close to an SMS field");
-  assert.equal(await page.locator("#sendButton").isVisible(), false, "idle composer must show microphone, not inactive send");
-  assert.equal(await page.locator("#micButton").isVisible(), true, "idle composer microphone must remain available");
-  assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must be a compact plus");
-  assert.equal(await page.locator("#attachmentButton").getAttribute("aria-label"), "Add a document", "compact plus must retain the accessible attachment label");
-  assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
-  assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
+  assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "the four approved Home cards must be exactly equal sized");
+  assert.ok(homeState.cardRects.every(card => card.height>=70 && card.height<=110), "Home action cards must remain compact and reference-like");
+  assert.ok(Math.abs(homeState.composer.width-homeState.home.width)<=3, "Home composer must align to the same outer content grid");
+  assert.ok(homeState.composer.height >= 56 && homeState.composer.height <= 66, "idle Home composer must match the approved pill height");
+  assert.equal(await page.locator("#sendButton").isVisible(), false, "idle Home composer must show microphone, not inactive send");
+  assert.equal(await page.locator("#micButton").isVisible(), true, "idle Home composer microphone must remain available");
+  assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must remain the existing compact plus");
+  assert.equal(await page.locator("#attachmentButton").getAttribute("aria-label"), "Add a document", "attachment control must preserve its accessible behavior");
+  assert.equal(homeState.headerSphere, true, "the ORIGINAL animated Personal AI sphere must remain in the Home header");
+  assert.equal(homeState.headerActive, "ACTIVE", "Home header must show the approved compact ACTIVE label");
+  assert.equal(homeState.headerGreenDot, false, "old header status dot must stay removed");
+  assert.ok(Math.abs(homeState.menuButton.width-homeState.timelineButton.width)<1 && Math.abs(homeState.menuButton.height-homeState.timelineButton.height)<1, "menu and Timeline controls must use identical geometry");
+  assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "Home header controls must preserve accessible touch targets");
+  assert.ok(homeState.core.width >= 56 && homeState.core.width <= 72, "Home sphere must use the approved compact scale");
+  assert.equal(homeState.toolsSubtitle.text, "Apps & workflows", "Tools subtitle must render fully");
+  assert.ok(homeState.toolsSubtitle.scrollWidth <= homeState.toolsSubtitle.clientWidth+2, "Tools subtitle must not be clipped with an ellipsis");
+  assert.deepEqual(homeState.recentTitles, conversations.map(item=>item.title), "Home Recent must use REAL canonical conversation data");
+  assert.deepEqual(homeState.recentDateTimes, conversations.map(item=>new Date(item.updated_at).toISOString()), "Home Recent timestamps must derive from stored canonical conversation times");
+  assert.ok(homeState.recentRowHeights.every(height=>height>=60&&height<=82), "Recent rows must use compact premium density");
+  assert.equal(await page.locator(".home-recent-menu").count(), conversations.length, "every Recent row must expose its real conversation options entry point");
   assert.equal(homeState.todayTitle, "Today");
-  assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
-  assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
-  assert.equal(await page.locator("#recentList").count(), 0, "old Recent box must be removed");
-  assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "bottom suggestion strip must be fully removed");
-  assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
-  assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
-  assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
-  assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
+  assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today must continue to show real canonical plan items");
+  assert.ok((await page.locator(".calendar-status-copy").innerText()).includes("External calendars not connected"), "calendar row must report the real disconnected state");
+  assert.equal(await page.locator("#homeCalendarConnect").getAttribute("aria-label"), "Open Tools to connect an external calendar");
+  assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "removed bottom suggestion strip must not return");
+  for(const section of [homeState.header,homeState.quick,homeState.recent,homeState.today,homeState.calendar,homeState.composer]){
+    assert.ok(section.left>=-1 && section.right<=homeState.innerWidth+1, "Home section must remain inside the viewport");
+  }
+  assert.ok(Math.abs(homeState.quick.left-homeState.recent.left)<=2 && Math.abs(homeState.quick.left-homeState.today.left)<=2 && Math.abs(homeState.quick.left-homeState.calendar.left)<=2, "major Home sections must share one precise outer grid");
+  assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "sticky Home composer must remain inside the iPhone viewport");
+  assert.ok(homeState.scrollWidth <= homeState.innerWidth, "Home must not scroll horizontally");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
+
+  // Home Recent is real data, supports its existing history destination, row open, and existing conversation options.
+  await page.click("#homeRecentSeeAll");
+  await page.waitForFunction(()=>!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"Home See all must use the existing right-side conversation destination");
+  await page.click("#closeDrawer");
+  await page.locator(".home-recent-open").first().click();
+  await page.waitForFunction(()=>!document.body.classList.contains("home-landing")&&document.querySelectorAll("#messageStream .message").length===2);
+  assert.equal(await page.evaluate(()=>currentConversationId),"c1","Home Recent row must open the actual persisted conversation");
+  await page.evaluate(()=>enterHomeLanding());
+  await page.waitForFunction(()=>document.body.classList.contains("home-landing"));
+  await page.locator(".home-recent-menu").first().click();
+  await page.waitForFunction(()=>!document.querySelector("#chatActionMenu").classList.contains("hidden"));
+  assert.equal(await page.evaluate(()=>currentConversationId),"c1","Home Recent overflow must route to the selected real conversation before exposing existing actions");
+  await page.keyboard.press("Escape");
+  await page.evaluate(()=>enterHomeLanding());
+
+  // Empty Recent is graceful and never manufactures reference-image sample content.
+  await page.evaluate(()=>renderHomeRecent([]));
+  assert.ok((await page.locator("#homeRecentList").innerText()).includes("No recent conversations yet."));
+  await page.screenshot({ path: "artifacts/personal-ai-home-recent-empty-390x844.png", fullPage: true });
+  await page.evaluate(()=>renderHomeRecent(conversationCache));
   // Today timeline is real: add a meeting, mark a task complete, verify empty-state.
   await page.click("#todayAdd");
   assert.ok(await page.locator("#todayForm").isVisible(), "Add control must reveal accessible item form");
@@ -216,8 +268,20 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   assert.ok(!((await page.locator("#todayTimeline").innerText()).includes("Finish daily review")), "completing a task must remove it from today's pending list");
   await page.evaluate(() => renderToday([]));
-  assert.ok((await page.locator("#todayTimeline").innerText()).includes("Nothing planned yet"), "empty Today panel must not invent calendar meetings");
+  assert.ok((await page.locator("#todayTimeline").innerText()).includes("Nothing planned yet"), "empty Today card must not invent calendar meetings");
+  assert.ok((await page.locator("#todayTimeline").innerText()).includes("Add a task, work item or meeting."), "empty Today card must preserve the approved supporting copy");
+  assert.ok(await page.locator(".today-empty-icon").isVisible(), "empty Today card must include the compact calendar visual");
+  assert.ok(await page.locator(".today-empty-add").isVisible(), "empty Today card must expose the real add flow");
+  await page.screenshot({ path: "artifacts/personal-ai-home-today-empty-390x844.png", fullPage: true });
+  await page.click(".today-empty-add");
+  assert.ok(await page.locator("#todayForm").isVisible(), "Add to Today must invoke the existing add form");
+  await page.click("#todayCancel");
   await page.evaluate(() => refreshToday());
+  await page.click("#homeCalendarConnect");
+  await page.waitForFunction(()=>document.querySelector("#modulePanel").classList.contains("open"));
+  assert.equal(await page.evaluate(()=>activeModule),"tools","calendar Connect must lead to the existing Tools surface rather than faking a connection");
+  await page.evaluate(()=>openModule("home"));
+  await page.waitForFunction(()=>document.body.classList.contains("home-landing"));
 
 
   // The conversation-first sidebar keeps owner security behind its anchored account footer.
@@ -530,12 +594,11 @@ try {
     assert.ok(layout.cards.length === 4, "four Home cards required");
     assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
     assert.ok(layout.cards.every(card => card.scrollHeight<=card.clientHeight+2), "Home card content clipped at " + width + "x" + height);
-    assert.ok(layout.cards.every(card => card.height<=70), "Home cards should stay slim at " + width + "x" + height);
-    if(height>520)assert.ok(layout.cards.every(card => card.height<=90), "Home cards became oversized at " + width + "x" + height);
-    assert.ok(layout.composer.width<=layout.home.width-6, "composer not compact at " + width + "x" + height);
+    assert.ok(layout.cards.every(card => card.height>=68&&card.height<=110), "Home cards lost approved compact proportions at " + width + "x" + height);
+    assert.ok(Math.abs(layout.composer.width-layout.home.width)<=4, "Home composer must share the same outer grid at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
     assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
-    assert.ok(layout.composer.height>=47 && layout.composer.height<=50, "composer is too tall at " + width + "x" + height);
+    assert.ok(layout.composer.height>=56 && layout.composer.height<=66, "idle Home composer height drifted from the approved design at " + width + "x" + height);
     if (width === 320) {
       await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
       await page.click("#historyButton");
@@ -578,6 +641,30 @@ try {
       await page.click("#closeAppDrawer");
     }
   }
+
+  // Tablet and desktop must keep the approved Home composition centered rather than stretching edge-to-edge.
+  const wideViewports=[[768,1024],[1024,900],[1280,900],[1440,1000]];
+  for(const [width,height] of wideViewports){
+    await page.setViewportSize({width,height});
+    await page.evaluate(()=>enterHomeLanding());
+    await page.waitForTimeout(150);
+    const wide=await page.evaluate(()=>({
+      doc:document.documentElement.scrollWidth,
+      inner:innerWidth,
+      home:document.querySelector(".home-intro").getBoundingClientRect(),
+      header:document.querySelector(".topbar").getBoundingClientRect(),
+      composer:document.querySelector("#composer").getBoundingClientRect(),
+      quick:[...document.querySelectorAll(".quick-action")].map(node=>node.getBoundingClientRect()),
+    }));
+    assert.ok(wide.doc<=wide.inner,"wide Home must not horizontally overflow at "+width+"x"+height);
+    assert.ok(wide.home.width<=722&&wide.header.width<=722&&wide.composer.width<=722,"Home content must remain centered within its intended max width at "+width+"x"+height);
+    assert.ok(Math.abs(wide.home.left-(wide.inner-wide.home.width)/2)<=2,"Home content must remain centered at "+width+"x"+height);
+    assert.ok(wide.quick.every(card=>card.width<wide.home.width*.52),"2x2 shortcut grid must stay proportionate at "+width+"x"+height);
+    if(width===768)await page.screenshot({path:"artifacts/personal-ai-home-tablet-768x1024.png",fullPage:true});
+    if(width===1440)await page.screenshot({path:"artifacts/personal-ai-home-desktop-1440x1000.png",fullPage:true});
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>enterHomeLanding());
 
   // Keyboard and creation controls use the existing application bindings.
   await page.setViewportSize({ width: 390, height: 844 });
