@@ -2702,6 +2702,15 @@ function renderUnifiedTimeline(){
   for(let i=0;i<4;i++){const row=document.createElement('div');row.className='timeline-loading-entry';row.innerHTML='<span></span><div><i></i><i></i><i></i></div>';group.append(row)}
   host.append(group);return
  }
+ if(!timelineAvailable.conversations&&!timelineAvailable.plans&&!timelineAvailable.activity&&!timelineAvailable.workflows){
+  count.textContent='Timeline unavailable';
+  const error=document.createElement('div');error.className='timeline-empty';
+  const title=document.createElement('strong');title.textContent='Unable to load timeline';
+  const copy=document.createElement('span');copy.textContent='Your timeline data could not be loaded. Try again.';
+  const retry=document.createElement('button');retry.className='timeline-retry';retry.type='button';retry.textContent='Retry';
+  retry.onclick=()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{});
+  error.append(title,copy,retry);host.append(error);return
+ }
  const query=$('conversationSearch').value.trim().toLowerCase(),cutoff=Date.now()-7*86400000;
  let rows=timelineEntries().filter(item=>{
   if(conversationFilter==='recent'&&item.recentAt.getTime()<cutoff)return false;
@@ -2723,10 +2732,32 @@ function renderUnifiedTimeline(){
  }
  if(!rows.length){
   const empty=document.createElement('div');empty.className='timeline-empty';
-  const title=document.createElement('strong');title.textContent=query?'No matching timeline activity':conversationFilter==='recent'?'Nothing updated recently':'No timeline activity yet';
-  const copy=document.createElement('span');copy.textContent=query?'Try a different search or filter.':conversationFilter==='recent'?'Chats, tasks and meetings from the last seven days will appear here.':'Chats, tasks and meetings will appear here.';
-  const retry=document.createElement('button');retry.className='timeline-retry';retry.type='button';retry.textContent=query?'Clear search':'Refresh';
-  retry.onclick=()=>{if(query)$('conversationSearch').value='';refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{})};
+  const title=document.createElement('strong'),copy=document.createElement('span'),retry=document.createElement('button');
+  const filterNames={conversation:'chats',meeting:'meetings',task:'tasks'};
+  const filterName=filterNames[conversationFilter];
+  if(query){
+   title.textContent='No results for “'+$('conversationSearch').value.trim()+'”';
+   copy.textContent='Try a different search or clear the current search.';
+   retry.textContent='Clear search';
+  }else if(conversationFilter==='recent'){
+   title.textContent='Nothing updated recently';
+   copy.textContent='Chats, tasks and meetings from the last seven days will appear here.';
+   retry.textContent='Show all';
+  }else if(filterName){
+   title.textContent='No '+filterName+' found';
+   copy.textContent='There are no '+filterName+' in this timeline view.';
+   retry.textContent='Show all';
+  }else{
+   title.textContent='No timeline activity yet';
+   copy.textContent='Chats, tasks and meetings will appear here.';
+   retry.textContent='Refresh';
+  }
+  retry.className='timeline-retry';retry.type='button';
+  retry.onclick=()=>{
+   if(query){$('conversationSearch').value='';refreshUnifiedTimeline('').catch(()=>{});return}
+   if(conversationFilter!=='all'){setConversationFilter('all');return}
+   refreshUnifiedTimeline('').catch(()=>{})
+  };
   empty.append(title,copy,retry);host.append(empty);return
  }
  let prevDay='';
