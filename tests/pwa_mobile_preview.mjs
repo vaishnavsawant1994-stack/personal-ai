@@ -905,6 +905,15 @@ try {
       await page.screenshot({ path: "artifacts/personal-ai-timeline-right-320x568.png", fullPage: true });
       await page.click("#timelineCloseDrawer");
     }
+    if (![320,430].includes(width)) {
+      await page.click("#ownerButton");
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+      const timelineViewport=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth,doc:document.documentElement.scrollWidth}));
+      assert.ok(timelineViewport.drawer.left>=0&&timelineViewport.drawer.right<=timelineViewport.width+1,"Timeline must fit viewport at "+width+"x"+height);
+      assert.ok(timelineViewport.doc<=timelineViewport.width,"Timeline must not introduce horizontal overflow at "+width+"x"+height);
+      await page.click("#timelineCloseDrawer");
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden"));
+    }
     if (width === 430) {
       await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
       await page.click("#ownerButton");
@@ -920,7 +929,7 @@ try {
   }
 
   // Tablet and desktop must keep the approved Home composition centered rather than stretching edge-to-edge.
-  const wideViewports=[[768,1024],[1024,900],[1280,900],[1440,1000]];
+  const wideViewports=[[768,1024],[820,1180],[1024,900],[1280,900],[1440,1000]];
   for(const [width,height] of wideViewports){
     await page.setViewportSize({width,height});
     await page.evaluate(()=>enterHomeLanding());
@@ -946,14 +955,15 @@ try {
     assert.ok(wide.quick.every(card=>card.width<wide.home.width*.52),"2x2 shortcut grid must stay proportionate at "+width+"x"+height);
     if(width===768)await page.screenshot({path:"artifacts/personal-ai-home-tablet-768x1024.png",fullPage:true});
     if(width===1440)await page.screenshot({path:"artifacts/personal-ai-home-desktop-1440x1000.png",fullPage:true});
-    if(width===768||width===1440){
-      await page.click("#ownerButton");
-      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
-      const timelineWide=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth}));
-      assert.ok(timelineWide.drawer.width>=360&&timelineWide.drawer.width<=400,"wide Timeline must remain a contextual panel instead of stretching");
-      await page.screenshot({path:width===768?"artifacts/personal-ai-timeline-approved-tablet-768x1024.png":"artifacts/personal-ai-timeline-approved-desktop-1440x1000.png",fullPage:true});
-      await page.click("#timelineCloseDrawer");
-    }
+    await page.click("#ownerButton");
+    await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+    const timelineWide=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth,doc:document.documentElement.scrollWidth}));
+    assert.ok(timelineWide.drawer.width>=360&&timelineWide.drawer.width<=400,"wide Timeline must remain a contextual panel instead of stretching at "+width+"x"+height);
+    assert.ok(timelineWide.drawer.left>=0&&timelineWide.drawer.right<=timelineWide.width+1&&timelineWide.doc<=timelineWide.width,"wide Timeline must fit without horizontal overflow at "+width+"x"+height);
+    if(width===768)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-tablet-768x1024.png",fullPage:true});
+    if(width===820)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-tablet-820x1180.png",fullPage:true});
+    if(width===1440)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-desktop-1440x1000.png",fullPage:true});
+    await page.click("#timelineCloseDrawer");
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>enterHomeLanding());
