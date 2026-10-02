@@ -552,13 +552,14 @@ try {
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
 
+  const assistantCountBeforeLongResponse=await page.locator(".message-entry.assistant").count();
   await page.evaluate(()=>{
     conversationEvents.push({
       event_id:"visual-long-response",kind:"assistant_message",created_at:new Date().toISOString(),
       payload:{text:"## Detailed plan\n\nThis is a deliberately long Personal AI response used to verify that open assistant content stays readable and wide without being forced into a phone-chat bubble.\n\n- Preserve the original neural sphere\n- Keep the composer visible above the safe area\n- Keep actions close to the response\n\n```text\nLong content remains inside the same response block.\nNo token-sized bubbles are created.\n```\n\n| Check | Result |\n| --- | --- |\n| Wrapping | Correct |\n| Overflow | None |"}
     });renderMessages();
   });
-  await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
+  await page.waitForFunction(expected=>document.querySelectorAll(".message-entry.assistant").length===expected,assistantCountBeforeLongResponse+1);
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
   await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
