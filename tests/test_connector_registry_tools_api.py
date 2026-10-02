@@ -52,6 +52,8 @@ def test_calendar_delete_reauth(tmp_path):
     r=ToolRegistry(SimpleNamespace(autonomy_mode='ask',data_dir=tmp_path));register_tools(r,{'calendar':Calendar()});t=r.get('calendar_delete_event');assert t.requires_reauth and t.risk==Risk.DESTRUCTIVE
 def test_ui_has_no_secret_fields():
     low=JS.lower();assert 'access_token' not in low and 'refresh_token' not in low and 'client_secret' not in low and 'apps &amp; tools' in low
+    assert "requestConfirmation('Revoke this connector on this Personal AI?')" in JS
+    assert 'confirm(' not in low
 
 def test_api_rejects_untrusted_browser(tmp_path):
     class Devices:

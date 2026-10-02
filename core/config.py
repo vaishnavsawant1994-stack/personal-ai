@@ -65,6 +65,8 @@ class Settings:
     control_server_port:int=int(os.getenv('CONTROL_SERVER_PORT','8766'))
     pairing_ttl_seconds:int=int(os.getenv('PAIRING_TTL_SECONDS','300'))
     cloud_runtime_enabled:bool=env_bool('CLOUD_RUNTIME_ENABLED',False)
+    instance_id:str=os.getenv('PERSONAL_AI_INSTANCE_ID','').strip()
+    automation_execution_enabled:bool=env_bool('PERSONAL_AI_AUTOMATION_EXECUTION_ENABLED',True)
     cloud_owner_secret:str=os.getenv('PERSONAL_AI_CLOUD_OWNER_SECRET','')
     cloud_session_ttl_seconds:int=int(os.getenv('CLOUD_SESSION_TTL_SECONDS','900'))
     cloud_allowed_origins:tuple[str,...]=tuple(x.strip().rstrip('/') for x in os.getenv('CLOUD_ALLOWED_ORIGINS','').split(',') if x.strip())

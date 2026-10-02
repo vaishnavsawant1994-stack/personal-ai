@@ -214,6 +214,8 @@ try {
     actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
     cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
     homeWidth: document.querySelector(".home-intro").getBoundingClientRect().width,
+    recent: document.querySelector(".recent-feed").getBoundingClientRect().toJSON(),
+    today: document.querySelector(".today-panel").getBoundingClientRect().toJSON(),
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     innerHeight,
@@ -235,6 +237,7 @@ try {
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.equal(homeState.todayTitle, "Today");
+  assert.ok(homeState.recent.bottom <= homeState.today.top + 1, "Recent feed must not overlap the Today panel on mobile");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
   assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
   assert.equal(await page.locator("#recentList .recent-feed-row").count(), 3, "Recent must show canonical saved conversations alongside Today tasks");
@@ -622,6 +625,8 @@ try {
         header: rect(".topbar"),
         quick: rect(".quick-actions"),
         home: rect(".home-intro"),
+        recent: rect(".recent-feed"),
+        today: rect(".today-panel"),
         cards: [...document.querySelectorAll(".quick-action")].map(node => {const r=node.getBoundingClientRect();return {width:r.width,height:r.height,scrollHeight:node.scrollHeight,clientHeight:node.clientHeight}}),
         controls: ["#attachmentButton","#sendButton","#micButton"].map(selector => rect(selector)),
       };
@@ -630,6 +635,7 @@ try {
     assert.ok(layout.core.width > 0 && layout.core.height > 0, "sphere missing at " + width + "x" + height);
     assert.ok(layout.sphereInk > 90, "mini sphere animation did not repaint after chat at " + width + "x" + height);
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
+    assert.ok(layout.recent.bottom <= layout.today.top + 1, "Recent overlaps Today at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
     assert.ok(layout.cards.length === 4, "four Home cards required");

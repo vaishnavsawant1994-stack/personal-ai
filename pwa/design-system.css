@@ -327,3 +327,9 @@ body #composer #sendButton svg {stroke:var(--text-primary)}
 @media(max-width:639px) {.today-dialog {max-height:min(72dvh,560px);}.today-dialog .today-form {padding-bottom:env(safe-area-inset-bottom)}}
 .state {display:block!important;min-height:0!important}
 .message-actions button svg {width:16px;height:16px}
+
+/* Final owner review: quiet glass header, no per-reply sphere, and state colour on the original orb. */
+.topbar {position:relative;isolation:isolate;min-width:0;background:linear-gradient(180deg,rgba(20,23,31,.74),rgba(12,15,21,.62));border-bottom:1px solid var(--border-subtle);box-shadow:0 5px 20px rgba(0,0,0,.14);backdrop-filter:blur(18px) saturate(120%);-webkit-backdrop-filter:blur(18px) saturate(120%)}
+.message.assistant::before {display:none!important;content:none!important}
+.message-avatar {display:none!important}
+.state {position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}

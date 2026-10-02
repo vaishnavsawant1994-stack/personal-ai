@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from security.pwa_sessions import PwaSessionStore
 from security.request_context import current_trusted_request
+from server.logical_request_middleware import LogicalRequestMiddleware, current_logical_request_id
 from server.pwa_session_middleware import PwaSessionMiddleware
 
 
@@ -20,6 +21,7 @@ def make_client(tmp_path):
     sessions = PwaSessionStore(tmp_path / 'pwa-sessions.sqlite3', ttl_seconds=600)
     devices = Devices()
     app = FastAPI()
+    app.add_middleware(LogicalRequestMiddleware)
     app.add_middleware(
         PwaSessionMiddleware,
         sessions=sessions,
@@ -32,6 +34,14 @@ def make_client(tmp_path):
         response.set_cookie('pa_device', 'device-1', httponly=True, secure=True, samesite='strict', path='/iphone')
         response.set_cookie('pa_token', 'device-bearer', httponly=True, secure=True, samesite='strict', path='/iphone')
         return {'ok': True}
+
+    @app.get('/iphone/')
+    def home():
+        return Response('<html><body>home</body></html>', media_type='text/html')
+
+    @app.post('/iphone/api/voice/turn')
+    def voice_turn():
+        return {'request_id': current_logical_request_id()}
 
     @app.get('/iphone/api/protected')
     def protected(request: Request):
@@ -59,6 +69,29 @@ def test_device_bearer_alone_cannot_access_protected_pwa_api(tmp_path):
     response = client.get('/iphone/api/protected')
     assert response.status_code == 401
     assert response.json()['detail']['code'] == 'session_expired'
+
+
+def test_logical_request_adapter_is_available_before_owner_login(tmp_path):
+    client, _, _ = make_client(tmp_path)
+
+    page = client.get('/iphone/')
+    assert page.status_code == 200
+    assert '<script src="/iphone/v1-runtime.js"></script>' in page.text
+
+    adapter = client.get('/iphone/v1-runtime.js')
+    assert adapter.status_code == 200
+    assert adapter.headers['content-type'].startswith('application/javascript')
+    assert 'const uuid=' in adapter.text
+
+    # Once Google/password sign-in establishes the session, the adapter's
+    # logical request ID reaches the protected turn endpoint intact.
+    client.post('/iphone/api/access/password/login')
+    response = client.post('/iphone/api/voice/turn', json={
+        'request_id': '550e8400-e29b-41d4-a716-446655440000',
+        'transcript': 'hello',
+    })
+    assert response.status_code == 200
+    assert response.json()['request_id'] == '550e8400-e29b-41d4-a716-446655440000'
 
 
 def test_login_issues_server_session_and_binds_request_context(tmp_path):

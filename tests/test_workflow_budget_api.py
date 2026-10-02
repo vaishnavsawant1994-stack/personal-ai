@@ -119,3 +119,8 @@ def test_budget_ui_is_injected_only_into_iphone_home_and_keeps_safe_states():
         'Emergency Stop active',
     ):
         assert label in javascript
+    assert "requestText('Workflow name')" in javascript
+    assert "requestConfirmation('Cancel this workflow run?')" in javascript
+    assert "prompt(" not in javascript.lower()
+    assert "confirm(" not in javascript.lower()
+    assert "Promise.allSettled" in javascript
