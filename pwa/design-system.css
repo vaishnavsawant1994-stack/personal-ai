@@ -327,3 +327,11 @@ body #composer #sendButton svg {stroke:var(--text-primary)}
 @media(max-width:639px) {.today-dialog {max-height:min(72dvh,560px);}.today-dialog .today-form {padding-bottom:env(safe-area-inset-bottom)}}
 .state {display:block!important;min-height:0!important}
 .message-actions button svg {width:16px;height:16px}
+
+/* Final owner screenshot auto-fit fixes. */
+.topbar{top:0!important}
+.recent-feed,.today-panel{flex:0 0 auto!important}
+.voice-alert:empty{display:none!important}
+body.home-landing .home-intro{overscroll-behavior:contain;scroll-padding-top:8px}
+.module-subheading{margin:20px 0 10px;font-size:17px;font-weight:550;letter-spacing:-.015em;color:var(--text-primary)}
+@media(max-width:900px){body.home-landing .app-shell{padding-bottom:max(8px,env(safe-area-inset-bottom))!important}body.home-landing .presence{min-height:0}body.home-landing #composer{margin-bottom:0!important}.module-panel{scroll-margin-top:0}}
