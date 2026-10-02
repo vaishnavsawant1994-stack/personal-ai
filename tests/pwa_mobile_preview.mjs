@@ -306,8 +306,8 @@ try {
   const drawerState = await page.evaluate(() => ({
     labels: [...document.querySelectorAll("#appDrawer .sidebar-nav-row span")].map(node => node.textContent.trim()),
     chatTitles: [...document.querySelectorAll("#sidebarChatList .sidebar-chat-row span")].map(node => node.textContent.trim()),
-    rect: document.querySelector("#appDrawer").getBoundingClientRect(),
-    footer: document.querySelector("#sidebarAccountButton").getBoundingClientRect(),
+    rect: (() => { const r=document.querySelector("#appDrawer").getBoundingClientRect(); return {left:r.left,width:r.width}; })(),
+    footer: (() => { const r=document.querySelector("#sidebarAccountButton").getBoundingClientRect(); return {bottom:r.bottom,height:r.height}; })(),
     expanded: document.querySelector("#historyButton").getAttribute("aria-expanded"),
   }));
   for (const expected of ["Home","Today","Conversations","Memory","Knowledge","Activities","Tools","Workflows"]) {
