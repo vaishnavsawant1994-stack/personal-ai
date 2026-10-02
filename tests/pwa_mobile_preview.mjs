@@ -180,8 +180,9 @@ try {
       timelineTimes: [...document.querySelectorAll("#todayTimeline .today-time")].map(node => node.textContent),
       todayTitle: document.querySelector("#todayHeading").textContent,
       headerSphere: Boolean(document.querySelector(".topbar #neuralCanvas")),
-      headerActive: document.querySelector(".home-header-active")?.textContent.trim(),
+      headerActivePresent: Boolean(document.querySelector(".home-header-active")),
       headerGreenDot: Boolean(document.querySelector(".topbar .status-dot")),
+      headerVisual: (()=>{const s=getComputedStyle(document.querySelector(".topbar"));return {backgroundColor:s.backgroundColor,borderTopWidth:s.borderTopWidth,boxShadow:s.boxShadow,backdropFilter:s.backdropFilter||s.webkitBackdropFilter||""}})(),
       actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
       cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
       toolsSubtitle: {text:document.querySelector("#quickTools .quick-copy span").textContent,scrollWidth:document.querySelector("#quickTools .quick-copy span").scrollWidth,clientWidth:document.querySelector("#quickTools .quick-copy span").clientWidth},
@@ -211,8 +212,12 @@ try {
   assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must remain the existing compact plus");
   assert.equal(await page.locator("#attachmentButton").getAttribute("aria-label"), "Add a document", "attachment control must preserve its accessible behavior");
   assert.equal(homeState.headerSphere, true, "the ORIGINAL animated Personal AI sphere must remain in the Home header");
-  assert.equal(homeState.headerActive, "ACTIVE", "Home header must show the approved compact ACTIVE label");
+  assert.equal(homeState.headerActivePresent, false, "Home must not render ACTIVE or any status label beneath the sphere");
   assert.equal(homeState.headerGreenDot, false, "old header status dot must stay removed");
+  assert.equal(homeState.headerVisual.backgroundColor, "rgba(0, 0, 0, 0)", "Home top row must sit directly on the page background");
+  assert.equal(homeState.headerVisual.borderTopWidth, "0px", "Home top row must not retain the old glass border");
+  assert.ok(homeState.headerVisual.boxShadow==="none"||homeState.headerVisual.boxShadow==="", "Home top row must not retain the old panel shadow");
+  assert.ok(homeState.headerVisual.backdropFilter==="none"||homeState.headerVisual.backdropFilter==="", "Home top row must not retain glass blur");
   assert.ok(Math.abs(homeState.menuButton.width-homeState.timelineButton.width)<1 && Math.abs(homeState.menuButton.height-homeState.timelineButton.height)<1, "menu and Timeline controls must use identical geometry");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "Home header controls must preserve accessible touch targets");
   assert.ok(homeState.core.width >= 46 && homeState.core.width <= 58, "Home sphere must use the approved compact scale");
@@ -296,7 +301,7 @@ try {
     scrollWidth:document.documentElement.scrollWidth,
     calendar:{scrollWidth:document.querySelector(".calendar-status-copy").scrollWidth,clientWidth:document.querySelector(".calendar-status-copy").clientWidth},
   }));
-  assert.ok(approvedEmptyLayout.greeting.top>=approvedEmptyLayout.header.bottom+8,"approved Home capture must start at the top and keep the greeting clear of the glass header");
+  assert.ok(approvedEmptyLayout.greeting.top>=approvedEmptyLayout.header.bottom+6,"approved Home capture must keep the greeting clear of the floating Home controls");
   assert.ok(approvedEmptyLayout.composer.bottom<=approvedEmptyLayout.viewport+1,"approved empty-Today Home composition must keep the composer visible in the primary iPhone viewport");
   assert.ok(approvedEmptyLayout.scrollWidth<=approvedEmptyLayout.viewportWidth,"approved empty-Today Home must not overflow horizontally");
   assert.ok(approvedEmptyLayout.calendar.scrollWidth<=approvedEmptyLayout.calendar.clientWidth+2,"calendar disconnected status must remain fully readable at the primary iPhone width");
