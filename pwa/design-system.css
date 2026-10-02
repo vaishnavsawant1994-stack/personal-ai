@@ -281,8 +281,8 @@ body #composer #sendButton svg {stroke:var(--text-primary)}
 .settings-index {width:min(100%,560px)}
 .settings-index .settings-nav {width:100%}
 .settings-index .settings-nav button {display:flex;align-items:center;justify-content:space-between}
-.timeline-top-actions {margin:4px 1px 10px}
-.timeline-top-actions .timeline-plan-button {display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:42px}
+.timeline-top-actions {display:flex;justify-content:flex-end;margin:2px 1px 8px}
+.timeline-top-actions .timeline-plan-button {display:inline-flex;align-items:center;justify-content:center;gap:7px;width:auto;min-height:40px;padding-inline:12px}
 .timeline-top-actions .timeline-plan-button svg {width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 @media(max-width:767px) {
  .topbar {min-height:60px;border-radius:0 0 var(--radius-xl) var(--radius-xl);padding-inline:6px}

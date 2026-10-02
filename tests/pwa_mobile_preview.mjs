@@ -388,6 +388,7 @@ try {
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  assert.ok((await page.locator("#timelineAddPlan").boundingBox()).width<180,"timeline planning action stays compact in the sidebar");
   assert.equal(await page.locator("#conversationDrawer").getAttribute("aria-label"),"Timeline");
   assert.equal(await page.locator("#newConversation").count(),0,"Timeline controls stay focused on chronology and planning");
   await audit(page,"unified-timeline-all-390x844");
@@ -462,6 +463,7 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
+  assert.ok(await page.evaluate(()=>Array.from({length:360},(_,frame)=>colorShiftPalette(frame)).every(([r,g,b])=>b>g&&g>r)),"idle sphere palette stays in Personal AI blue and cyan hues");
   const statusVisual = await page.locator(".state").evaluate(node => {
     const style = getComputedStyle(node);
     const rect = node.getBoundingClientRect();
