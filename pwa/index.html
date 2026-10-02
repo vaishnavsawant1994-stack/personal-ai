@@ -1805,6 +1805,39 @@
       .timeline-search-wrap,.timeline-content,.conversation-drawer[data-mode="timeline"] .conversation-filter{transition:none!important}
     }
 
+
+    /* Timeline final visual finishing — approved 390px-class reference. */
+    @media (min-width:351px) and (max-width:767px){
+      .conversation-drawer[data-mode="timeline"]{width:min(90vw,370px)!important;border-radius:25px 0 0 25px!important;box-shadow:-20px 0 64px rgba(0,0,0,.39)!important}
+      .timeline-top{padding:max(14px,env(safe-area-inset-top)) 16px 8px!important}
+      .timeline-approved-header{grid-template-columns:44px minmax(0,1fr) 44px!important;gap:9px!important;min-height:48px!important}
+      .timeline-header-button{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important}
+      .timeline-header-button svg{width:20px!important;height:20px!important}
+      .timeline-title-block h2{font-size:27px!important;line-height:1.04!important}
+      .timeline-title-block p{margin-top:3px!important;font-size:13.5px!important}
+      .timeline-plan-row{margin-top:10px!important}
+      .timeline-plan-button{min-height:46px!important;padding:0 15px!important;border-radius:15px!important;font-size:14px!important}
+      .timeline-plan-button svg{width:19px!important;height:19px!important}
+      .timeline-search-wrap{height:50px!important;margin-top:12px!important;border-radius:16px!important;padding:0 13px!important}
+      .conversation-drawer[data-mode="timeline"] .conversation-search{font-size:15px!important}
+      .conversation-drawer[data-mode="timeline"] .conversation-filters{margin-top:9px!important;gap:2px!important;padding-bottom:1px!important;justify-content:space-between!important}
+      .conversation-drawer[data-mode="timeline"] .conversation-filter{min-width:0!important;min-height:38px!important;padding:0 8px!important;font-size:12.5px!important}
+      .conversation-count{margin:8px 2px 0!important;min-height:19px!important;font-size:12px!important;gap:6px!important}
+      .conversation-drawer[data-mode="timeline"] .conversation-list{padding:6px 12px calc(14px + env(safe-area-inset-bottom)) 12px!important}
+      .timeline-day{margin:10px 0 8px!important;padding:9px 12px!important;border-radius:12px!important;font-size:17px!important}
+      .timeline-entry{grid-template-columns:26px minmax(0,1fr)!important;gap:7px!important;padding-bottom:6px!important}
+      .timeline-entry:before{left:12px!important}
+      .timeline-dot{margin:19px 0 0 7px!important}
+      .timeline-content{min-height:100px!important;grid-template-columns:42px minmax(0,1fr) 36px!important;gap:9px!important;padding:10px 8px 9px 10px!important;border-radius:16px!important;background:rgba(12,23,36,.74)!important;border-color:rgba(100,150,210,.105)!important}
+      .timeline-event-icon{width:42px!important;height:42px!important;border-radius:12px!important}
+      .timeline-event-icon svg{width:20px!important;height:20px!important}
+      .timeline-type{font-size:12px!important}.timeline-clock{font-size:11.5px!important}
+      .timeline-title{margin-top:3px!important;font-size:15px!important}.timeline-preview{margin-top:4px!important;font-size:12px!important}
+      .timeline-meta{margin-top:7px!important;min-height:22px!important}.timeline-status{min-height:22px!important;font-size:11px!important;padding:2px 7px!important}
+      .timeline-event-menu-button{width:36px!important;height:40px!important;min-width:36px!important}
+      .timeline-empty{margin-top:14px!important;padding:18px 14px!important;min-height:112px!important;justify-content:center!important}
+    }
+
     /* Shared topbar regression guard: compact sphere scale must stay identical
        on short/narrow conversation viewports as required by the approved chrome. */
     body:not(.home-landing) .topbar .header-core .core-stage,
