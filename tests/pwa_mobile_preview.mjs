@@ -185,6 +185,8 @@ try {
       actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
       cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
       toolsSubtitle: {text:document.querySelector("#quickTools .quick-copy span").textContent,scrollWidth:document.querySelector("#quickTools .quick-copy span").scrollWidth,clientWidth:document.querySelector("#quickTools .quick-copy span").clientWidth},
+      quickIconColors:[...document.querySelectorAll(".quick-icon")].map(node=>getComputedStyle(node).color),
+      quickIconBackgrounds:[...document.querySelectorAll(".quick-icon")].map(node=>getComputedStyle(node).backgroundColor),
       home: rect(".home-intro"),
       recentTitles:[...document.querySelectorAll(".home-recent-copy strong")].map(node=>node.textContent),
       recentDateTimes:[...document.querySelectorAll(".home-recent-time")].map(node=>node.dateTime),
@@ -215,6 +217,8 @@ try {
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "Home header controls must preserve accessible touch targets");
   assert.ok(homeState.core.width >= 46 && homeState.core.width <= 58, "Home sphere must use the approved compact scale");
   assert.equal(homeState.toolsSubtitle.text, "Apps & workflows", "Tools subtitle must render fully");
+  assert.equal(new Set(homeState.quickIconColors).size,1,"all four Home quick-action icons must use one Personal AI blue treatment");
+  assert.equal(new Set(homeState.quickIconBackgrounds).size,1,"all four Home quick-action icon tiles must use one consistent blue glass surface");
   assert.ok(homeState.toolsSubtitle.scrollWidth <= homeState.toolsSubtitle.clientWidth+2, "Tools subtitle must not be clipped with an ellipsis");
   assert.deepEqual(homeState.recentTitles, conversations.map(item=>item.title), "Home Recent must use REAL canonical conversation data");
   assert.deepEqual(homeState.recentDateTimes, conversations.map(item=>new Date(item.updated_at).toISOString()), "Home Recent timestamps must derive from stored canonical conversation times");
@@ -282,6 +286,7 @@ try {
     if(home)home.scrollTop=0;if(intro)intro.scrollTop=0;
   });
   await page.waitForTimeout(120);
+  await page.evaluate(()=>document.querySelector("#toast")?.classList.add("hidden"));
   const approvedEmptyLayout=await page.evaluate(()=>({
     composer:document.querySelector("#composer").getBoundingClientRect(),
     header:document.querySelector(".topbar").getBoundingClientRect(),
