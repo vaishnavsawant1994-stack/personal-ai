@@ -206,7 +206,18 @@ try {
   assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "the four approved Home cards must be exactly equal sized");
   assert.ok(homeState.cardRects.every(card => card.height>=58 && card.height<=86), "Home action cards must remain compact and reference-like");
   assert.ok(Math.abs(homeState.composer.width-homeState.home.width)<=3, "Home composer must align to the same outer content grid");
-  assert.ok(homeState.composer.height >= 52 && homeState.composer.height <= 60, "idle Home composer must match the approved pill height");
+  assert.ok(homeState.composer.height >= 52 && homeState.composer.height <= 56, "idle Home composer must remain a slim SMS-style pill");
+  await page.locator("#message").focus();
+  await page.waitForTimeout(60);
+  const focusedEmptyHomeComposer=await page.locator("#composer").evaluate(node=>({
+    height:node.getBoundingClientRect().height,
+    expanded:node.classList.contains("is-expanded"),
+    bottom:node.getBoundingClientRect().bottom
+  }));
+  assert.equal(focusedEmptyHomeComposer.expanded,false,"empty Home composer must not become a large two-row box merely because it receives focus");
+  assert.ok(focusedEmptyHomeComposer.height>=52&&focusedEmptyHomeComposer.height<=56,"focused empty Home composer must stay slim");
+  assert.ok(focusedEmptyHomeComposer.bottom>=window.innerHeight-1&&focusedEmptyHomeComposer.bottom<=window.innerHeight+1,"focused empty Home composer must stay fixed to the bottom");
+  await page.locator("#historyButton").focus();
   assert.equal(await page.locator("#sendButton").isVisible(), false, "idle Home composer must show microphone, not inactive send");
   assert.equal(await page.locator("#micButton").isVisible(), true, "idle Home composer microphone must remain available");
   assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must remain the existing compact plus");
