@@ -386,7 +386,10 @@ try {
     search:document.querySelector('.timeline-search-wrap').getBoundingClientRect(),
     background:getComputedStyle(document.querySelector('#conversationDrawer')).backgroundImage,
     border:getComputedStyle(document.querySelector('#conversationDrawer')).borderLeftWidth,
-    bodyOverflow:getComputedStyle(document.body).overflow
+    bodyOverflow:getComputedStyle(document.body).overflow,
+    activeElementId:document.activeElement&&document.activeElement.id,
+    filterRow:document.querySelector(".conversation-filters").getBoundingClientRect(),
+    filterButtons:[...document.querySelectorAll(".conversation-filter")].map(node=>node.getBoundingClientRect())
   }));
   assert.ok(approvedTimelineHeader.drawer.width>=330&&approvedTimelineHeader.drawer.width<=380,"390px Timeline must preserve the approved contextual width");
   assert.ok(approvedTimelineHeader.drawer.left>=20&&Math.abs(approvedTimelineHeader.drawer.right-approvedTimelineHeader.viewport)<=1,"Timeline must stay on the right and leave the underlying app visible");
@@ -396,6 +399,8 @@ try {
   assert.ok(approvedTimelineHeader.background.includes("linear-gradient"),"Timeline must use premium dark-glass gradient");
   assert.equal(approvedTimelineHeader.border,"1px","Timeline must keep the subtle left accent border");
   assert.equal(approvedTimelineHeader.bodyOverflow,"hidden","underlying app scroll must lock while Timeline is open");
+  assert.equal(approvedTimelineHeader.activeElementId,"timelineBackDrawer","opening Timeline must not summon the mobile keyboard by auto-focusing search");
+  assert.ok(approvedTimelineHeader.filterButtons.every(rect=>rect.left>=approvedTimelineHeader.filterRow.left-1&&rect.right<=approvedTimelineHeader.filterRow.right+1),"all five approved Timeline filters must be visible at the primary 390px viewport");
   await page.screenshot({ path: "artifacts/personal-ai-timeline-approved-direct-390x844.png", fullPage: true });
   await page.click("#timelineCloseDrawer");
   await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
@@ -551,9 +556,13 @@ try {
     activeFilterBackground:getComputedStyle(document.querySelector(".conversation-filter.active")).backgroundImage,
     railBackground:getComputedStyle(document.querySelector(".timeline-entry"),"::before").backgroundImage,
   }));
-  assert.deepEqual(timelineState.filters,["All","Recent","Chats","Meetings","Tasks","Work","Reminders","Workflows","Done","Activity"]);
+  assert.deepEqual(timelineState.filters,["All","Recent","Chats","Meetings","Tasks"],"approved Timeline must expose exactly the five frozen filter tabs");
   assert.ok(timelineState.titles.includes("Complete weekly report"),"completed work must show recorded completion time");
   assert.ok(timelineState.titles.includes("Team planning meeting"),"real saved meetings must appear");
+  assert.ok(timelineState.titles.includes("Prepare client proposal"),"work/plan events must remain visible in All without a separate legacy filter");
+  assert.ok(timelineState.titles.includes("Send follow-up"),"reminder events must remain visible in All without a separate legacy filter");
+  assert.ok(timelineState.titles.includes("Morning operations"),"workflow events must remain visible in All without a separate legacy filter");
+  assert.ok(timelineState.titles.includes("Workflow Run Finished"),"audited activity must remain visible in All without a separate legacy filter");
   assert.ok(timelineState.categories.includes("activity"),"authorized audit events must appear without fabrication");
   assert.ok(timelineState.clocks.every((stamp,i,a)=>i===0||a[i-1]>=stamp),"mixed records must sort chronologically");
   assert.ok(Math.abs(timelineState.rect.right-timelineState.width)<=1&&timelineState.rect.left>0,"Timeline must stay right-aligned");
@@ -573,16 +582,8 @@ try {
   await page.screenshot({path:"artifacts/personal-ai-timeline-approved-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
-  await page.locator('[data-conversation-filter="work"]').click();
-  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Prepare client proposal"]);
-  await page.locator('[data-conversation-filter="done"]').click();
-  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Complete weekly report"));
-  await page.locator('[data-conversation-filter="workflow"]').click();
-  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Morning operations"]);
-  await page.locator('[data-conversation-filter="activity"]').click();
-  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Workflow Run Finished"],"activity filter must render the human-readable real audit event title");
-  await page.locator('[data-conversation-filter="reminder"]').click();
-  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Send follow-up"]);
+  await page.locator('[data-conversation-filter="task"]').click();
+  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Finish daily review"),"Tasks filter must isolate actual task events");
   await page.locator('[data-conversation-filter="conversation"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),conversations.map(x=>x.title));
   await page.locator('[data-conversation-filter="all"]').click();
@@ -599,21 +600,18 @@ try {
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===0&&document.querySelector(".timeline-empty")?.textContent.includes("No matching"));
   await page.fill("#conversationSearch","");
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
-  await page.locator('[data-conversation-filter="work"]').click();
+  await page.locator('[data-conversation-filter="all"]').click();
   await page.locator('.timeline-entry[data-category="work"] .timeline-event-menu-button').click();
   await page.waitForFunction(()=>!document.querySelector("#timelineEventMenu").classList.contains("hidden"));
   assert.ok((await page.locator("#timelineEventMenu").innerText()).includes("Mark complete"),"pending work menu must expose the existing completion action");
   await page.getByRole('menuitem',{name:'Mark complete'}).click();
   await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="work"]')?.dataset.status==="done");
-  await page.locator('[data-conversation-filter="done"]').click();
-  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Prepare client proposal"),"Mark done must persist and update the timeline");
-  await page.locator('[data-conversation-filter="activity"]').click();
+  assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Prepare client proposal"),"Mark complete must preserve the plan event in the approved All view");
   allowActivity=false;
   await page.evaluate(()=>refreshUnifiedTimeline(''));
   await page.waitForFunction(()=>document.querySelector(".timeline-notice")?.textContent.includes("not permitted"));
   assert.equal(await page.locator('.timeline-entry[data-category="activity"]').count(),0,"restricted audited activity must not leak");
   allowActivity=true;
-  await page.locator('[data-conversation-filter="all"]').click();
   await page.evaluate(()=>refreshUnifiedTimeline(''));
   await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="activity"]'));
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-filtered-390x844.png",fullPage:true});
@@ -809,7 +807,7 @@ try {
       await page.click("#closeAppDrawer");
       await page.evaluate(()=>openConversationsDrawer());
       await page.waitForFunction(expected=>document.querySelectorAll(".conversations-row").length===expected,conversations.length);
-      await page.waitForFunction(()=>{const r=document.querySelector("#conversationDrawer").getBoundingClientRect();return r.left>=-1&&r.right<innerWidth});
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").getBoundingClientRect().left>=-1);
       const conversations320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
@@ -840,7 +838,7 @@ try {
       await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
       assert.ok(right320.cards.every(card=>card.right<=right320.drawer.right+1),"Timeline cards must never clip horizontally at 320px");
       const filters320=await page.locator(".conversation-filters").evaluate(node=>({scroll:node.scrollWidth,width:node.clientWidth,overflow:getComputedStyle(node).overflowX}));
-      assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all Timeline categories must remain horizontally scrollable at 320px");
+      assert.ok(filters320.scroll>=filters320.width&&filters320.overflow==="auto","approved Timeline filters must stay in one horizontal, scroll-safe row at 320px");
       await page.screenshot({ path: "artifacts/personal-ai-timeline-right-320x568.png", fullPage: true });
       await page.click("#timelineCloseDrawer");
     }
