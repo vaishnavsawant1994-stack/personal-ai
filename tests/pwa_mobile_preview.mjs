@@ -279,10 +279,13 @@ try {
   const approvedEmptyLayout=await page.evaluate(()=>({
     composer:document.querySelector("#composer").getBoundingClientRect(),
     viewport:innerHeight,
+    viewportWidth:innerWidth,
     scrollWidth:document.documentElement.scrollWidth,
+    calendar:{scrollWidth:document.querySelector(".calendar-status-copy").scrollWidth,clientWidth:document.querySelector(".calendar-status-copy").clientWidth},
   }));
   assert.ok(approvedEmptyLayout.composer.bottom<=approvedEmptyLayout.viewport+1,"approved empty-Today Home composition must keep the composer visible in the primary iPhone viewport");
-  assert.ok(approvedEmptyLayout.scrollWidth<=innerWidth,"approved empty-Today Home must not overflow horizontally");
+  assert.ok(approvedEmptyLayout.scrollWidth<=approvedEmptyLayout.viewportWidth,"approved empty-Today Home must not overflow horizontally");
+  assert.ok(approvedEmptyLayout.calendar.scrollWidth<=approvedEmptyLayout.calendar.clientWidth+2,"calendar disconnected status must remain fully readable at the primary iPhone width");
   await page.screenshot({ path: "artifacts/personal-ai-home-today-empty-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-home-approved-390x844.png", fullPage: true });
   await page.click(".today-empty-add");
