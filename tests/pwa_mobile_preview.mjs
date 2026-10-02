@@ -275,14 +275,23 @@ try {
   assert.ok((await page.locator("#todayTimeline").innerText()).includes("Add a task, work item or meeting."), "empty Today card must preserve the approved supporting copy");
   assert.ok(await page.locator(".today-empty-icon").isVisible(), "empty Today card must include the compact calendar visual");
   assert.ok(await page.locator(".today-empty-add").isVisible(), "empty Today card must expose the real add flow");
-  await page.evaluate(()=>{const home=document.querySelector("#voicePanel");home.scrollTop=0});
+  await page.evaluate(()=>{
+    if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    window.scrollTo(0,0);
+    const home=document.querySelector("#voicePanel"),intro=document.querySelector("#homeIntro");
+    if(home)home.scrollTop=0;if(intro)intro.scrollTop=0;
+  });
+  await page.waitForTimeout(120);
   const approvedEmptyLayout=await page.evaluate(()=>({
     composer:document.querySelector("#composer").getBoundingClientRect(),
+    header:document.querySelector(".topbar").getBoundingClientRect(),
+    greeting:document.querySelector(".home-greeting").getBoundingClientRect(),
     viewport:innerHeight,
     viewportWidth:innerWidth,
     scrollWidth:document.documentElement.scrollWidth,
     calendar:{scrollWidth:document.querySelector(".calendar-status-copy").scrollWidth,clientWidth:document.querySelector(".calendar-status-copy").clientWidth},
   }));
+  assert.ok(approvedEmptyLayout.greeting.top>=approvedEmptyLayout.header.bottom+8,"approved Home capture must start at the top and keep the greeting clear of the glass header");
   assert.ok(approvedEmptyLayout.composer.bottom<=approvedEmptyLayout.viewport+1,"approved empty-Today Home composition must keep the composer visible in the primary iPhone viewport");
   assert.ok(approvedEmptyLayout.scrollWidth<=approvedEmptyLayout.viewportWidth,"approved empty-Today Home must not overflow horizontally");
   assert.ok(approvedEmptyLayout.calendar.scrollWidth<=approvedEmptyLayout.calendar.clientWidth+2,"calendar disconnected status must remain fully readable at the primary iPhone width");
