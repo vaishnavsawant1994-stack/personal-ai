@@ -203,7 +203,7 @@ try {
   assert.ok(homeState.cardRects.every(card => Math.abs(card.height-homeState.cardRects[0].height)<1 && Math.abs(card.width-homeState.cardRects[0].width)<1), "the four approved Home cards must be exactly equal sized");
   assert.ok(homeState.cardRects.every(card => card.height>=58 && card.height<=86), "Home action cards must remain compact and reference-like");
   assert.ok(Math.abs(homeState.composer.width-homeState.home.width)<=3, "Home composer must align to the same outer content grid");
-  assert.ok(homeState.composer.height >= 56 && homeState.composer.height <= 66, "idle Home composer must match the approved pill height");
+  assert.ok(homeState.composer.height >= 52 && homeState.composer.height <= 60, "idle Home composer must match the approved pill height");
   assert.equal(await page.locator("#sendButton").isVisible(), false, "idle Home composer must show microphone, not inactive send");
   assert.equal(await page.locator("#micButton").isVisible(), true, "idle Home composer microphone must remain available");
   assert.equal(await page.locator("#attachmentButton svg path").getAttribute("d"), "M12 5v14M5 12h14", "attachment icon must remain the existing compact plus");
@@ -218,7 +218,7 @@ try {
   assert.ok(homeState.toolsSubtitle.scrollWidth <= homeState.toolsSubtitle.clientWidth+2, "Tools subtitle must not be clipped with an ellipsis");
   assert.deepEqual(homeState.recentTitles, conversations.map(item=>item.title), "Home Recent must use REAL canonical conversation data");
   assert.deepEqual(homeState.recentDateTimes, conversations.map(item=>new Date(item.updated_at).toISOString()), "Home Recent timestamps must derive from stored canonical conversation times");
-  assert.ok(homeState.recentRowHeights.every(height=>height>=48&&height<=64), "Recent rows must use compact premium density");
+  assert.ok(homeState.recentRowHeights.every(height=>height>=42&&height<=56), "Recent rows must use compact premium density");
   assert.equal(await page.locator(".home-recent-menu").count(), conversations.length, "every Recent row must expose its real conversation options entry point");
   assert.equal(homeState.todayTitle, "Today");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today must continue to show real canonical plan items");
@@ -610,7 +610,7 @@ try {
     assert.ok(Math.abs(layout.composer.width-layout.home.width)<=4, "Home composer must share the same outer grid at " + width + "x" + height);
     assert.ok(layout.composer.left>=-1 && layout.composer.right<=layout.viewportWidth+1, "composer clips horizontally at " + width + "x" + height);
     assert.ok(layout.controls.filter(control => control.width>0).every(control => control.width>=43 && control.height>=43), "composer action hit targets too small at " + width + "x" + height);
-    assert.ok(layout.composer.height>=56 && layout.composer.height<=66, "idle Home composer height drifted from the approved design at " + width + "x" + height);
+    assert.ok(layout.composer.height>=52 && layout.composer.height<=60, "idle Home composer height drifted from the approved design at " + width + "x" + height);
     if (width === 320) {
       await page.screenshot({ path: "artifacts/personal-ai-home-320x568.png", fullPage: true });
       await page.click("#historyButton");
