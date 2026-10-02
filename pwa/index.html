@@ -1744,7 +1744,7 @@
     .timeline-status.error{background:rgba(150,43,65,.17)!important;border-color:rgba(232,89,119,.20)!important;color:#ff8ca5!important}
     .timeline-status.running{background:rgba(37,96,181,.18)!important;border-color:rgba(66,139,240,.20)!important;color:#79aef8!important}
     .timeline-event-menu-button{
-      width:38px;height:42px;min-width:38px;padding:0;border:0;border-radius:11px;background:transparent;color:#d7e1ef;
+      width:40px;height:42px;min-width:40px;padding:0;border:0;border-radius:11px;background:transparent;color:#d7e1ef;
       display:grid;place-items:center;cursor:pointer;font-size:13px;letter-spacing:1px;
     }
     .timeline-event-menu-button:hover,.timeline-event-menu-button:focus-visible{background:rgba(63,91,133,.20);color:#fff}
@@ -2823,7 +2823,7 @@ function setConversationDrawerMode(mode){
  $('conversationDrawer').setAttribute('aria-label',conversations?'Conversations':'Timeline');
  $('conversationsDrawerMode').classList.toggle('hidden',!conversations);
  $('timelineDrawerMode').classList.toggle('hidden',conversations);
- closeConversationRowMenu()
+ closeConversationRowMenu();closeTimelineEventMenu()
 }
 function openConversationsDrawer(){
  closeFloatingMenus();
@@ -2856,7 +2856,7 @@ function closeDrawer(returnToMain=true){
  const wasTimeline=$('conversationDrawer').dataset.mode==='timeline';
  const back=wasTimeline&&returnToMain&&conversationDrawerReturnToMain;
  conversationDrawerReturnToMain=false;++conversationSearchRequestEpoch;++timelineRequestEpoch;++conversationsDrawerEpoch;
- conversationManagerResults=null;closeConversationRowMenu();
+ conversationManagerResults=null;closeConversationRowMenu();closeTimelineEventMenu();
  $('conversationDrawer').classList.add('hidden');$('conversationDrawer').setAttribute('aria-hidden','true');
  syncConversationViewport();syncDrawerOverlay();
  if(back){openAppDrawer();setTimeout(()=>$('appConversations').focus({preventScroll:true}),25)}
