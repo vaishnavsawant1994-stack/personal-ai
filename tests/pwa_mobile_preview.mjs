@@ -147,6 +147,21 @@ try {
   await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   await page.waitForTimeout(500);
 
+  // The explicit demo mode shows realistic sample records without calling mutation APIs.
+  await page.evaluate(async()=>{todayScreenDemo=true;await openTodayScreen()});
+  await page.waitForFunction(()=>document.querySelectorAll("#todayTasksList .today-row").length===4);
+  assert.equal(await page.locator("#todayMeetingsList .today-row").count(),2,"Today demo must show two sample meetings");
+  assert.equal(await page.locator("#todayPlansList .today-row").count(),1,"Today demo must show one sample plan");
+  assert.equal(await page.locator("#todayDemoNotice").isVisible(),true,"sample data must be clearly labeled as preview-only");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-high").textContent(),"High");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-medium").textContent(),"Medium");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-low").textContent(),"Low");
+  assert.equal(await page.locator("#todayTasksList .today-task-check:not([disabled])").count(),0,"demo tasks must not persist sample completions");
+  assert.equal(await page.locator("#todayPlanCount").textContent(),"1");
+  await page.screenshot({path:"artifacts/personal-ai-today-demo-390x844.png",fullPage:true});
+  await page.click("#todayScreenClose");
+  await page.evaluate(()=>{todayScreenDemo=false});
+
   const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
     const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
