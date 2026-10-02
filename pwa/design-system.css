@@ -241,3 +241,33 @@ body #composer #sendButton svg {stroke:var(--text-primary)}
 .toast {transition:transform var(--motion-normal) var(--ease)}
 .toast:not(.show) {visibility:hidden}
 .toast.show {visibility:visible}
+
+
+/* Refined pass from owner visual review: glass header, quiet timeline rail and chat-native metadata. */
+.topbar { position:relative; isolation:isolate; box-sizing:border-box; min-width:0; background:linear-gradient(180deg,rgba(20,23,31,.74),rgba(12,15,21,.62)); border-bottom:1px solid var(--border-subtle); border-radius:0 0 var(--radius-lg) var(--radius-lg); box-shadow:0 5px 20px rgba(0,0,0,.14); backdrop-filter:blur(18px) saturate(120%); -webkit-backdrop-filter:blur(18px) saturate(120%); }
+.message-entry.assistant { display:flex; align-self:stretch; align-items:flex-start; padding-right:2%; }
+.message-entry.assistant .message-content-wrap { width:100%; }
+.message-avatar { display:none!important; }
+.message-meta { display:flex; align-items:center; gap:5px; flex-wrap:wrap; min-height:32px; margin-top:4px; font-size:12px; line-height:1.25; font-variant-numeric:tabular-nums; }
+.message-entry.assistant .message-meta,.message-entry.user .message-meta { align-self:flex-start; text-align:left; padding:0; }
+.message-entry.user .message-meta { align-self:flex-end; }
+.message-actions { display:inline-flex; align-items:center; gap:1px; margin:0; padding:0; opacity:.84; }
+.message-actions button { display:grid; place-items:center; width:34px; height:32px; min-width:34px; min-height:32px; padding:0; border:0; border-radius:var(--radius-sm); background:transparent; color:var(--text-tertiary); }
+.message-actions button svg { width:15px; height:15px; stroke-width:1.8; }
+.message-actions button:hover,.message-actions button:focus-visible { background:var(--surface-hover); color:var(--text-primary); }
+.state { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; clip-path:inset(50%)!important; white-space:nowrap!important; border:0!important; }
+body:not(.home-landing)[data-state] .presence .state,body.home-landing[data-state] .presence .state { display:block!important; }
+.timeline-day { position:sticky; top:0; z-index:1; margin:0; padding:15px 4px 8px; background:linear-gradient(180deg,var(--glass-solid) 65%,transparent); font-size:12px; font-weight:550; letter-spacing:.01em; color:var(--text-tertiary); }
+.timeline-entry { position:relative; grid-template-columns:12px minmax(0,1fr); gap:8px; padding:6px 2px 12px 4px; border-radius:0; }
+.timeline-entry:before { left:9px; background:var(--border-subtle); }
+.timeline-dot { width:7px; height:7px; margin-top:7px; border:0!important; background:var(--accent-hover)!important; box-shadow:0 0 0 3px var(--accent-soft)!important; }
+.timeline-content { padding:4px 2px 8px; border:0!important; border-bottom:1px solid var(--border-subtle)!important; border-radius:0!important; background:transparent!important; }
+.timeline-entry:hover .timeline-content { background:transparent!important; }
+.timeline-head { gap:8px; align-items:baseline; }
+.timeline-type { font-size:11px; font-weight:550; letter-spacing:.035em; text-transform:uppercase; color:var(--text-tertiary); }
+.timeline-clock { font-size:12px; font-variant-numeric:tabular-nums; color:var(--text-tertiary); }
+.timeline-title { margin:3px 0 2px; font-size:14px; font-weight:550; line-height:1.4; }
+.timeline-preview { margin:2px 0 4px; font-size:13px; line-height:1.45; color:var(--text-secondary); }
+.timeline-meta { margin-top:4px; font-size:12px; color:var(--text-tertiary); }
+.timeline-status { padding:0; border:0!important; background:transparent!important; font-size:11px; color:var(--text-tertiary)!important; }
+.timeline-day:first-child { padding-top:8px; }

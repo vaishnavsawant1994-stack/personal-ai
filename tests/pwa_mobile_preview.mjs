@@ -377,6 +377,8 @@ try {
     clocks:[...document.querySelectorAll(".timeline-clock")].map(n=>new Date(n.dateTime).getTime()),
     rect:document.querySelector("#conversationDrawer").getBoundingClientRect(),
     width:innerWidth,cssRight:getComputedStyle(document.querySelector("#conversationDrawer")).right,
+    cardBackground:getComputedStyle(document.querySelector(".timeline-content")).backgroundColor,
+    cardBorder:getComputedStyle(document.querySelector(".timeline-content")).borderTopWidth,
   }));
   assert.deepEqual(timelineState.filters,["All","Recent","Chats","Meetings","Tasks","Work","Reminders","Workflows","Done","Activity"]);
   assert.ok(timelineState.titles.includes("Complete weekly report"),"completed work must show recorded completion time");
@@ -385,6 +387,8 @@ try {
   assert.ok(timelineState.clocks.every((stamp,i,a)=>i===0||a[i-1]>=stamp),"mixed records must sort chronologically");
   assert.ok(Math.abs(timelineState.rect.right-timelineState.width)<=1&&timelineState.rect.left>0,"Timeline must stay right-aligned");
   assert.equal(timelineState.cssRight,"0px");
+  assert.equal(timelineState.cardBackground,"rgba(0, 0, 0, 0)","timeline records remain open rows rather than boxed cards");
+  assert.equal(timelineState.cardBorder,"0px","timeline rows do not draw card borders");
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
@@ -460,14 +464,17 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), true, "idle conversations must show the approved compact ACTIVE status under the Personal AI sphere");
-  assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
-  assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
+  const voiceStateTreatment=await page.locator(".state").evaluate(node=>({text:node.innerText,ariaLive:node.getAttribute("aria-live"),rect:node.getBoundingClientRect().toJSON(),clip:getComputedStyle(node).clipPath}));
+  assert.equal(voiceStateTreatment.ariaLive,"polite","voice state remains available to assistive technology");
+  assert.ok(/active/i.test(voiceStateTreatment.text)&&voiceStateTreatment.rect.width<=1&&voiceStateTreatment.clip.includes("inset"),"voice-state label is not visible below the sphere but remains screen-reader accessible: "+JSON.stringify(voiceStateTreatment));
+  assert.equal(await page.locator("#status").isVisible(),false,"voice details stay out of the conversation header");
+  const headerGlass=await page.locator(".topbar").evaluate(node=>({background:getComputedStyle(node).backgroundImage,blur:getComputedStyle(node).backdropFilter,webkitBlur:getComputedStyle(node).webkitBackdropFilter}));
+  assert.ok(headerGlass.background.includes("linear-gradient")&&/blur\(/.test(headerGlass.blur||headerGlass.webkitBlur),"top bar must use the shared subtle glass treatment");
   assert.equal(chatState.messageCount, 2);
   assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
   assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
   assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
-  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant .message-avatar").count(),0,"individual AI responses do not repeat a purple orb avatar");
   assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
   assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
   const messageVisual=await page.evaluate(()=>({
@@ -475,13 +482,14 @@ try {
     assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
     user:document.querySelector(".message.user").getBoundingClientRect(),
     stream:document.querySelector("#messageStream").getBoundingClientRect(),
-    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
   }));
   assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
   assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
-  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
+  assert.deepEqual(await page.locator(".message-entry.assistant .message-meta").evaluate(node=>[...node.children].map(child=>child.className)),["message-time","message-actions"],"assistant actions sit directly beside the canonical time");
+  assert.equal(await page.locator('.message-entry.assistant .message-actions button[aria-label="Copy message"]').count(),1);
+  assert.equal(await page.locator('.message-entry.assistant .message-actions button[aria-label="Share response"]').count(),1);
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
   assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
