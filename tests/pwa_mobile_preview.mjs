@@ -760,25 +760,43 @@ try {
   await page.click("#appConversations");
   await page.click("#newConversation");
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
+  const sharedChatChrome=await page.evaluate(()=>({
+    header:document.querySelector(".topbar").getBoundingClientRect(),
+    menu:document.querySelector("#historyButton").getBoundingClientRect(),
+    timeline:document.querySelector("#ownerButton").getBoundingClientRect(),
+    headerPosition:getComputedStyle(document.querySelector(".topbar")).position,
+    headerBackground:getComputedStyle(document.querySelector(".topbar")).backgroundColor,
+    headerBorder:getComputedStyle(document.querySelector(".topbar")).borderTopWidth,
+    sphere:document.querySelector(".topbar .core-stage").getBoundingClientRect(),
+    composer:document.querySelector("#composer").getBoundingClientRect(),
+    composerPosition:getComputedStyle(document.querySelector("#composer")).position
+  }));
+  assert.equal(sharedChatChrome.headerPosition,"fixed","conversation topbar must use the same fixed shared topbar");
+  assert.equal(sharedChatChrome.headerBackground,"rgba(0, 0, 0, 0)","conversation topbar must use the same transparent format");
+  assert.equal(sharedChatChrome.headerBorder,"0px","conversation topbar must not add a panel border");
+  assert.ok(Math.abs(sharedChatChrome.menu.left-sharedChatChrome.header.left)<=1,"conversation hamburger must keep the shared left-edge alignment");
+  assert.ok(Math.abs(sharedChatChrome.timeline.right-sharedChatChrome.header.right)<=1,"conversation Timeline control must keep the shared right-edge alignment");
+  assert.ok(sharedChatChrome.sphere.width>=45&&sharedChatChrome.sphere.width<=47,"conversation sphere must keep the shared compact topbar scale");
+  assert.equal(sharedChatChrome.composerPosition,"fixed","conversation SMS composer must use the same fixed bottom format");
+  assert.ok(sharedChatChrome.composer.height>=52&&sharedChatChrome.composer.height<=56,"conversation SMS composer must match the Home compact pill height");
 
-  // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
+  // Shared composer contract: focus and a single line stay in the same compact SMS pill everywhere.
   await page.locator("#message").focus();
-  assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("is-expanded")), "focus must expand the composer even before typing");
-  const emptyExpanded = await page.evaluate(() => ({
+  const emptyFocused = await page.evaluate(() => ({
     composer: document.querySelector("#composer").getBoundingClientRect(),
     editor: document.querySelector("#message").getBoundingClientRect(),
-    attach: document.querySelector("#attachmentButton").getBoundingClientRect(),
-    mic: document.querySelector("#micButton").getBoundingClientRect(),
+    expanded: document.querySelector("#composer").classList.contains("is-expanded"),
+    position: getComputedStyle(document.querySelector("#composer")).position,
+    viewportHeight: innerHeight,
   }));
-  assert.ok(emptyExpanded.composer.height >= 105, "focused composer must extend upward");
-  assert.ok(emptyExpanded.attach.top >= emptyExpanded.editor.bottom - 3 && emptyExpanded.mic.top >= emptyExpanded.editor.bottom - 3, "attachment and microphone must move below the editor");
-  await page.locator("#historyButton").focus();
-  await page.waitForFunction(() => !document.querySelector("#composer").classList.contains("is-expanded"));
-  assert.ok(await page.locator("#composer").evaluate(node => node.getBoundingClientRect().height <= 54), "empty unfocused composer must collapse to the small SMS bar");
+  assert.equal(emptyFocused.expanded,false,"focus alone must not enlarge the shared SMS composer");
+  assert.equal(emptyFocused.position,"fixed","shared SMS composer must be fixed to the viewport");
+  assert.ok(emptyFocused.composer.height>=52&&emptyFocused.composer.height<=56,"focused empty shared composer must keep the compact pill height");
+  assert.ok(emptyFocused.composer.bottom>=emptyFocused.viewportHeight-1&&emptyFocused.composer.bottom<=emptyFocused.viewportHeight+1,"shared composer must remain flush to the viewport bottom");
   await page.fill("#message", "Hello from browser QA");
   assert.ok(await page.locator("#composer").evaluate(node => node.classList.contains("has-text")), "text input must show send state");
+  assert.equal(await page.locator("#composer").evaluate(node => node.classList.contains("is-expanded")),false,"single-line text must keep the same compact SMS box");
   assert.ok(await page.locator("#sendButton").isVisible(), "send control must appear when typing");
-
   assert.equal(await page.locator("#micButton").isVisible(), false, "mic icon must yield to send while typing");
   const typedLayout = await page.evaluate(() => ({
     viewportHeight: innerHeight,
@@ -787,8 +805,8 @@ try {
     plus: document.querySelector("#attachmentButton").getBoundingClientRect(),
     send: document.querySelector("#sendButton").getBoundingClientRect(),
   }));
-  assert.ok(typedLayout.plus.top >= typedLayout.editor.bottom - 3 && typedLayout.send.top >= typedLayout.editor.bottom - 3, "typing must place attachment and send on the lower toolbar");
-  assert.ok(typedLayout.form.bottom <= typedLayout.viewportHeight + 1, "expanded composer must remain visible when focused");
+  assert.ok(typedLayout.form.height>=52&&typedLayout.form.height<=56,"single-line typed composer must remain the compact shared pill");
+  assert.ok(typedLayout.form.bottom <= typedLayout.viewportHeight + 1, "shared composer must remain visible while focused");
   const singleLineEditorHeight = typedLayout.editor.height;
   await page.fill("#message", "First line\nSecond line\nThird line\nFourth line");
   const multiline = await page.evaluate(() => ({
@@ -800,6 +818,7 @@ try {
     send: document.querySelector("#sendButton").getBoundingClientRect(),
   }));
   assert.ok(multiline.editor.height > singleLineEditorHeight + 20, "multiline text must expand the editor vertically");
+  assert.ok(multiline.form.height>=105,"only multiline content may expand the shared composer");
   assert.ok(multiline.plus.top >= multiline.editor.bottom - 3 && multiline.send.top >= multiline.editor.bottom - 3, "icons must remain in the bottom row with multiple lines");
   assert.ok(multiline.form.bottom <= multiline.viewportHeight + 1, "multiline editor must not push the composer off-screen");
   await page.locator("#message").press("Shift+Enter");
