@@ -310,7 +310,8 @@ try {
   const drawerState = await page.evaluate(() => ({
     labels: [...document.querySelectorAll("#appDrawer .sidebar-nav-row span")].map(node => node.textContent.trim()),
     chatTitles: [...document.querySelectorAll("#sidebarChatList .sidebar-chat-row span")].map(node => node.textContent.trim()),
-    rect: (() => { const r=document.querySelector("#appDrawer").getBoundingClientRect(); return {left:r.left,width:r.width}; })(),
+    rect: (() => { const r=document.querySelector("#appDrawer").getBoundingClientRect(); return {left:r.left,right:r.right,width:r.width}; })(),
+    viewport: innerWidth,
     footer: (() => { const r=document.querySelector("#sidebarAccountButton").getBoundingClientRect(); return {bottom:r.bottom,height:r.height}; })(),
     expanded: document.querySelector("#historyButton").getAttribute("aria-expanded"),
   }));
@@ -319,7 +320,7 @@ try {
   }
   assert.deepEqual(drawerState.chatTitles, conversations.map(item=>item.title), "main sidebar must display real canonical conversation history");
   assert.equal(drawerState.expanded, "true", "hamburger aria-expanded must track the sidebar");
-  assert.ok(drawerState.rect.width <= 390 && drawerState.rect.left >= -1, "sidebar must fit mobile viewport");
+  assert.ok(drawerState.rect.left >= -1 && drawerState.rect.right <= drawerState.viewport + 1, "sidebar must stay within the mobile viewport: " + JSON.stringify(drawerState));
   assert.ok(drawerState.footer.bottom <= 845 && drawerState.footer.height >= 44, "account actions must remain visible and touchable");
   assert.ok(await page.locator("#sidebarNewChat").isVisible(), "new chat must be a primary action");
   assert.ok(await page.locator("#sidebarSearchToggle").isVisible(), "chat search must be a primary action");
