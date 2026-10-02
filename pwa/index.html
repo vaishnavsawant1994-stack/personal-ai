@@ -1578,7 +1578,7 @@
     .timeline-drawer-mode.hidden{display:none!important}
     .conversation-drawer[data-mode="timeline"]{inset:0 0 0 auto!important;left:auto!important;right:0!important}
     @media(max-width:350px){
-      .conversation-drawer[data-mode="conversations"]{width:min(92vw,340px)!important}
+      .conversation-drawer[data-mode="conversations"]{width:min(92vw,calc(100vw - 18px),340px)!important}
       .conversations-drawer-mode{padding-left:15px;padding-right:15px}
       .conversations-drawer-header h2{font-size:27px}
       .conversations-row-open{grid-template-columns:40px minmax(0,1fr) auto;gap:8px;padding-left:9px}
