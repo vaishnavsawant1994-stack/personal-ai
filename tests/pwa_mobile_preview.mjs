@@ -768,6 +768,7 @@ try {
       await page.click("#closeAppDrawer");
       await page.evaluate(()=>openConversationsDrawer());
       await page.waitForFunction(expected=>document.querySelectorAll(".conversations-row").length===expected,conversations.length);
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").getBoundingClientRect().left>=-1);
       const conversations320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
