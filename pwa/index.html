@@ -1703,6 +1703,9 @@
       border:2px solid rgba(5,12,21,.96)!important;border-radius:50%!important;background:#1f7dff!important;
       box-shadow:0 0 0 1px rgba(45,133,255,.55),0 0 10px rgba(31,125,255,.20)!important;
     }
+    .timeline-dot{
+      position:absolute!important;left:8px!important;top:20px!important;margin:0!important;
+    }
     .timeline-entry[data-status="done"] .timeline-dot{background:#22c985!important;box-shadow:0 0 0 1px rgba(34,201,133,.58),0 0 10px rgba(34,201,133,.16)!important}
     .timeline-entry[data-category="meeting"][data-status="pending"] .timeline-dot,
     .timeline-entry[data-status="overdue"] .timeline-dot{background:#f0aa24!important;box-shadow:0 0 0 1px rgba(240,170,36,.58),0 0 10px rgba(240,170,36,.16)!important}
@@ -1828,7 +1831,7 @@
       .timeline-day{margin:10px 0 8px!important;padding:9px 12px!important;border-radius:12px!important;font-size:17px!important}
       .timeline-entry{grid-template-columns:26px minmax(0,1fr)!important;gap:7px!important;padding-bottom:6px!important}
       .timeline-entry:before{left:12px!important}
-      .timeline-dot{margin:19px 0 0 7px!important}
+      .timeline-dot{left:7px!important;top:19px!important;margin:0!important}
       .timeline-content{min-height:100px!important;grid-template-columns:42px minmax(0,1fr) 36px!important;gap:9px!important;padding:10px 8px 9px 10px!important;border-radius:16px!important;background:rgba(12,23,36,.74)!important;border-color:rgba(100,150,210,.105)!important}
       .timeline-event-icon{width:42px!important;height:42px!important;border-radius:12px!important}
       .timeline-event-icon svg{width:20px!important;height:20px!important}
