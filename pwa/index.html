@@ -1208,7 +1208,7 @@
       height:100dvh!important;
       min-height:100dvh!important;
       padding-top:calc(var(--home-fixed-top) + var(--home-fixed-header-h) + 4px)!important;
-      padding-bottom:calc(var(--home-fixed-composer-h) + env(safe-area-inset-bottom))!important;
+      padding-bottom:var(--home-fixed-composer-h)!important;
       overflow:hidden!important;
     }
     body.home-landing .presence{
@@ -1235,18 +1235,18 @@
       max-width:var(--home-max)!important;
       margin:0 auto!important;
       align-self:auto!important;
-      padding-bottom:calc(4px + env(safe-area-inset-bottom))!important;
+      padding-bottom:4px!important;
     }
     body.home-landing #composer:not(.is-expanded){
-      height:calc(var(--home-fixed-composer-h) + env(safe-area-inset-bottom))!important;
-      min-height:calc(var(--home-fixed-composer-h) + env(safe-area-inset-bottom))!important;
-      max-height:calc(var(--home-fixed-composer-h) + env(safe-area-inset-bottom))!important;
+      height:var(--home-fixed-composer-h)!important;
+      min-height:var(--home-fixed-composer-h)!important;
+      max-height:var(--home-fixed-composer-h)!important;
     }
     body.home-landing #composer.is-expanded{
       bottom:0!important;
       height:auto!important;
-      min-height:calc(110px + env(safe-area-inset-bottom))!important;
-      max-height:min(50dvh,calc(240px + env(safe-area-inset-bottom)))!important;
+      min-height:110px!important;
+      max-height:min(50dvh,240px)!important;
     }
     @media(max-width:350px){
       body.home-landing{--home-fixed-x:12px}
@@ -2109,13 +2109,16 @@ $('micButton').onclick=async()=>{if(speaking||(synth&&synth.speaking)){await int
 function resizeComposerEditor(){
   const form=$('composer'),editor=$('message'),hasText=Boolean(editor.value.trim());
   form.classList.toggle('has-text',hasText);
-  const expanded=hasText||document.activeElement===editor;
-  form.classList.toggle('is-expanded',expanded);
   editor.style.height='auto';
+  const contentHeight=editor.scrollHeight;
+  const onHome=document.body.classList.contains('home-landing');
+  const focused=document.activeElement===editor;
+  const multiline=hasText&&(editor.value.includes('\n')||contentHeight>32);
+  const expanded=onHome?multiline:(hasText||focused);
+  form.classList.toggle('is-expanded',expanded);
   if(!expanded){editor.style.height='24px';editor.style.overflowY='hidden';return}
   const visibleHeight=window.visualViewport?.height||window.innerHeight;
   const maxEditorHeight=Math.min(144,Math.max(52,Math.floor(visibleHeight*.24)));
-  const contentHeight=editor.scrollHeight;
   editor.style.height=Math.min(maxEditorHeight,Math.max(40,contentHeight))+'px';
   editor.style.overflowY=contentHeight>maxEditorHeight?'auto':'hidden';
 }
