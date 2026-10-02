@@ -1869,7 +1869,58 @@
     @media(min-width:900px){.today-screen{padding-top:32px;padding-bottom:32px}.today-shell{min-height:auto;max-width:860px;padding:24px 28px 28px}}
     @media(prefers-reduced-motion:no-preference){.today-screen{animation:todayIn .22s cubic-bezier(.2,.8,.2,1)}@keyframes todayIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
 
-</style>
+
+    /* Compact, wide presentation refinements across the three approved mobile surfaces. */
+    .conversation-drawer[data-mode="conversations"]{width:min(90vw,370px)!important}
+    .conversation-drawer[data-mode="timeline"]{width:min(90vw,390px)!important}
+    .conversations-drawer-mode{padding-left:16px;padding-right:16px}
+    .conversations-drawer-header{min-height:44px;margin-bottom:15px}
+    .conversations-drawer-header h2{font-size:28px}
+    .conversations-new-chat{height:54px;min-height:54px;border-radius:18px;font-size:16px}
+    .conversations-search-wrap{height:48px;margin-top:14px;border-radius:17px}
+    .conversations-manager-list{margin-top:22px}
+    .conversations-group-title{font-size:19px;margin-top:21px}
+    .conversations-row{min-height:70px;margin-bottom:6px;border-radius:16px}
+    .conversations-row-open{grid-template-columns:42px minmax(0,1fr) auto;gap:9px;padding-top:9px;padding-bottom:9px}
+    .conversations-row-icon{width:40px;height:40px;border-radius:12px}
+    .conversations-row-copy strong{font-size:15px}.conversations-row-preview{font-size:12px;margin-top:4px}
+    .timeline-top{padding-left:16px;padding-right:16px}
+    .timeline-title-block h2{font-size:27px}
+    .timeline-plan-button{min-height:45px!important;font-size:14px!important}
+    .timeline-search-wrap{height:49px;margin-top:13px}
+    .conversation-drawer[data-mode="timeline"] .conversation-filter{min-height:37px!important}
+    .conversation-count{margin-top:8px!important;font-size:12.5px!important}
+    .timeline-content{min-height:98px!important;grid-template-columns:42px minmax(0,1fr) 36px!important;gap:8px!important;padding:10px 8px 9px 10px!important}
+    .timeline-event-icon{width:42px;height:42px}
+    .timeline-title{font-size:15px!important}.timeline-preview{font-size:12px!important}
+    .timeline-meta{margin-top:6px!important;min-height:22px!important}
+    .timeline-status{min-height:22px!important;font-size:11px!important}
+    .timeline-day{font-size:17px!important;padding:9px 12px!important}
+    .demo-data-note{margin:9px 1px 0;padding:6px 9px;border:1px solid rgba(65,145,255,.22);border-radius:10px;background:rgba(20,75,145,.14);color:#a9caff;font-size:11px;line-height:1.2}
+    .demo-data-note.hidden{display:none!important}
+    .today-screen{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+    .today-shell{padding:16px 18px 18px}
+    .today-screen-title h1{font-size:28px}
+    .today-tabs{height:54px;margin-top:20px}
+    .today-summary{gap:8px;margin-top:18px}.today-summary-card{min-height:82px;padding:10px;grid-template-columns:40px minmax(0,1fr) 13px;gap:8px}
+    .today-summary-icon{width:40px;height:40px}.today-summary-copy strong{font-size:20px}
+    .today-section{margin-top:26px}.today-section-head h2{font-size:22px}
+    .today-row{min-height:82px;grid-template-columns:42px minmax(0,1fr) 42px;gap:8px;padding:9px 8px 9px 11px;border-radius:16px}
+    .today-row-icon{width:42px;height:42px}.today-row-title{font-size:15px}
+    @media(max-width:360px){
+      .conversation-drawer[data-mode="conversations"]{width:min(92vw,calc(100vw - 18px),340px)!important}
+      .conversations-drawer-mode{padding-left:14px;padding-right:14px}
+      .conversations-row-open{grid-template-columns:38px minmax(0,1fr) auto;gap:8px;padding-left:8px}
+      .conversations-row-icon{width:38px;height:38px}
+      .timeline-top{padding-left:14px;padding-right:14px}
+      .timeline-content{grid-template-columns:38px minmax(0,1fr) 34px!important;gap:7px!important}
+      .timeline-event-icon{width:38px;height:38px}
+      .today-shell{padding-left:14px;padding-right:14px}
+      .today-summary-card{grid-template-columns:36px minmax(0,1fr) 10px;gap:6px;padding:8px}
+      .today-summary-icon{width:36px;height:36px}
+    }
+
+  </style>
 </head>
 <body>
 <main class="app-shell">
@@ -2027,6 +2078,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.2"/><path d="m15.5 15.5 4.3 4.3"/></svg>
       <input id="conversationManagerSearch" type="search" autocomplete="off" placeholder="Search conversations…" aria-label="Search conversations"/>
     </label>
+    <div id="conversationsDemoNote" class="demo-data-note hidden" role="status">Preview data · sample conversations; no changes are saved</div>
     <p id="conversationManagerStatus" class="conversations-sr-status" aria-live="polite">Loading conversations…</p>
     <div id="conversationManagerList" class="conversations-manager-list" role="list" aria-label="Your conversations"></div>
   </section>
@@ -2047,6 +2099,7 @@
         <button class="conversation-filter" type="button" data-conversation-filter="meeting" aria-pressed="false">Meetings</button>
         <button class="conversation-filter" type="button" data-conversation-filter="task" aria-pressed="false">Tasks</button>
       </div>
+      <div id="timelineDemoNote" class="demo-data-note hidden" role="status">Preview data · sample timeline; no changes are saved</div>
       <p id="conversationCount" class="conversation-count" aria-live="polite">Loading your timeline…</p>
     </div>
     <div id="conversationList" class="conversation-list timeline-list" role="list" aria-label="Your activity timeline"></div>
@@ -2301,7 +2354,7 @@ function renderHomeRecent(items=conversationCache){
   const time=document.createElement('time');time.className='home-recent-time';
   const date=conversationDate(item);if(date)time.dateTime=date.toISOString();time.textContent=homeRecentTimeLabel(item);
   open.append(icon,copy,time);
-  open.onclick=()=>openConversation(item.id).catch(error=>showToast(error.message));
+  open.onclick=()=>personalAiDemoMode?showToast('Sample conversation preview only — no data is opened or changed'):openConversation(item.id).catch(error=>showToast(error.message));
   const menu=document.createElement('button');menu.type='button';menu.className='home-recent-menu';
   menu.setAttribute('aria-label','Conversation options for '+(item.title||'conversation'));menu.innerHTML='<span aria-hidden="true">•••</span>';
   menu.onclick=async event=>{
@@ -2384,8 +2437,37 @@ function closeTodayForm(){
 
 
 let todayScreenFilter='all',todayScreenItems=[],todayScreenPlans=[];
-let todayScreenDemo=new URLSearchParams(window.location.search).get('todayDemo')==='1';
+let personalAiDemoMode=new URLSearchParams(window.location.search).get('uiDemo')==='1'||new URLSearchParams(window.location.search).get('todayDemo')==='1';
+let todayScreenDemo=personalAiDemoMode;
 function todayDemoAt(hour,minute=0){const d=new Date();d.setHours(hour,minute,0,0);return d.toISOString()}
+function todayDemoAtOffset(offset,hour=10,minute=0){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+offset);d.setHours(hour,minute,0,0);return d.toISOString()}
+function personalAiDemoConversations(){
+ return[
+  {id:'demo-conversation-1',title:'Project update discussion',preview:'Discussed the latest product updates and launch priorities…',updated_at:todayDemoAt(14,27)},
+  {id:'demo-conversation-2',title:'Marketing strategy plan',preview:'Created a go-to-market strategy for Q4…',updated_at:todayDemoAt(11,40)},
+  {id:'demo-conversation-3',title:'Ideas for mobile app',preview:'Explored new features and design directions…',updated_at:todayDemoAt(9,15)},
+  {id:'demo-conversation-4',title:'Weekly meeting notes',preview:'Summarized team sync and action items…',updated_at:todayDemoAt(8,50)},
+  {id:'demo-conversation-5',title:'Content creation plan',preview:'Social media calendar and content ideas…',updated_at:todayDemoAtOffset(-1,16)},
+  {id:'demo-conversation-6',title:'UI/UX improvements',preview:'Design feedback and implementation notes…',updated_at:todayDemoAtOffset(-1,13)},
+  {id:'demo-conversation-7',title:'Product roadmap',preview:'Q4 goals, milestones and key features…',updated_at:todayDemoAtOffset(-1,10)},
+  {id:'demo-conversation-8',title:'Research on AI tools',preview:'Comparison of different AI tools for the workflow…',updated_at:todayDemoAtOffset(-3,15)},
+  {id:'demo-conversation-9',title:'Client meeting',preview:'Meeting notes, decisions and next steps…',updated_at:todayDemoAtOffset(-4,11)},
+  {id:'demo-conversation-10',title:'Travel itinerary',preview:'Planning the route, stays and activities…',updated_at:todayDemoAtOffset(-5,9)},
+  {id:'demo-conversation-11',title:'Team retrospective',preview:'Key takeaways and action items…',updated_at:todayDemoAtOffset(-6,16)}
+ ]
+}
+function personalAiDemoTimeline(){
+ const today=todayDemoData();
+ return{
+  items:[
+   ...today.items,
+   {id:'demo-plan-timeline',kind:'task',context:'personal-ai:today:work',title:'Q4 strategy plan',description:'Work on key goals and milestones',due_at:todayDemoAt(16),created_at:todayDemoAt(8),updated_at:todayDemoAt(8),status:'scheduled'},
+   {id:'demo-yesterday-task',kind:'task',context:'personal-ai:today:task',title:'Review design feedback',preview:'Go through the latest UI/UX feedback…',due_at:todayDemoAtOffset(-1,10,22),created_at:todayDemoAtOffset(-1,9),updated_at:todayDemoAtOffset(-1,10,22),completed_at:todayDemoAtOffset(-1,10,22),status:'completed'}
+  ],
+  activities:[{id:'demo-activity-image',category:'activity',kind:'activity',label:'Activity',action:'image_generator_used',summary:'Generated 4 concept images for the mobile app…',created_at:todayDemoAt(13,20),status:'completed'}],
+  runs:[{id:'demo-workflow-run',workflow_title:'Morning planning workflow',status:'completed',created_at:todayDemoAt(7,30),updated_at:todayDemoAt(8,5),current_step:3}]
+ }
+}
 function todayDemoData(){return{items:[
  {id:'demo-task-1',kind:'task',context:'personal-ai:today:task',title:'Review design feedback',due_at:todayDemoAt(10),status:'scheduled',priority:'high'},
  {id:'demo-task-2',kind:'task',context:'personal-ai:today:task',title:'Update product documentation',due_at:todayDemoAt(13),status:'scheduled',priority:'medium'},
@@ -2576,8 +2658,9 @@ function conversationsDrawerSkeleton(){
 function renderConversationsDrawer(){
  const host=$('conversationManagerList');if(!host)return;
  host.replaceChildren();closeConversationRowMenu();
+ $('conversationsDemoNote')?.classList.toggle('hidden',!personalAiDemoMode);
  const status=$('conversationManagerStatus');
- if(!sessionActive){
+ if(!sessionActive&&!personalAiDemoMode){
   status.textContent='Sign in required';
   const empty=document.createElement('div');empty.className='conversations-empty-state';
   empty.innerHTML='<strong>Sign in to view conversations</strong><span>Your private conversation history will appear here after authentication.</span>';
@@ -2616,10 +2699,11 @@ function renderConversationsDrawer(){
   if(group!==previous){
    previous=group;const heading=document.createElement('h3');heading.className='conversations-group-title';heading.textContent=group;host.append(heading)
   }
-  const row=document.createElement('article');row.className='conversations-row'+(item.id===currentConversationId?' active':'');row.setAttribute('role','listitem');row.dataset.conversationId=item.id;
+  const demoActiveId='demo-conversation-1',isSelected=personalAiDemoMode?item.id===demoActiveId:item.id===currentConversationId;
+  const row=document.createElement('article');row.className='conversations-row'+(isSelected?' active':'');row.setAttribute('role','listitem');row.dataset.conversationId=item.id;
   const open=document.createElement('button');open.type='button';open.className='conversations-row-open';
   open.setAttribute('aria-label','Open '+(item.title||'Conversation'));
-  if(item.id===currentConversationId)open.setAttribute('aria-current','page');
+  if(isSelected)open.setAttribute('aria-current','page');
   const icon=document.createElement('span');icon.className='conversations-row-icon';icon.innerHTML=conversationIconSvg();icon.setAttribute('aria-hidden','true');
   const copy=document.createElement('span');copy.className='conversations-row-copy';
   const title=document.createElement('strong');title.textContent=item.title||'Conversation';
@@ -2632,13 +2716,19 @@ function renderConversationsDrawer(){
   const menu=document.createElement('button');menu.type='button';menu.className='conversation-row-menu-button';
   menu.setAttribute('aria-label','Conversation options for '+(item.title||'Conversation'));
   menu.setAttribute('aria-haspopup','menu');menu.innerHTML='<span aria-hidden="true">•••</span>';
-  menu.onclick=event=>{event.stopPropagation();openConversationRowMenu(item,menu)};
+  menu.onclick=event=>{event.stopPropagation();if(personalAiDemoMode)showToast('Preview sample only — no changes are saved');else openConversationRowMenu(item,menu)};
   row.append(open,menu);host.append(row)
  }
 }
 async function refreshConversationsDrawer(query=''){
  const epoch=++conversationsDrawerEpoch;
  conversationsDrawerLoading=true;conversationsDrawerError='';renderConversationsDrawer();
+ if(personalAiDemoMode){
+  const needle=String(query||'').trim().toLowerCase(),all=personalAiDemoConversations();
+  conversationsDrawerResults=all.filter(item=>(item.title+' '+item.preview).toLowerCase().includes(needle));
+  if(!needle){conversationCache=all.slice();renderHomeRecent(conversationCache)}
+  conversationsDrawerLoading=false;renderConversationsDrawer();return
+ }
  try{
   const data=await api('/conversations?q='+encodeURIComponent(query)+'&limit=100');
   if(epoch!==conversationsDrawerEpoch)return;
@@ -2841,8 +2931,9 @@ function timelineEntries(){
 }
 function renderUnifiedTimeline(){
  const host=$('conversationList');host.replaceChildren();closeTimelineEventMenu();
+ $('timelineDemoNote')?.classList.toggle('hidden',!personalAiDemoMode);
  const count=$('conversationCount');
- if(!sessionActive){
+ if(!sessionActive&&!personalAiDemoMode){
   count.textContent='Sign in required';
   const p=document.createElement('div');p.className='timeline-empty';p.innerHTML='<strong>Sign in to view timeline</strong><span>Your chats, plans and activity will appear here after authentication.</span>';host.append(p);return
  }
@@ -2962,9 +3053,16 @@ function setConversationFilter(filter){
 }
 async function refreshUnifiedTimeline(query=''){
  const epoch=++timelineRequestEpoch;
- if(!sessionActive){
+ if(!sessionActive&&!personalAiDemoMode){
   conversationManagerResults=[];conversationCache=[];timelineItems=[];timelineAudit=[];timelineRuns=[];
   timelineAvailable={conversations:false,plans:false,activity:false,workflows:false};timelineLoaded=true;renderUnifiedTimeline();return
+ }
+ if(personalAiDemoMode){
+  const allConversations=personalAiDemoConversations(),needle=String(query||'').trim().toLowerCase();
+  conversationCache=allConversations;
+  conversationManagerResults=needle?allConversations.filter(item=>(item.title+' '+item.preview).toLowerCase().includes(needle)):null;
+  const demo=personalAiDemoTimeline();timelineItems=demo.items;timelineAudit=demo.activities;timelineRuns=demo.runs;
+  timelineAvailable={conversations:true,plans:true,activity:true,workflows:true};timelineLoaded=true;renderUnifiedTimeline();return
  }
  timelineLoaded=false;renderUnifiedTimeline();
  const requests=await Promise.allSettled([
