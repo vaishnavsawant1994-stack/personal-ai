@@ -219,6 +219,8 @@ try {
   assert.ok(homeState.headerVisual.boxShadow==="none"||homeState.headerVisual.boxShadow==="", "Home top row must not retain the old panel shadow");
   assert.ok(homeState.headerVisual.backdropFilter==="none"||homeState.headerVisual.backdropFilter==="", "Home top row must not retain glass blur");
   assert.ok(Math.abs(homeState.menuButton.width-homeState.timelineButton.width)<1 && Math.abs(homeState.menuButton.height-homeState.timelineButton.height)<1, "menu and Timeline controls must use identical geometry");
+  assert.ok(Math.abs(homeState.menuButton.left-homeState.header.left)<=1,"Home hamburger must align to the left edge of the top row with no extra inset");
+  assert.ok(Math.abs(homeState.timelineButton.right-homeState.header.right)<=1,"Home Timeline control must align to the right edge of the top row with no extra inset");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "Home header controls must preserve accessible touch targets");
   assert.ok(homeState.core.width >= 46 && homeState.core.width <= 58, "Home sphere must use the approved compact scale");
   assert.equal(homeState.toolsSubtitle.text, "Apps & workflows", "Tools subtitle must render fully");
@@ -627,6 +629,13 @@ try {
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
     assert.ok(layout.composer.bottom >= layout.viewportHeight - 1, "Home composer must remain flush to the bottom at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
+    const edgeControls=await page.evaluate(()=>({
+      header:document.querySelector(".topbar").getBoundingClientRect(),
+      left:document.querySelector("#historyButton").getBoundingClientRect(),
+      right:document.querySelector("#ownerButton").getBoundingClientRect()
+    }));
+    assert.ok(Math.abs(edgeControls.left.left-edgeControls.header.left)<=1,"hamburger gained extra left inset at "+width+"x"+height);
+    assert.ok(Math.abs(edgeControls.right.right-edgeControls.header.right)<=1,"Timeline control gained extra right inset at "+width+"x"+height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
     assert.ok(layout.cards.length === 4, "four Home cards required");
     assert.ok(layout.cards.every(card => Math.abs(card.height-layout.cards[0].height)<1 && Math.abs(card.width-layout.cards[0].width)<1), "Home card dimensions mismatch at " + width + "x" + height);
