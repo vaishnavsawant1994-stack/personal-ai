@@ -1810,6 +1810,14 @@
     body.has-conversation:not(.home-landing) .topbar .header-core .core-stage{
       width:46px!important;height:46px!important;min-width:46px!important;max-width:46px!important;flex:0 0 46px!important;
     }
+
+    /* Preserve the frozen compact composer while allowing real multiline text
+       to use the height measured by resizeComposerEditor(). */
+    #composer.is-expanded textarea#message{
+      height:var(--composer-editor-height,40px)!important;
+      min-height:40px!important;
+      max-height:144px!important;
+    }
 </style>
 </head>
 <body>
@@ -2948,10 +2956,16 @@ function resizeComposerEditor(){
   const multiline=hasText&&(editor.value.includes('\n')||contentHeight>32);
   const expanded=multiline;
   form.classList.toggle('is-expanded',expanded);
-  if(!expanded){editor.style.height='24px';editor.style.overflowY='hidden';return}
+  if(!expanded){
+    editor.style.height='24px';
+    form.style.setProperty('--composer-editor-height','24px');
+    editor.style.overflowY='hidden';return
+  }
   const visibleHeight=window.visualViewport?.height||window.innerHeight;
   const maxEditorHeight=Math.min(144,Math.max(52,Math.floor(visibleHeight*.24)));
-  editor.style.height=Math.min(maxEditorHeight,Math.max(40,contentHeight))+'px';
+  const editorHeight=Math.min(maxEditorHeight,Math.max(40,contentHeight));
+  editor.style.height=editorHeight+'px';
+  form.style.setProperty('--composer-editor-height',editorHeight+'px');
   editor.style.overflowY=contentHeight>maxEditorHeight?'auto':'hidden';
 }
 $('composer').onsubmit=event=>{
