@@ -158,6 +158,11 @@ try {
   assert.equal(await page.locator("#todayTasksList .today-chip.priority-low").textContent(),"Low");
   assert.equal(await page.locator("#todayTasksList .today-task-check:not([disabled])").count(),0,"demo tasks must not persist sample completions");
   assert.equal(await page.locator("#todayPlanCount").textContent(),"1");
+  const demoItemsBeforeAdd=everydayItems.length;
+  await page.click("#todayScreenAdd");
+  assert.equal(await page.locator("#todayAddSheet").isVisible(),false,"Today sample data must not open a real creation flow");
+  await page.locator("#todayTasksList .today-task-check").first().click({force:true});
+  assert.equal(everydayItems.length,demoItemsBeforeAdd,"Today demo actions must not create or complete real records");
   await page.screenshot({path:"artifacts/personal-ai-today-demo-390x844.png",fullPage:true});
   await page.click("#todayScreenClose");
   await page.evaluate(()=>{todayScreenDemo=false});
@@ -173,6 +178,9 @@ try {
   await page.fill("#conversationManagerSearch","");
   await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===11);
   await page.screenshot({path:"artifacts/personal-ai-conversations-demo-390x844.png",fullPage:true});
+  const demoCreateCount=conversationCreateCount;
+  await page.click("#newConversation");
+  assert.equal(conversationCreateCount,demoCreateCount,"Conversations demo New chat must not create a real conversation");
   await page.click("#closeDrawer");
   await page.evaluate(()=>openTimelineDrawer());
   await page.waitForFunction(()=>document.querySelectorAll("#conversationList .timeline-entry").length>=15);
@@ -182,6 +190,12 @@ try {
   assert.match(previewTimeline,/Weekly team sync/,"Timeline preview must include sample meetings");
   assert.match(previewTimeline,/Review design feedback/,"Timeline preview must include sample task history");
   await page.screenshot({path:"artifacts/personal-ai-timeline-demo-390x844.png",fullPage:true});
+  const demoEverydayBeforePlan=everydayItems.length;
+  const demoConversationBeforeOpen=await page.evaluate(()=>currentConversationId);
+  await page.click("#timelineAddPlan");
+  assert.equal(everydayItems.length,demoEverydayBeforePlan,"Timeline demo Add to plan must not create real data");
+  await page.locator("#conversationList .timeline-title").first().click();
+  assert.equal(await page.evaluate(()=>currentConversationId),demoConversationBeforeOpen,"Timeline demo conversation rows must not navigate to a real record");
   await page.click("#timelineCloseDrawer");
   await page.evaluate(async()=>{personalAiDemoMode=false;await refreshConversationsDrawer('')});
   await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===3);
