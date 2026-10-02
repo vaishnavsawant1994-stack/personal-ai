@@ -3,16 +3,16 @@ import { chromium } from "playwright";
 
 const browser = await chromium.launch({ headless: true });
 
-const conversations = [
-  { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: "2026-09-30T12:30:00+05:30" },
-  { id: "c2", title: "Mushroom Farm Plan", preview: "Shed layout and capacity", updated_at: "2026-09-30T10:15:00+05:30" },
-  { id: "c3", title: "Onion Cultivation Guide", preview: "Irrigation and fertilizer plan", updated_at: "2026-09-29T09:42:00+05:30" },
-];
-
 const now = new Date();
 const atToday = (hour, minute = 0) =>
   new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute).toISOString();
 const atDayOffset = (days,hour=10) => new Date(now.getFullYear(),now.getMonth(),now.getDate()+days,hour).toISOString();
+
+const conversations = [
+  { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: atToday(18,33) },
+  { id: "c2", title: "Mushroom Farm Plan", preview: "Shed layout and capacity", updated_at: atDayOffset(-1,14) },
+  { id: "c3", title: "Onion Cultivation Guide", preview: "Irrigation and fertilizer plan", updated_at: atDayOffset(-4,9) },
+];
 const everydayItems = [
   { id:"task-1",kind:"task",context:"personal-ai:today:task",title:"Finish daily review",due_at:atToday(9),created_at:atToday(7),updated_at:atToday(8),status:"scheduled" },
   { id:"meeting-1",kind:"commitment",context:"personal-ai:today:meeting",title:"Team planning meeting",due_at:atToday(14),created_at:atToday(8),updated_at:atToday(8),status:"scheduled" },
@@ -366,19 +366,19 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
 
-  // Direct header history opens the secondary panel from the right, without the main sidebar.
+  // The approved Conversations work must not redesign the existing right-side Timeline.
   await page.click("#ownerButton");
   await page.waitForFunction(() => {
     const drawer = document.querySelector("#conversationDrawer");
     const rect=drawer.getBoundingClientRect();
-    return !drawer.classList.contains("hidden") && rect.left>=-1 && Math.abs(rect.right-innerWidth)<=1;
+    return drawer.dataset.mode==="timeline" && !drawer.classList.contains("hidden") && rect.left>=-1 && Math.abs(rect.right-innerWidth)<=1;
   });
-  assert.equal(await page.locator("#appDrawer").isVisible(),false,"direct history must not open the main hamburger sidebar");
-  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
-  await page.screenshot({ path: "artifacts/personal-ai-right-conversations-direct-390x844.png", fullPage: true });
-  await page.click("#closeDrawer");
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"direct Timeline must not open the main hamburger sidebar");
+  assert.equal(await page.locator("#timelineCloseDrawer").getAttribute("aria-label"),"Close timeline");
+  await page.screenshot({ path: "artifacts/personal-ai-right-timeline-direct-390x844.png", fullPage: true });
+  await page.click("#timelineCloseDrawer");
   await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
-  assert.equal(await page.locator("#appDrawer").isVisible(),false,"closing directly-opened conversations must not show the main sidebar");
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"closing directly-opened Timeline must not show the main sidebar");
 
   await page.click("#historyButton");
   await page.waitForFunction(() => !document.querySelector("#appDrawer").classList.contains("hidden"));
@@ -422,13 +422,98 @@ try {
 
   await page.click("#appConversations");
   await page.waitForFunction(() => {
-    const panel=document.querySelector("#conversationDrawer");
-    return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
-      Math.abs(panel.getBoundingClientRect().right-innerWidth)<=1;
+    const panel=document.querySelector("#conversationDrawer"),rect=panel.getBoundingClientRect();
+    return panel.dataset.mode==="conversations" && !panel.classList.contains("hidden") &&
+      rect.left>=-1 && rect.right<innerWidth-20;
+  });
+  await page.waitForFunction(() => document.querySelectorAll(".conversations-row").length === conversations.length);
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"Conversations must replace the open main drawer on mobile");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
+  assert.equal((await page.locator("#conversationsDrawerTitle").innerText()).trim(),"Conversations");
+
+  const conversationsState=await page.evaluate(()=>({
+    rect:document.querySelector("#conversationDrawer").getBoundingClientRect(),
+    viewport:innerWidth,
+    title:document.querySelector("#conversationsDrawerTitle").getBoundingClientRect(),
+    close:document.querySelector("#closeDrawer").getBoundingClientRect(),
+    newChat:document.querySelector("#newConversation").getBoundingClientRect(),
+    search:document.querySelector("#conversationManagerSearch").closest(".conversations-search-wrap").getBoundingClientRect(),
+    groups:[...document.querySelectorAll(".conversations-group-title")].map(node=>node.textContent.trim()),
+    titles:[...document.querySelectorAll(".conversations-row-copy strong")].map(node=>node.textContent.trim()),
+    previews:[...document.querySelectorAll(".conversations-row-preview")].map(node=>node.textContent.trim()),
+    times:[...document.querySelectorAll(".conversations-row-time")].map(node=>({text:node.textContent,dateTime:node.dateTime})),
+    rows:[...document.querySelectorAll(".conversations-row")].map(node=>node.getBoundingClientRect()),
+    background:getComputedStyle(document.querySelector("#conversationDrawer")).backgroundImage,
+    bodyOverflow:getComputedStyle(document.body).overflow,
+  }));
+  assert.ok(conversationsState.rect.width>=330&&conversationsState.rect.width<=370,"390px Conversations drawer must preserve the approved ~88% mobile width");
+  assert.ok(conversationsState.rect.right<=conversationsState.viewport-20,"Conversations drawer must leave a visible strip of the underlying app");
+  assert.ok(conversationsState.close.width>=44&&conversationsState.close.height>=44,"close control must preserve touch target");
+  assert.ok(conversationsState.newChat.height>=54&&conversationsState.newChat.height<=60,"New chat CTA must match approved compact geometry");
+  assert.ok(conversationsState.search.height>=48&&conversationsState.search.height<=54,"search field must match approved compact geometry");
+  assert.deepEqual(conversationsState.groups,["Today","Yesterday","Previous 7 days"],"real local conversation dates must drive approved group headings");
+  assert.deepEqual(conversationsState.titles,conversations.map(item=>item.title),"drawer titles must use real canonical conversations");
+  assert.deepEqual(conversationsState.previews,conversations.map(item=>item.preview),"drawer previews must use real API data rather than fabricated summaries");
+  assert.deepEqual(conversationsState.times.map(item=>item.dateTime),conversations.map(item=>new Date(item.updated_at).toISOString()),"drawer timestamps must preserve canonical updated_at values");
+  assert.ok(conversationsState.rows.every(row=>row.height>=66&&row.height<=82),"conversation rows must stay compact and information-dense");
+  assert.ok(conversationsState.background.includes("linear-gradient"),"approved Conversations drawer must use the premium glass gradient");
+  assert.equal(conversationsState.bodyOverflow,"hidden","background page must be scroll-locked while Conversations drawer is open");
+  const forbiddenReferenceSamples=["Project update discussion","Marketing strategy plan","Ideas for mobile app","Weekly meeting notes","Content creation plan","UI/UX improvements","Product roadmap","Research on AI tools","Client meeting","Travel itinerary","Team retrospective"];
+  assert.ok(forbiddenReferenceSamples.every(title=>!conversationsState.titles.includes(title)),"reference-image sample conversations must never be hardcoded");
+
+  await page.screenshot({path:"artifacts/personal-ai-conversations-approved-390x844.png",fullPage:true});
+
+  // Context actions stay inside the drawer and expose only existing real capabilities.
+  const beforeMenuConversation=await page.evaluate(()=>currentConversationId);
+  await page.locator(".conversation-row-menu-button").first().click();
+  await page.waitForFunction(()=>!document.querySelector("#conversationRowMenu").classList.contains("hidden"));
+  assert.deepEqual(await page.locator("#conversationRowMenu [role=menuitem]").allTextContents(),
+    ["✎Rename","⧉Copy transcript","↗Share transcript","↓Download JSON","⌫Delete conversation"]);
+  assert.equal(await page.evaluate(()=>currentConversationId),beforeMenuConversation,"opening row actions must not navigate to another conversation");
+  await page.screenshot({path:"artifacts/personal-ai-conversations-context-menu-390x844.png",fullPage:true});
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#conversationRowMenu").isVisible(),false,"Escape must close row context menu before closing the drawer");
+  assert.equal(await page.locator("#conversationDrawer").isVisible(),true,"closing row context menu must leave Conversations drawer open");
+
+  // Search uses the real conversations endpoint and has a polished empty state.
+  await page.fill("#conversationManagerSearch","Onion");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===1&&document.querySelector(".conversations-row-copy strong")?.textContent.includes("Onion"));
+  assert.equal((await page.locator(".conversations-row-copy strong").innerText()).trim(),"Onion Cultivation Guide");
+  await page.screenshot({path:"artifacts/personal-ai-conversations-search-390x844.png",fullPage:true});
+  await page.fill("#conversationManagerSearch","not-a-real-chat");
+  await page.waitForFunction(()=>document.querySelector(".conversations-empty-state")?.textContent.includes("No matching conversations"));
+  await page.screenshot({path:"artifacts/personal-ai-conversations-search-empty-390x844.png",fullPage:true});
+  await page.fill("#conversationManagerSearch","");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+
+  // X closes the layered Conversations drawer; it does not reopen the hamburger menu.
+  await page.click("#closeDrawer");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  assert.equal(await page.locator("#appDrawer").isVisible(),false,"closing Conversations must leave the underlying app directly visible");
+
+  // Backdrop dismissal uses the same close semantics.
+  await page.evaluate(()=>openConversationsDrawer());
+  await page.waitForFunction(()=>!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.click("#drawerOverlay",{position:{x:388,y:420}});
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden"));
+
+  // New chat from this drawer resets historical binding and closes the overlay.
+  await page.evaluate(()=>openConversationsDrawer());
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+  await page.click("#newConversation");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden")&&!document.body.classList.contains("home-landing"));
+  assert.equal(await page.evaluate(()=>currentConversationId),null,"Conversations New chat must clear the active historical conversation");
+  assert.equal(await page.locator("#messageStream .message").count(),0,"Conversations New chat must start with an empty message history");
+  await page.evaluate(()=>enterHomeLanding());
+  await page.waitForFunction(()=>document.body.classList.contains("home-landing"));
+
+  // Existing Timeline remains a separate right-side surface opened by the clock control.
+  await page.click("#ownerButton");
+  await page.waitForFunction(() => {
+    const panel=document.querySelector("#conversationDrawer"),rect=panel.getBoundingClientRect();
+    return panel.dataset.mode==="timeline"&&!panel.classList.contains("hidden")&&Math.abs(rect.right-innerWidth)<=1&&rect.left>0;
   });
   await page.waitForFunction(() => document.querySelectorAll(".timeline-entry").length >= 10);
-  assert.equal(await page.locator("#appDrawer").isVisible(),false,"right Timeline must replace open left drawer");
-  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Back to main menu");
   const timelineState=await page.evaluate(()=>({
     filters:[...document.querySelectorAll(".conversation-filter")].map(n=>n.textContent.trim()),
     titles:[...document.querySelectorAll(".timeline-title")].map(n=>n.textContent.trim()),
@@ -446,7 +531,7 @@ try {
   assert.equal(timelineState.cssRight,"0px");
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
-  assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right Timeline must keep existing planning functionality");
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
@@ -491,20 +576,9 @@ try {
   await page.evaluate(()=>refreshUnifiedTimeline(''));
   await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="activity"]'));
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-filtered-390x844.png",fullPage:true});
-  await page.click("#closeDrawer");
-  await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden") &&
-    !document.querySelector("#appDrawer").classList.contains("hidden"));
-  assert.equal(await page.locator("#historyButton").getAttribute("aria-expanded"),"true","Back must restore left main sidebar");
-  assert.equal(await page.locator("#appConversations").isVisible(),true,"returned left menu must remain functional");
-  assert.deepEqual(await page.locator("#sidebarChatList .sidebar-chat-row span").allTextContents(),
-    conversations.map(item=>item.title),"search in right drawer must not destroy main sidebar chat history");
-  await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
-  await page.locator("#sidebarChatList .sidebar-chat-row").first().click();
-  await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
-  assert.ok((await page.locator("#messageStream").innerText()).includes("Plan mushroom farm"), "sidebar chat selection must open the actual persisted conversation");
-  await page.click("#historyButton");
-  await page.click("#appConversations");
 
+  // Open a real persisted conversation from the preserved Timeline to continue chat qualification.
+  await page.locator('[data-conversation-filter="conversation"]').click();
   await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
@@ -692,24 +766,38 @@ try {
       assert.ok(narrowSidebar.newChat.height >= 44, "new chat must preserve touch target on narrow screens");
       await page.screenshot({ path: "artifacts/personal-ai-sidebar-320x568.png", fullPage: true });
       await page.click("#closeAppDrawer");
+      await page.evaluate(()=>openConversationsDrawer());
+      await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+      const conversations320=await page.evaluate(()=>({
+        width:innerWidth,
+        drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
+        close:document.querySelector("#closeDrawer").getBoundingClientRect(),
+        search:document.querySelector("#conversationManagerSearch").closest(".conversations-search-wrap").getBoundingClientRect(),
+        rows:[...document.querySelectorAll(".conversations-row")].map(node=>node.getBoundingClientRect())
+      }));
+      assert.ok(conversations320.drawer.left>=-1&&conversations320.drawer.right<conversations320.width,"320px Conversations drawer must leave a visible backdrop strip");
+      assert.ok(conversations320.close.width>=44&&conversations320.search.width>220,"320px Conversations controls must remain usable");
+      assert.ok(conversations320.rows.every(row=>row.right<=conversations320.drawer.right+1),"320px conversation rows must not clip horizontally");
+      await page.screenshot({ path: "artifacts/personal-ai-conversations-approved-320x568.png", fullPage: true });
+      await page.click("#closeDrawer");
       await page.click("#ownerButton");
       await page.waitForFunction(() => {
         const r=document.querySelector("#conversationDrawer").getBoundingClientRect();
-        return r.left>=0 && Math.abs(r.right-innerWidth)<=1;
+        return document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&r.left>=0&&Math.abs(r.right-innerWidth)<=1;
       });
       const right320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
-        back:document.querySelector("#closeDrawer").getBoundingClientRect(),
+        back:document.querySelector("#timelineCloseDrawer").getBoundingClientRect(),
         search:document.querySelector("#conversationSearch").getBoundingClientRect(),
       }));
-      assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
-      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px");
+      assert.ok(right320.drawer.left>=0&&right320.drawer.right<=right320.width+1,"right Timeline must not clip at 320px");
+      assert.ok(right320.back.width>=44&&right320.search.width>180,"right Timeline controls must remain usable at 320px");
       await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
       const filters320=await page.locator(".conversation-filters").evaluate(node=>({scroll:node.scrollWidth,width:node.clientWidth,overflow:getComputedStyle(node).overflowX}));
-      assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all timeline categories must remain horizontally scrollable at 320px");
-      await page.screenshot({ path: "artifacts/personal-ai-conversations-right-320x568.png", fullPage: true });
-      await page.click("#closeDrawer");
+      assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all Timeline categories must remain horizontally scrollable at 320px");
+      await page.screenshot({ path: "artifacts/personal-ai-timeline-right-320x568.png", fullPage: true });
+      await page.click("#timelineCloseDrawer");
     }
     if (width === 430) {
       await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
