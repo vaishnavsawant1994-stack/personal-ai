@@ -2527,6 +2527,7 @@ async function openTodayScreen(filter='all'){
  closeAllDrawers();todayScreenFilter=filter;document.querySelectorAll('.today-tab').forEach(b=>{const active=b.dataset.todayFilter===filter;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active))});$('todayScreen').classList.remove('hidden');$('todayScreen').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';try{await refreshTodayScreen()}catch(error){todayEmpty($('todayTasksList'),'Unable to load your day.');todayEmpty($('todayMeetingsList'),'Retry by reopening Today.');todayEmpty($('todayPlansList'),'Your plans could not be loaded.');showToast(error.message)}}
 function closeTodayScreen(){if($('todayScreen').classList.contains('hidden'))return;$('todayScreen').classList.add('hidden');$('todayScreen').setAttribute('aria-hidden','true');$('todayAddSheet').classList.add('hidden');document.body.style.overflow=''}
 function openTodayExistingCreate(kind){
+ if(todayScreenDemo||personalAiDemoMode){$('todayAddSheet').classList.add('hidden');showToast('Sample Today preview only — no item is created');return}
  closeTodayScreen();openModule('home').then(()=>{if($('todayForm').classList.contains('hidden'))$('todayAdd').click();$('todayCategory').value=kind==='meeting'?'meeting':kind==='plan'?'work':'task';$('todayTitle').focus();if(kind==='plan')showToast('Plan starts from the existing work/planning flow')})
 }
 
@@ -2876,7 +2877,7 @@ function openTimelineEventMenu(item,button,details){
  })
 }
 async function handleTimelineEventAction(action){
- const item=timelineEventMenuItem,details=timelineEventMenuDetails;closeTimelineEventMenu();if(!item)return;
+ const item=timelineEventMenuItem,details=timelineEventMenuDetails;closeTimelineEventMenu();if(!item)return;if(personalAiDemoMode&&action!=='details'){showToast('Sample timeline preview only — no real data is changed');return}
  if(action==='open'&&item.category==='conversation'){openConversation(item.source.id).catch(error=>showToast(error.message));return}
  if(action==='details'&&details){details.hidden=!details.hidden;return}
  if(action==='complete'){
@@ -3022,7 +3023,7 @@ function renderUnifiedTimeline(){
   const status=document.createElement('span');status.className='timeline-status '+item.status;status.textContent=timelineStatusLabel(item.status);meta.append(status);
   const details=document.createElement('div');details.className='timeline-details';details.textContent=item.details;details.hidden=true;
   if(item.category==='conversation'){
-    name.setAttribute('aria-label','Open conversation '+item.title);name.onclick=()=>openConversation(item.source.id).catch(error=>showToast(error.message))
+    name.setAttribute('aria-label','Open conversation '+item.title);name.onclick=()=>personalAiDemoMode?showToast('Sample conversation preview only — no data is opened or changed'):openConversation(item.source.id).catch(error=>showToast(error.message))
   }else{
     name.setAttribute('aria-expanded','false');name.setAttribute('aria-label','Show details for '+item.title);
     name.onclick=()=>{details.hidden=!details.hidden;name.setAttribute('aria-expanded',String(!details.hidden))}
@@ -3433,14 +3434,14 @@ document.querySelectorAll('[data-app-module]').forEach(button=>button.onclick=()
 document.querySelectorAll('.today-tab').forEach(button=>button.onclick=()=>{todayScreenFilter=button.dataset.todayFilter;document.querySelectorAll('.today-tab').forEach(b=>{const active=b===button;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active))});renderTodayScreen()});
 document.querySelectorAll('[data-today-summary],[data-today-see]').forEach(button=>button.onclick=()=>openTodayScreen(button.dataset.todaySummary||button.dataset.todaySee));
 $('todayScreenBack').onclick=closeTodayScreen;$('todayScreenClose').onclick=closeTodayScreen;
-$('todayScreenAdd').onclick=()=>{$('todayAddSheet').classList.remove('hidden')};$('todayAddCancel').onclick=()=>{$('todayAddSheet').classList.add('hidden')};
+$('todayScreenAdd').onclick=()=>{if(todayScreenDemo||personalAiDemoMode){showToast('Sample Today preview only — no item is created');return}$('todayAddSheet').classList.remove('hidden')};$('todayAddCancel').onclick=()=>{$('todayAddSheet').classList.add('hidden')};
 document.querySelectorAll('[data-today-create]').forEach(button=>button.onclick=()=>openTodayExistingCreate(button.dataset.todayCreate));
 $('todayAddSheet').onclick=event=>{if(event.target===$('todayAddSheet'))$('todayAddSheet').classList.add('hidden')};
 
 document.querySelectorAll('[data-owner-module]').forEach(button=>button.onclick=()=>openModule(button.dataset.ownerModule));
 $('historyButton').onclick=openAppDrawer;
 $('closeAppDrawer').onclick=closeAppDrawer;
-$('sidebarNewChat').onclick=()=>createConversation().catch(error=>showToast(error.message));
+$('sidebarNewChat').onclick=()=>personalAiDemoMode?showToast('Sample preview only — no conversation is created'):createConversation().catch(error=>showToast(error.message));
 $('sidebarSearchToggle').onclick=()=>{
  const open=$('sidebarSearchPanel').classList.contains('hidden');
  if(!open){closeSidebarSearch();return}
@@ -3462,8 +3463,8 @@ $('closeDrawer').onclick=()=>closeDrawer(false);
 $('timelineBackDrawer').onclick=()=>closeDrawer();
 $('timelineCloseDrawer').onclick=()=>closeDrawer(false);
 $('drawerOverlay').onclick=closeAllDrawers;
-$('newConversation').onclick=()=>{$('conversationManagerSearch').value='';conversationsDrawerResults=[];createConversation().catch(error=>showToast(error.message))};
-$('timelineAddPlan').onclick=async()=>{closeAllDrawers();await openModule('home');if($('todayForm').classList.contains('hidden'))$('todayAdd').click();$('todayTitle').focus()};
+$('newConversation').onclick=()=>{if(personalAiDemoMode){showToast('Sample preview only — no conversation is created');return}$('conversationManagerSearch').value='';conversationsDrawerResults=[];createConversation().catch(error=>showToast(error.message))};
+$('timelineAddPlan').onclick=async()=>{if(personalAiDemoMode){showToast('Sample preview only — no plan is created');return}closeAllDrawers();await openModule('home');if($('todayForm').classList.contains('hidden'))$('todayAdd').click();$('todayTitle').focus()};
 $('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{}),220)};
 $('conversationManagerSearch').oninput=()=>{if(conversationsDrawerSearchTimer)clearTimeout(conversationsDrawerSearchTimer);conversationsDrawerSearchTimer=setTimeout(()=>refreshConversationsDrawer($('conversationManagerSearch').value).catch(()=>{}),180)};
 document.querySelectorAll('[data-conversation-filter]').forEach(button=>button.onclick=()=>setConversationFilter(button.dataset.conversationFilter));
@@ -3480,6 +3481,7 @@ $('quickData').onclick=()=>focusPrompt('Help me create ');
 $('quickTask').onclick=()=>{openModule('tools');showToast('Explore available tools for visual creation.')};
 $('quickTools').onclick=()=>openModule('tools');
 $('todayAdd').onclick=()=>{
+ if(personalAiDemoMode){showToast('Sample preview only — no item is created');return}
  const open=$('todayForm').classList.contains('hidden');
  $('todayForm').classList.toggle('hidden',!open);
  $('todayAdd').setAttribute('aria-expanded',open?'true':'false');
