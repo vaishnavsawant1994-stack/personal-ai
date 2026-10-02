@@ -426,7 +426,7 @@ try {
     return panel.dataset.mode==="conversations" && !panel.classList.contains("hidden") &&
       rect.left>=-1 && rect.right<innerWidth-20;
   });
-  await page.waitForFunction(() => document.querySelectorAll(".conversations-row").length === conversations.length);
+  await page.waitForFunction(expected => document.querySelectorAll(".conversations-row").length === expected, conversations.length);
   assert.equal(await page.locator("#appDrawer").isVisible(),false,"Conversations must replace the open main drawer on mobile");
   assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
   assert.equal((await page.locator("#conversationsDrawerTitle").innerText()).trim(),"Conversations");
@@ -484,7 +484,7 @@ try {
   await page.waitForFunction(()=>document.querySelector(".conversations-empty-state")?.textContent.includes("No matching conversations"));
   await page.screenshot({path:"artifacts/personal-ai-conversations-search-empty-390x844.png",fullPage:true});
   await page.fill("#conversationManagerSearch","");
-  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+  await page.waitForFunction(expected=>document.querySelectorAll(".conversations-row").length===expected,conversations.length);
 
   // X closes the layered Conversations drawer; it does not reopen the hamburger menu.
   await page.click("#closeDrawer");
@@ -499,7 +499,7 @@ try {
 
   // New chat from this drawer resets historical binding and closes the overlay.
   await page.evaluate(()=>openConversationsDrawer());
-  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+  await page.waitForFunction(expected=>document.querySelectorAll(".conversations-row").length===expected,conversations.length);
   await page.click("#newConversation");
   await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden")&&!document.body.classList.contains("home-landing"));
   assert.equal(await page.evaluate(()=>currentConversationId),null,"Conversations New chat must clear the active historical conversation");
@@ -767,7 +767,7 @@ try {
       await page.screenshot({ path: "artifacts/personal-ai-sidebar-320x568.png", fullPage: true });
       await page.click("#closeAppDrawer");
       await page.evaluate(()=>openConversationsDrawer());
-      await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===conversations.length);
+      await page.waitForFunction(expected=>document.querySelectorAll(".conversations-row").length===expected,conversations.length);
       const conversations320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
