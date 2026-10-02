@@ -119,3 +119,15 @@ def test_budget_ui_is_injected_only_into_iphone_home_and_keeps_safe_states():
         'Emergency Stop active',
     ):
         assert label in javascript
+
+
+def test_budget_ui_uses_personal_ai_dialogs_and_safe_activity_payloads():
+    app = FastAPI()
+    app.include_router(workflow_budget_ui_router())
+    client = TestClient(app)
+    javascript = client.get('/iphone/workflow-budget-ui.js').text
+    assert "prompt(" not in javascript
+    assert "confirm(" not in javascript
+    assert "await requestText('Workflow name')" in javascript
+    assert "await requestConfirmation('Cancel this workflow run?')" in javascript
+    assert "safePayloadPreview(item.payload)" in javascript

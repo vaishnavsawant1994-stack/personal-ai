@@ -180,6 +180,10 @@ try {
 
   await page.route("https://accounts.google.com/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/iphone/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(()=>document.body.classList.contains('home-landing'));
+  const homeGeometry=await page.evaluate(()=>({recent:$('recentList').closest('.recent-feed').getBoundingClientRect().toJSON(),today:$('todayTimeline').closest('.today-panel').getBoundingClientRect().toJSON(),scrollTop:$('homeIntro').scrollTop}));
+  assert.ok(homeGeometry.recent.bottom<=homeGeometry.today.top+1,'Home Recent and Today sections must not overlap');
+  assert.equal(homeGeometry.scrollTop,0,'Home must reopen at the top instead of preserving a clipped greeting scroll position');
   await page.waitForFunction(() => !document.querySelector("#voicePanel").classList.contains("hidden"));
   await page.waitForFunction(() => document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => {
@@ -841,6 +845,7 @@ try {
     }
     await page.evaluate(()=>openModule('home'));
     assert.ok(await page.locator('#composer').isVisible(),'Home composer must survive module switching');
+    assert.equal(await page.locator('#homeIntro').evaluate(node=>node.scrollTop),0,'Home must reset to the top after module switching');
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>openModule('memory'));
@@ -918,6 +923,7 @@ try {
   await locked.screenshot({ path: "artifacts/personal-ai-login-390x844.png", fullPage: true });
   await locked.close();
 
+  assert.equal(await page.evaluate(()=>apiErrorMessage({unexpected:true},422)), 'Request failed (422)', 'structured API errors never render as [object Object]');
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
   await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,engine,viewports:productViewports,accessibility:auditResults,longThreadPerformance,uncaughtErrors:pageErrors},null,2));
   console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eleven viewports.");
