@@ -881,7 +881,7 @@ try {
 
   // Authentication presentation only: real password, Google and passkey authority
   // are exercised separately by the server integration/security suite.
-  const locked = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const locked = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: engine!=="firefox", hasTouch: true, serviceWorkers:"block" });
   await locked.route("https://accounts.google.com/**", route => route.abort());
   await locked.route("**/iphone/api/**", route => {
     const path = new URL(route.request().url()).pathname;
