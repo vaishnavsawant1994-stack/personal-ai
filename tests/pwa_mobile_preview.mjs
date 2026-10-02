@@ -462,7 +462,13 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), false, "voice status remains announced to assistive technology without adding visible thinking labels");
+  const statusVisual = await page.locator(".state").evaluate(node => {
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return { position: style.position, overflow: style.overflow, width: rect.width, height: rect.height };
+  });
+  assert.ok(statusVisual.position === "absolute" && statusVisual.overflow === "hidden" && statusVisual.width <= 1 && statusVisual.height <= 1,
+    "voice status remains announced to assistive technology without adding visible thinking labels");
   assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
   assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
   assert.equal(chatState.messageCount, 2);
