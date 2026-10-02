@@ -580,7 +580,7 @@ try {
   await page.locator('[data-conversation-filter="workflow"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Morning operations"]);
   await page.locator('[data-conversation-filter="activity"]').click();
-  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Workflow"]);
+  assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Workflow Run Finished"],"activity filter must render the human-readable real audit event title");
   await page.locator('[data-conversation-filter="reminder"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Send follow-up"]);
   await page.locator('[data-conversation-filter="conversation"]').click();
