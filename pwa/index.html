@@ -2384,7 +2384,7 @@ function closeTodayForm(){
 
 
 let todayScreenFilter='all',todayScreenItems=[],todayScreenPlans=[];
-const todayScreenDemo=new URLSearchParams(window.location.search).get('todayDemo')==='1';
+let todayScreenDemo=new URLSearchParams(window.location.search).get('todayDemo')==='1';
 function todayDemoAt(hour,minute=0){const d=new Date();d.setHours(hour,minute,0,0);return d.toISOString()}
 function todayDemoData(){return{items:[
  {id:'demo-task-1',kind:'task',context:'personal-ai:today:task',title:'Review design feedback',due_at:todayDemoAt(10),status:'scheduled',priority:'high'},
