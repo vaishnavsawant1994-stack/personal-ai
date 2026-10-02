@@ -391,7 +391,7 @@ try {
     filterRow:document.querySelector(".conversation-filters").getBoundingClientRect(),
     filterButtons:[...document.querySelectorAll(".conversation-filter")].map(node=>node.getBoundingClientRect())
   }));
-  assert.ok(approvedTimelineHeader.drawer.width>=330&&approvedTimelineHeader.drawer.width<=380,"390px Timeline must preserve the approved contextual width");
+  assert.ok(approvedTimelineHeader.drawer.width>=350&&approvedTimelineHeader.drawer.width<=390,"390px Timeline must preserve the approved contextual width");
   assert.ok(approvedTimelineHeader.drawer.left>=20&&Math.abs(approvedTimelineHeader.drawer.right-approvedTimelineHeader.viewport)<=1,"Timeline must stay on the right and leave the underlying app visible");
   assert.ok(approvedTimelineHeader.back.width>=44&&approvedTimelineHeader.close.width>=44,"Timeline back and close controls must preserve circular touch targets");
   assert.ok(approvedTimelineHeader.add.height>=46&&approvedTimelineHeader.add.height<=52,"Add to plan must use the approved compact outlined geometry");
@@ -400,6 +400,7 @@ try {
   assert.equal(approvedTimelineHeader.border,"1px","Timeline must keep the subtle left accent border");
   assert.equal(approvedTimelineHeader.bodyOverflow,"hidden","underlying app scroll must lock while Timeline is open");
   assert.equal(approvedTimelineHeader.activeElementId,"timelineBackDrawer","opening Timeline must not summon the mobile keyboard by auto-focusing search");
+  assert.equal(await page.locator('.conversation-filter.active').getAttribute("data-conversation-filter"),"all","Timeline must always open on the approved All view rather than preserving a stale filter");
   assert.ok(approvedTimelineHeader.filterButtons.every(rect=>rect.left>=approvedTimelineHeader.filterRow.left-1&&rect.right<=approvedTimelineHeader.filterRow.right+1),"all five approved Timeline filters must be visible at the primary 390px viewport");
   await page.screenshot({ path: "artifacts/personal-ai-timeline-approved-direct-390x844.png", fullPage: true });
   await page.click("#timelineCloseDrawer");
