@@ -2688,44 +2688,10 @@ function timelineEntries(){
  }
  return entries.sort((a,b)=>b.date.getTime()-a.date.getTime()||a.key.localeCompare(b.key))
 }
-function renderTimelineDemo(host,count){
- const now=new Date(),day=new Date(now);day.setDate(day.getDate()-1);
- const rows=[
-  {category:'conversation',title:'Project update discussion',preview:'Discussed the latest product updates…',date:new Date(now.getFullYear(),now.getMonth(),now.getDate(),9,15),status:'recorded'},
-  {category:'work',title:'Marketing strategy plan',preview:'Created a go-to-market strategy for Q4…',date:new Date(now.getFullYear(),now.getMonth(),now.getDate(),11,40),status:'recorded'},
-  {category:'activity',title:'Used image generator',preview:'Generated 4 images for mobile app design…',date:new Date(now.getFullYear(),now.getMonth(),now.getDate(),13,20),status:'done'},
-  {category:'meeting',title:'Weekly team sync',preview:'Discussed roadmap and next steps…',date:new Date(now.getFullYear(),now.getMonth(),now.getDate(),15,45),status:'pending'},
-  {category:'task',title:'Review design feedback',preview:'Go through latest UI/UX feedback…',date:new Date(day.getFullYear(),day.getMonth(),day.getDate(),10,22),status:'done'},
-  {category:'conversation',title:'UI/UX improvements',preview:'Design feedback and implementation…',date:new Date(day.getFullYear(),day.getMonth(),day.getDate(),16,18),status:'recorded'}
- ];
- const active=conversationFilter;
- const filtered=rows.filter(x=>active==='all'||active==='recent'||(active==='conversation'&&x.category==='conversation')||(active==='meeting'&&x.category==='meeting')||(active==='task'&&x.category==='task'));
- const pending=filtered.filter(x=>x.status==='pending').length,done=filtered.filter(x=>x.status==='done').length;
- count.innerHTML='<span class="timeline-count-part entries"><i aria-hidden="true"></i>'+filtered.length+' entries</span><span class="timeline-count-sep">·</span><span class="timeline-count-part pending"><i aria-hidden="true"></i>'+pending+' pending</span><span class="timeline-count-sep">·</span><span class="timeline-count-part done"><i aria-hidden="true"></i>'+done+' done</span>';
- let prev='';
- filtered.forEach((item,index)=>{
-  const group=index<4?'Today':'Yesterday';
-  if(group!==prev){prev=group;const h=document.createElement('h3');h.className='timeline-day';h.textContent=group;host.append(h)}
-  const article=document.createElement('article');article.className='timeline-entry';article.dataset.category=item.category;article.dataset.status=item.status;
-  const dot=document.createElement('span');dot.className='timeline-dot';
-  const card=document.createElement('div');card.className='timeline-content';
-  const icon=document.createElement('span');icon.className='timeline-event-icon';icon.innerHTML=timelineIconSvg(item);
-  const body=document.createElement('div');body.className='timeline-event-body';
-  const head=document.createElement('div');head.className='timeline-head';
-  const kind=document.createElement('span');kind.className='timeline-type';kind.textContent=timelineTypeLabel(item.category);
-  const clock=document.createElement('time');clock.className='timeline-clock';clock.textContent=timelineTime(item.date,false);head.append(kind,clock);
-  const title=document.createElement('button');title.type='button';title.className='timeline-title';title.textContent=item.title;
-  const preview=document.createElement('p');preview.className='timeline-preview';preview.textContent=item.preview;
-  const meta=document.createElement('div');meta.className='timeline-meta';const status=document.createElement('span');status.className='timeline-status '+item.status;status.textContent=timelineStatusLabel(item.status);meta.append(status);
-  const more=document.createElement('button');more.type='button';more.className='timeline-event-menu-button';more.setAttribute('aria-label','Demo event options');more.innerHTML='<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>';
-  body.append(head,title,preview,meta);card.append(icon,body,more);article.append(dot,card);host.append(article)
- })
-}
 function renderUnifiedTimeline(){
  const host=$('conversationList');host.replaceChildren();closeTimelineEventMenu();
  const count=$('conversationCount');
  if(!sessionActive){
-  if(new URLSearchParams(location.search).get('timeline_demo')==='1'){renderTimelineDemo(host,count);return}
   count.textContent='Sign in required';
   const p=document.createElement('div');p.className='timeline-empty';p.innerHTML='<strong>Sign in to view timeline</strong><span>Your chats, plans and activity will appear here after authentication.</span>';host.append(p);return
  }
