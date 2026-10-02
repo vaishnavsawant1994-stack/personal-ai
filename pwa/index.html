@@ -892,7 +892,7 @@
     body.home-landing .topbar{
       width:min(100%,var(--home-max));min-height:52px;margin:0 auto;
       grid-template-columns:52px minmax(0,1fr) 52px;align-items:center;
-      padding:2px 14px;border:0;border-radius:0;
+      padding:2px 0;border:0;border-radius:0;
       background:transparent;
       -webkit-backdrop-filter:none;backdrop-filter:none;
       box-shadow:none;
@@ -900,11 +900,13 @@
     body.home-landing .history-button,
     body.home-landing .owner-status{
       box-sizing:border-box;width:44px;height:44px;min-width:44px;min-height:44px;
-      padding:0;margin:0;border-radius:50%;display:grid;place-items:center;justify-self:center;
+      padding:0;margin:0;border-radius:50%;display:grid;place-items:center;
       border:1px solid rgba(137,177,237,.14);background:rgba(27,38,56,.68);
       color:#edf3fc;box-shadow:0 5px 16px rgba(0,0,0,.12);
       transition:background .16s ease,border-color .16s ease,transform .16s ease;
     }
+    body.home-landing .history-button{justify-self:start}
+    body.home-landing .owner-status{justify-self:end}
     body.home-landing .history-button:hover,
     body.home-landing .owner-status:hover{background:rgba(38,53,77,.76);border-color:rgba(125,174,243,.28)}
     body.home-landing .history-button:active,
