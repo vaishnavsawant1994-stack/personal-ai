@@ -240,10 +240,24 @@ try {
     assert.ok(section.left>=-1 && section.right<=homeState.innerWidth+1, "Home section must remain inside the viewport");
   }
   assert.ok(Math.abs(homeState.quick.left-homeState.recent.left)<=2 && Math.abs(homeState.quick.left-homeState.today.left)<=2 && Math.abs(homeState.quick.left-homeState.calendar.left)<=2, "major Home sections must share one precise outer grid");
-  if(homeState.composer.bottom > homeState.innerHeight + 1){
-    const scrollable=await page.locator("#voicePanel").evaluate(node=>({scrollHeight:node.scrollHeight,clientHeight:node.clientHeight}));
-    assert.ok(scrollable.scrollHeight>scrollable.clientHeight,"when populated Home exceeds one viewport it must scroll naturally rather than clip the composer");
-  }
+  assert.ok(homeState.composer.bottom<=homeState.innerHeight+1&&homeState.composer.bottom>=homeState.innerHeight-1,"Home composer must stay fixed flush to the viewport bottom");
+  const fixedChromeBefore=await page.evaluate(()=>({
+    header:document.querySelector(".topbar").getBoundingClientRect(),
+    composer:document.querySelector("#composer").getBoundingClientRect(),
+    headerPosition:getComputedStyle(document.querySelector(".topbar")).position,
+    composerPosition:getComputedStyle(document.querySelector("#composer")).position
+  }));
+  assert.equal(fixedChromeBefore.headerPosition,"fixed","Home topbar must be viewport-fixed");
+  assert.equal(fixedChromeBefore.composerPosition,"fixed","Home composer must be viewport-fixed");
+  await page.evaluate(()=>{const intro=document.querySelector("#homeIntro");intro.scrollTop=Math.max(0,intro.scrollHeight-intro.clientHeight)});
+  await page.waitForTimeout(80);
+  const fixedChromeAfter=await page.evaluate(()=>({
+    header:document.querySelector(".topbar").getBoundingClientRect(),
+    composer:document.querySelector("#composer").getBoundingClientRect()
+  }));
+  assert.ok(Math.abs(fixedChromeAfter.header.top-fixedChromeBefore.header.top)<=1,"Home topbar must not move while Home content scrolls");
+  assert.ok(Math.abs(fixedChromeAfter.composer.bottom-fixedChromeBefore.composer.bottom)<=1,"Home composer must not move while Home content scrolls");
+  await page.evaluate(()=>{document.querySelector("#homeIntro").scrollTop=0});
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "Home must not scroll horizontally");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
 
@@ -628,6 +642,12 @@ try {
     assert.ok(layout.sphereInk > 90, "mini sphere animation did not repaint after chat at " + width + "x" + height);
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
     assert.ok(layout.composer.bottom >= layout.viewportHeight - 1, "Home composer must remain flush to the bottom at " + width + "x" + height);
+    const fixedPositions=await page.evaluate(()=>({
+      header:getComputedStyle(document.querySelector(".topbar")).position,
+      composer:getComputedStyle(document.querySelector("#composer")).position
+    }));
+    assert.equal(fixedPositions.header,"fixed","Home topbar must stay fixed at "+width+"x"+height);
+    assert.equal(fixedPositions.composer,"fixed","Home composer must stay fixed at "+width+"x"+height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     const edgeControls=await page.evaluate(()=>({
       header:document.querySelector(".topbar").getBoundingClientRect(),
@@ -704,6 +724,12 @@ try {
     }));
     assert.ok(wide.doc<=wide.inner,"wide Home must not horizontally overflow at "+width+"x"+height);
     assert.ok(wide.composer.bottom>=height-1&&wide.composer.bottom<=height+1,"wide Home composer must stay flush to the viewport bottom at "+width+"x"+height);
+    const wideFixed=await page.evaluate(()=>({
+      header:getComputedStyle(document.querySelector(".topbar")).position,
+      composer:getComputedStyle(document.querySelector("#composer")).position
+    }));
+    assert.equal(wideFixed.header,"fixed","wide Home topbar must remain fixed at "+width+"x"+height);
+    assert.equal(wideFixed.composer,"fixed","wide Home composer must remain fixed at "+width+"x"+height);
     assert.ok(wide.home.width<=722&&wide.header.width<=722&&wide.composer.width<=722,"Home content must remain centered within its intended max width at "+width+"x"+height);
     assert.ok(Math.abs(wide.home.left-(wide.inner-wide.home.width)/2)<=2,"Home content must remain centered at "+width+"x"+height);
     assert.ok(wide.quick.every(card=>card.width<wide.home.width*.52),"2x2 shortcut grid must stay proportionate at "+width+"x"+height);
@@ -834,6 +860,8 @@ try {
   assert.ok(landscape.scrollWidth <= landscape.innerWidth, "landscape must not scroll horizontally");
   assert.ok(landscape.composerBottom <= landscape.innerHeight + 1, "landscape composer must stay in viewport");
   assert.ok(landscape.composerBottom >= landscape.innerHeight - 1, "landscape Home composer must stay flush to the bottom edge");
+  assert.equal(await page.locator(".topbar").evaluate(node=>getComputedStyle(node).position),"fixed","landscape Home topbar must remain fixed");
+  assert.equal(await page.locator("#composer").evaluate(node=>getComputedStyle(node).position),"fixed","landscape Home composer must remain fixed");
   assert.ok(landscape.headerLeft >= 0 && landscape.headerRight <= landscape.innerWidth + 1, "landscape header must fit");
   await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
   assert.equal(await page.locator("#chatMenuButton").isVisible(),false,"conversation actions must disappear on Home even when old chat exists");
