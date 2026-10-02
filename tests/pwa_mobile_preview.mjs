@@ -839,6 +839,7 @@ try {
       assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
       assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
       if(width===390)await audit(page,name);
+      if(width===390&&name==='dashboard'){assert.equal(await page.locator('.dashboard-metric').count(),4,'Dashboard must show four live metric cards');assert.equal(await page.locator('.dashboard-card').count(),2,'Dashboard must show activity and workflow charts');assert.ok((await page.locator('#dashboardActivityChart').count())===1,'Dashboard activity chart must render authorized audit data');assert.equal(await page.locator('.dashboard-state-chart').count(),1,'Dashboard workflow chart must render persisted run statuses');}
       if(width===320&&name==='knowledge'){const search=await page.locator('#knowledgeSearch').boundingBox(),panel=await page.locator('#moduleBody').boundingBox();assert.ok(search.width>=panel.width-4,'Knowledge search must use available mobile width without clipping')}
       if(width===390&&name==='workflows'){assert.equal(await page.locator('#moduleBody h2').filter({hasText:/^Workflows$/}).count(),0,'Workflows body must not repeat its page heading')}
       if([320,390,820,1440].includes(width))await page.screenshot({path:`artifacts/personal-ai-${name}-${width}x${height}.png`,fullPage:true});
@@ -847,6 +848,13 @@ try {
     assert.ok(await page.locator('#composer').isVisible(),'Home composer must survive module switching');
     assert.equal(await page.locator('#homeIntro').evaluate(node=>node.scrollTop),0,'Home must reset to the top after module switching');
   }
+
+  allowActivity=false;
+  await page.evaluate(()=>openModule('dashboard'));
+  assert.match(await page.locator('#moduleBody').innerText(),/Activity history is restricted/,'Dashboard must retain useful metrics when audit access is restricted');
+  assert.equal(await page.locator('.dashboard-state-chart').count(),1,'Restricted activity history must not break workflow charts');
+  allowActivity=true;
+  await page.evaluate(()=>openModule('home'));
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>openModule('memory'));
   const emptyGraph=await page.evaluate(()=>drawMemoryGraph({nodes:[],edges:[]}));assert.match(emptyGraph,/No memory relationships yet/);assert.doesNotMatch(emptyGraph,/<svg/,'empty graph must use readable text instead of tiny SVG labels');
