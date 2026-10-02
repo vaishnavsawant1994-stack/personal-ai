@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ui.design_system import stylesheet, COLORS
 import html
 import json
 from PyQt6.QtCore import Qt
@@ -15,7 +16,7 @@ class MemoryPanel(QDialog):
         self.rows_by_id = {}
         self.setWindowTitle('Second Brain')
         self.resize(1040,720)
-        self.setStyleSheet('QDialog,QWidget{background:#050608;color:#eef4f8} QLineEdit,QTreeWidget,QTextBrowser{background:#080c11;border:1px solid #22303b;padding:8px} QPushButton{background:#101822;border:1px solid #263746;padding:8px 12px}')
+        self.setStyleSheet(stylesheet())
         lay=QVBoxLayout(self)
         top=QHBoxLayout(); self.search=QLineEdit(); self.search.setPlaceholderText('Search memory…')
         btn=QPushButton('Search'); btn.clicked.connect(self.refresh); top.addWidget(self.search,1); top.addWidget(btn); lay.addLayout(top)
@@ -56,7 +57,7 @@ class MemoryPanel(QDialog):
             ('Query',explanation.get('retrieval_query')),('Used at',explanation.get('used_at')),('Reason selected',explanation.get('selection_reason')),
             ('Evidence',json.dumps(explanation.get('evidence_references') or [],ensure_ascii=False)),
         ]
-        rows=''.join(f"<tr><td style='color:#81939d;padding:4px 12px 4px 0'>{html.escape(str(label))}</td><td>{html.escape('' if value is None else str(value))}</td></tr>" for label,value in items)
+        rows=''.join(f"<tr><td style='color:{COLORS['muted']};padding:4px 12px 4px 0'>{html.escape(str(label))}</td><td>{html.escape('' if value is None else str(value))}</td></tr>" for label,value in items)
         return f'<h3>Why Personal AI retrieved this memory</h3><table>{rows}</table>'
 
     def show_selected_explanation(self):

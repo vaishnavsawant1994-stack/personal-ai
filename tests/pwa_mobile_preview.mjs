@@ -6,6 +6,14 @@ import { chromium } from "playwright";
 
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
 
+const auditResults=[];
+async function audit(page,label){
+ if(!await page.evaluate(()=>Boolean(window.axe)))await page.addScriptTag({path:axePath});
+ const violations=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
+ assert.deepEqual(violations,[],label+' accessibility');
+ auditResults.push({surface:label,viewport:page.viewportSize(),violations:0});
+}
+
 const conversations = [
   { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: "2026-09-30T12:30:00+05:30" },
   { id: "c2", title: "Mushroom Farm Plan", preview: "Shed layout and capacity", updated_at: "2026-09-30T10:15:00+05:30" },
@@ -55,13 +63,19 @@ try {
 
   const pageErrors = [];
   const uploadedDocuments = [];
+  let memoryMode="ready",releaseMemory;
   page.on("pageerror", error => pageErrors.push(error.stack || error.message));
 
-  await page.route("**/iphone/api/**", route => {
+  await page.route("**/iphone/api/**", async route => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname.replace("/iphone/api", "");
     const method = request.method();
+    if(path==='/memory'){
+      if(memoryMode==='loading')await new Promise(resolve=>{releaseMemory=resolve});
+      if(memoryMode==='permission')return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
+      if(memoryMode==='failure')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
+    }
 
     let body = {};
     if (path === "/status") {
@@ -222,6 +236,7 @@ try {
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
   assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
+  await audit(page,"home-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
   // Today timeline is real: add a meeting, mark a task complete, verify empty-state.
   await page.click("#todayAdd");
@@ -294,6 +309,7 @@ try {
   assert.ok(drawerState.footer.bottom <= 845 && drawerState.footer.height >= 44, "account actions must remain visible and touchable");
   assert.ok(await page.locator("#sidebarNewChat").isVisible(), "new chat must be a primary action");
   assert.ok(await page.locator("#sidebarSearchToggle").isVisible(), "chat search must be a primary action");
+  await audit(page,"menu-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
   await page.click("#sidebarSearchToggle");
   assert.equal(await page.locator("#sidebarSearchToggle").getAttribute("aria-expanded"), "true");
@@ -320,6 +336,7 @@ try {
   await page.fill('#historySearch','Onion');
   await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===1);
   assert.match(await page.locator('#historyList').innerText(),/Onion/);
+  await audit(page,"history-390x844");
   await page.screenshot({path:'artifacts/personal-ai-history-390x844.png',fullPage:true});
   await page.click('#historyClose');
   assert.equal(await page.locator('#appDrawer').isVisible(),true,'History close returns to its originating menu');
@@ -350,6 +367,7 @@ try {
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  await audit(page,"unified-timeline-all-390x844");
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
@@ -492,6 +510,7 @@ try {
   await exportDownload;
   assert.deepEqual(exportedConversationIds,["c1"],"download must request the authenticated canonical export");
   await page.evaluate(()=>{messageReactions.clear();renderMessages();setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
+  await audit(page,"chat-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
 
@@ -504,6 +523,13 @@ try {
   await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
+  await page.locator('.code-copy').last().click();
+  assert.match(await page.evaluate(()=>window.__copiedTranscript),/Long content remains/,'code copy uses only the canonical block text');
+  await page.evaluate(()=>{const stream=$('messageStream');stream.scrollTop=0;stream.dispatchEvent(new Event('scroll'))});
+  assert.ok(await page.locator('#scrollLatest').isVisible(),'show latest control when reading older messages');
+  await page.click('#scrollLatest');
+  await page.waitForFunction(()=>{const stream=$('messageStream');return stream.scrollHeight-stream.clientHeight-stream.scrollTop<48});
+  assert.ok(await page.locator('#scrollLatest').isHidden(),'latest control disappears near the bottom');
   await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-long-response-390x844.png", fullPage: true });
 
@@ -594,7 +620,7 @@ try {
         search:document.querySelector("#conversationSearch").getBoundingClientRect(),
       }));
       assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
-      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px");
+      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px: "+JSON.stringify(right320));
       await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
       const filters320=await page.locator(".conversation-filters").evaluate(node=>({scroll:node.scrollWidth,width:node.clientWidth,overflow:getComputedStyle(node).overflowX}));
       assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all timeline categories must remain horizontally scrollable at 320px");
@@ -738,6 +764,8 @@ try {
   await page.waitForFunction(()=>!document.querySelector("#chatMenuButton").classList.contains("hidden"));
   await page.click("#chatMenuButton");
   await page.click("#chatDelete");
+  await audit(page,'Delete confirmation');
+  await page.screenshot({path:'artifacts/personal-ai-confirmation-390x844.png',fullPage:true});
   await page.click("#uiDialogCancel");
   assert.deepEqual(deletedConversationIds,[],"cancel must leave conversation untouched");
   await page.click("#chatMenuButton");
@@ -757,7 +785,7 @@ try {
       const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
       assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
       assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
-      if(width===390){await page.addScriptTag({path:axePath});const violations=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})));assert.deepEqual(violations,[],name+' accessibility');}
+      if(width===390)await audit(page,name);
       if([320,390,820,1440].includes(width))await page.screenshot({path:`artifacts/personal-ai-${name}-${width}x${height}.png`,fullPage:true});
     }
     await page.evaluate(()=>openModule('home'));
@@ -766,13 +794,32 @@ try {
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>openModule('memory'));
   await page.click('#memoryGraph');await page.waitForSelector('.graph-view');
+  await audit(page,'Memory graph');
   await page.screenshot({path:'artifacts/personal-ai-memory-graph-390x844.png',fullPage:true});
   await page.click('#memoryTree');await page.waitForSelector('.tree-branch');
+  await audit(page,'Memory tree');
   await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
   await page.evaluate(()=>openModule('settings'));
   for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
     await page.evaluate(section=>renderSettings(section),section);
     assert.ok(await page.locator('.settings-content h2').count(),section+' must have a settings heading');
+    await audit(page,'Settings '+section);
+  }
+  await page.evaluate(()=>openModule('home'));
+
+  memoryMode='loading';
+  await page.evaluate(()=>{void openModule('memory')});
+  await page.waitForSelector('.ui-skeleton');
+  await page.screenshot({path:'artifacts/personal-ai-loading-390x844.png',fullPage:true});
+  memoryMode='ready';releaseMemory();
+  await page.waitForSelector('#memorySearch');
+  for(const mode of ['permission','failure']){
+    memoryMode=mode;await page.evaluate(()=>openModule('memory'));
+    assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Internal trace/);
+    assert.match(await page.locator('#moduleBody').innerText(),mode==='permission'?/permission/:/Unable to load/);
+    await audit(page,'Memory '+mode);
+    await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
+    memoryMode='ready';await page.click('#moduleBody .ui-button');await page.waitForSelector('#memorySearch');
   }
   await page.evaluate(()=>openModule('home'));
 
@@ -814,11 +861,13 @@ try {
   assert.ok(await locked.locator("#passwordChoice").isVisible(), "real owner password option must remain accessible");
   await locked.click("#passwordChoice");
   assert.ok(await locked.locator("#ownerPassword").isVisible(), "owner password form must open");
+  await audit(locked,"login-390x844");
   await locked.screenshot({ path: "artifacts/personal-ai-login-390x844.png", fullPage: true });
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eight viewports.");
+  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,viewports:productViewports,accessibility:auditResults,uncaughtErrors:pageErrors},null,2));
+  console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eleven viewports.");
 } finally {
   await browser.close();
 }

@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'pwa/**'
+      - 'web-companion/**'
+      - 'tests/companion_visual_preview.mjs'
       - 'tests/pwa_mobile_preview.mjs'
       - '.github/workflows/pwa-mobile-preview.yml'
 
@@ -35,10 +37,18 @@ jobs:
           curl --fail --silent http://127.0.0.1:4173/iphone/ >/dev/null
           node tests/pwa_service_worker.mjs
           node tests/pwa_mobile_preview.mjs
+          python3 -m http.server 4175 --bind 0.0.0.0 --directory web-companion >/tmp/companion-preview-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4175/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/companion_visual_preview.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: personal-ai-mobile-preview
-          path: artifacts/*.png
+          path: |
+            artifacts/*.png
+            artifacts/*verification.json
           if-no-files-found: warn
           retention-days: 7

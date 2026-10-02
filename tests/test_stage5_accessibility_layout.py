@@ -136,6 +136,8 @@ def test_home_keyboard_text_alternatives_reduced_motion_and_responsive_breakpoin
     assert '@media(max-width:900px)' in styles
     assert '@media(max-height:760px) and (max-width:900px)' in page
     assert 'width:min(1120px,100%)' in page
-    assert 'width:calc(100% - 28px)' in page
+    # Current compact composer contract; actual widths/overflow are exercised
+    # by pwa_mobile_preview.mjs at all eleven required viewport sizes.
+    assert 'body #composer{width:calc(100% - 20px)' in page
     assert 'height:100dvh' in page
     assert 'env(safe-area-inset-bottom)' in page

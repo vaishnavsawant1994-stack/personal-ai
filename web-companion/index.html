@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#050608" />
+<meta name="theme-color" content="#08090d" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>Personal AI</title>
 <link rel="manifest" href="/manifest.webmanifest" />
+<link rel="stylesheet" href="/design-system.css" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 <main class="shell">
-<header><div><small>PERSONAL AI</small><h1>Your intelligence, with you.</h1></div><span id="runtime-status" class="status">● Unpaired</span></header>
+<header><div><small>PERSONAL AI</small><h1>Your intelligence, with you.</h1></div><span id="runtime-status" role="status" class="status">● Unpaired</span></header>
 <nav><button class="active" data-page="home">Home</button><button data-page="memory">Memory</button><button data-page="control">Control</button><button data-page="dashboard">Dashboard</button></nav>
 <section id="home" class="page active">
 <div class="core" aria-label="Neural Pulse Core"><i></i><i></i><i></i><div class="core-center"><span>PERSONAL</span><b id="core-state">Ready when you are</b></div></div>
@@ -20,11 +21,12 @@
 <div class="cards"><article><small>THINGS NEED YOU</small><strong id="approval-count">0</strong><p id="approval-copy">No pending approvals.</p></article><article><small>RUNTIME</small><strong id="runtime-state">—</strong><p>Secure cloud status from your paired Personal AI runtime.</p></article></div>
 <div id="reply" class="panel" hidden></div>
 </section>
-<section id="memory" class="page"><h2>Second Brain</h2><p class="muted">Scoped access only</p><div class="panel"><form id="memory-search" class="stack"><input id="memory-query" placeholder="Search your memory"/><button type="submit" class="action">Search</button></form><div id="memory-results"><p>Pair a trusted runtime to access permitted memories.</p></div></div></section>
-<section id="control" class="page"><h2>Control</h2><div class="panel"><b>Secure runtime pairing</b><p>The long-lived device credential is kept only for this browser session. No runtime secrets are shipped in this public build.</p><form id="pair" class="stack"><input id="runtime-origin" inputmode="url" placeholder="https://your-secure-runtime.example"/><input id="pair-token" placeholder="Pairing token"/><input id="pair-code" inputmode="numeric" placeholder="Pairing code"/><button type="submit" class="action">Pair this iPhone</button></form><p id="pair-message" class="muted"></p></div><div class="panel"><b>Emergency control</b><p>Emergency stop requires the owner bootstrap secret and is never stored by this web companion.</p><form id="emergency" class="stack"><input id="owner-secret" type="password" autocomplete="off" placeholder="Owner secret"/><div class="row"><button type="button" id="stop" class="danger">STOP</button><button type="button" id="resume" class="action">Resume</button></div></form></div></section>
+<section id="memory" class="page"><h2>Second Brain</h2><p class="muted">Scoped access only</p><div class="panel"><form id="memory-search" class="stack"><input id="memory-query" aria-label="Search memory" placeholder="Search your memory"/><button type="submit" class="action">Search</button></form><div id="memory-results"><p>Pair a trusted runtime to access permitted memories.</p></div></div></section>
+<section id="control" class="page"><h2>Control</h2><div class="panel"><b>Secure runtime pairing</b><p>The long-lived device credential is kept only for this browser session. No runtime secrets are shipped in this public build.</p><form id="pair" class="stack"><input id="runtime-origin" aria-label="Secure runtime address" inputmode="url" placeholder="https://your-secure-runtime.example"/><input id="pair-token" type="password" autocomplete="off" aria-label="Pairing token" placeholder="Pairing token"/><input id="pair-code" aria-label="Pairing code" inputmode="numeric" placeholder="Pairing code"/><button type="submit" class="action">Pair this iPhone</button></form><p id="pair-message" role="status" class="muted"></p></div><div class="panel"><b>Emergency control</b><p>Emergency stop requires the owner bootstrap secret and is never stored by this web companion.</p><form id="emergency" class="stack"><input id="owner-secret" aria-label="Owner secret" type="password" autocomplete="off" placeholder="Owner secret"/><div class="row"><button type="button" id="stop" class="danger">STOP</button><button type="button" id="resume" class="action">Resume</button></div></form></div></section>
 <section id="dashboard" class="page"><h2>Dashboard</h2><div class="stats"><article><small>MEMORY</small><b id="memory-state">Scoped</b></article><article><small>DEVICE</small><b id="device-state">Unpaired</b></article><article><small>SECURITY</small><b id="security-state">Protected</b></article><article><small>SESSION</small><b id="session-state">None</b></article></div></section>
-<footer><form id="ask"><input id="prompt" aria-label="Ask Personal AI" autocomplete="off" placeholder="Ask Personal AI anything…"/><button type="submit">↑</button></form><div class="footline"><span>Session-only credentials</span><span>Scoped memory</span><span>Approvals</span><span>Emergency stop</span></div></footer>
+<footer><form id="ask"><input id="prompt" aria-label="Ask Personal AI" autocomplete="off" placeholder="Ask Personal AI anything…"/><button type="submit" aria-label="Send message"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></form><div class="footline"><span>Session-only credentials</span><span>Scoped memory</span><span>Approvals</span><span>Emergency stop</span></div></footer>
 </main>
+<dialog id="companionDialog" aria-labelledby="companionDialogTitle" class="companion-dialog"><form method="dialog"><h2 id="companionDialogTitle">Personal AI</h2><p id="companionDialogMessage"></p><div class="row"><button value="cancel" class="action secondary">Cancel</button><button value="continue" class="action">Continue</button></div></form></dialog>
 <script src="/app.js"></script>
 </body>
 </html>

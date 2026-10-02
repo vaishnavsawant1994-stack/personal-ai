@@ -14,3 +14,12 @@ const css=await offline('https://personal.example/iphone/missing.css');assert.eq
 const script=await offline('https://personal.example/iphone/missing.js');assert.equal(script.status,503);assert.doesNotMatch(await script.text(),/doctype/);
 const navigation=await offline('https://personal.example/iphone/deep-link','navigate');assert.match(await navigation.text(),/doctype/);
 console.log('Offline navigation fallback preserves API, provider script and stylesheet boundaries.');
+const companionHandlers={};
+vm.runInNewContext(await fs.readFile(new URL('../web-companion/sw.js',import.meta.url),'utf8'),{...scope,self:{location:scope.self.location,addEventListener:(type,fn)=>{companionHandlers[type]=fn}},caches:{match:async key=>key==='/index.html'?shell.clone():undefined}});
+let apiIntercepted=false;
+companionHandlers.fetch({request:{url:'https://personal.example/cloud/status',method:'GET',mode:'cors'},respondWith:()=>{apiIntercepted=true}});
+assert.equal(apiIntercepted,false,'companion authenticated runtime data must never be cached');
+let unavailable;
+companionHandlers.fetch({request:{url:'https://personal.example/styles.css',method:'GET',mode:'no-cors'},respondWith:result=>{unavailable=result},waitUntil:()=>{}});
+assert.equal((await unavailable).status,503,'companion offline stylesheets must not receive HTML');
+console.log('Companion service worker preserves authenticated data and resource-type boundaries.');

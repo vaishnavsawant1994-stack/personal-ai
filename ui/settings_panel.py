@@ -1,13 +1,16 @@
 from __future__ import annotations
 import json
+from ui.design_system import stylesheet
 from pathlib import Path
-from PyQt6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox,QPushButton,QMessageBox,QFileDialog,QPlainTextEdit
+from PyQt6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox,QPushButton,QMessageBox,QFileDialog,QPlainTextEdit,QScrollArea,QWidget
 from security.policy_targets import application_identity,normalize_origin
 
 class SettingsPanel(QDialog):
     def __init__(self,runtime,parent=None):
-        super().__init__(parent);self.runtime=runtime;self.prefs=runtime['preferences'];self.setWindowTitle('Personal AI Settings');self.resize(760,900)
-        lay=QVBoxLayout(self);lay.addWidget(QLabel('<h2>Personal AI Settings</h2>'))
+        super().__init__(parent);self.runtime=runtime;self.prefs=runtime['preferences'];self.setWindowTitle('Personal AI Settings')
+        self.setStyleSheet(stylesheet(bool(self.prefs.get('high_contrast'))))
+        self.resize(900,740)
+        outer=QVBoxLayout(self);scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();scroll.setWidget(content);outer.addWidget(scroll);lay=QVBoxLayout(content);lay.addWidget(QLabel('<h2>Personal AI Settings</h2>'))
         self.name=QLineEdit(str(self.prefs.get('preferred_name','')));self.name.setPlaceholderText('What should Personal AI call you?');lay.addWidget(QLabel('Preferred name'));lay.addWidget(self.name)
         self.wake=QLineEdit(str(self.prefs.get('wake_phrase','Hey Personal')));lay.addWidget(QLabel('Wake phrase'));lay.addWidget(self.wake)
         self.mode=QComboBox();self.mode.addItems(['observe','suggest','ask','act']);self.mode.setCurrentText(str(self.prefs.get('autonomy_mode','ask')));lay.addWidget(QLabel('Autonomy'));lay.addWidget(self.mode)
