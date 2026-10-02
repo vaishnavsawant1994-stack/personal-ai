@@ -39,3 +39,9 @@ def test_nested_calendar_attendee_is_destination():
     p={'event':{'attendees':[{'email':'a@example.com'}]}};assert ToolRegistry.destination(p)=='a@example.com'
 def test_emergency_stop_stricter_than_connector(tmp_path):
     r=ToolRegistry(SimpleNamespace(autonomy_mode='act',data_dir=tmp_path));t=Tool('x','x',lambda p:1);r.register(t);r.set_emergency_stop(True);assert not r.authorize(t).allowed
+
+
+def test_connector_ui_uses_personal_ai_confirmation_dialog():
+    from server.connector_ui import JS
+    assert "confirm(" not in JS
+    assert "await requestConfirmation('Revoke this connector on this Personal AI?')" in JS

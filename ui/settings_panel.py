@@ -1,13 +1,16 @@
 from __future__ import annotations
 import json
+from ui.design_system import stylesheet
 from pathlib import Path
-from PyQt6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox,QPushButton,QMessageBox,QFileDialog,QPlainTextEdit
+from PyQt6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QCheckBox,QComboBox,QPushButton,QMessageBox,QFileDialog,QPlainTextEdit,QScrollArea,QWidget
 from security.policy_targets import application_identity,normalize_origin
 
 class SettingsPanel(QDialog):
     def __init__(self,runtime,parent=None):
-        super().__init__(parent);self.runtime=runtime;self.prefs=runtime['preferences'];self.setWindowTitle('Personal AI Settings');self.resize(760,900)
-        lay=QVBoxLayout(self);lay.addWidget(QLabel('<h2>Personal AI Settings</h2>'))
+        super().__init__(parent);self.runtime=runtime;self.prefs=runtime['preferences'];self.setWindowTitle('Personal AI Settings')
+        self.setStyleSheet(stylesheet(bool(self.prefs.get('high_contrast'))))
+        self.resize(900,740)
+        outer=QVBoxLayout(self);scroll=QScrollArea();scroll.setWidgetResizable(True);content=QWidget();scroll.setWidget(content);outer.addWidget(scroll);lay=QVBoxLayout(content);lay.addWidget(QLabel('<h2>Personal AI Settings</h2>'))
         self.name=QLineEdit(str(self.prefs.get('preferred_name','')));self.name.setPlaceholderText('What should Personal AI call you?');lay.addWidget(QLabel('Preferred name'));lay.addWidget(self.name)
         self.wake=QLineEdit(str(self.prefs.get('wake_phrase','Hey Personal')));lay.addWidget(QLabel('Wake phrase'));lay.addWidget(self.wake)
         self.mode=QComboBox();self.mode.addItems(['observe','suggest','ask','act']);self.mode.setCurrentText(str(self.prefs.get('autonomy_mode','ask')));lay.addWidget(QLabel('Autonomy'));lay.addWidget(self.mode)
@@ -29,6 +32,7 @@ class SettingsPanel(QDialog):
         lay.addWidget(QLabel('<h3>Models — Health & routing</h3>'));lay.addWidget(QLabel('Privacy-safe provider health, circuit state, retry/failover counts and recent generation routing. Health checks never send conversation prompts.'))
         self.model_view=QPlainTextEdit();self.model_view.setReadOnly(True);self.model_view.setMaximumHeight(230);lay.addWidget(self.model_view);mrow=QHBoxLayout();mrefresh=QPushButton('Refresh model status');mrefresh.clicked.connect(self.refresh_model_view);mprobe=QPushButton('Run bounded health check');mprobe.clicked.connect(lambda:self.refresh_model_view(True));mrow.addWidget(mrefresh);mrow.addWidget(mprobe);lay.addLayout(mrow)
         lay.addWidget(QLabel('Local diagnostics'));self.diagnostics=QPlainTextEdit();self.diagnostics.setReadOnly(True);self.refresh();lay.addWidget(self.diagnostics,1);refresh=QPushButton('Refresh diagnostics');refresh.clicked.connect(self.refresh);lay.addWidget(refresh);self.refresh_policy_view();self.refresh_model_view()
+        for label in content.findChildren(QLabel):label.setWordWrap(True)
     def save(self):
         phrase=self.wake.text().strip() or 'Hey Personal';mode=self.mode.currentText();privacy=self.privacy.currentText();self.prefs.update(onboarding_complete=True,preferred_name=self.name.text().strip(),wake_phrase=phrase,launch_voice_on_start=self.voice.isChecked(),show_memory_hints=self.hints.isChecked(),reduce_motion=self.motion.isChecked(),high_contrast=self.contrast.isChecked(),autonomy_mode=mode,model_privacy_mode=privacy)
         gate=self.runtime.get('wake_phrase');tools=self.runtime.get('tools');models=self.runtime.get('models')

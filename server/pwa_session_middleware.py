@@ -18,6 +18,8 @@ PUBLIC_PATHS = {
     '/iphone/',
     '/iphone/manifest.webmanifest',
     '/iphone/sw.js',
+    '/iphone/layout.css',
+    '/iphone/design-system.css',
     # Public client adapter; it contains no session data and must load before
     # Google sign-in so it can attach logical request IDs to later chat turns.
     '/iphone/v1-runtime.js',

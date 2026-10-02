@@ -82,12 +82,14 @@ def test_client_adapter_keeps_pending_request_until_terminal_result():
     text=(Path(__file__).resolve().parent.parent/'pwa'/'v1-runtime.js').read_text()
     assert "sessionStorage.setItem(PENDING_KEY" in text
     assert "samePending" in text
-    assert "if(!clean||turnInFlight)return;enterConversationView();" in text
+    assert "if(!clean||turnInFlight)return;const startNewConversation=" in text
     assert "const startNewConversation=document.body.classList.contains('home-landing')" in text
     assert "if(startNewConversation){currentConversationId=null;" in text
     assert "for(let attempt=0;attempt<2;attempt++)" in text
     assert "clearPending(pending.request_id)" in text
-    assert "if(!samePending)appendMessage('user_message',clean)" in text
+    assert "if(!samePending)appendMessage('user_message',clean,{pending:true})" in text
+    assert "const canonicalSynced=await syncConversation(true)" in text
+    assert "else if(!canonicalSynced)appendMessage('assistant_message',result.reply,{pending:true})" in text
 
 
 

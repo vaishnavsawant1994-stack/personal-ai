@@ -2,6 +2,10 @@ package ai.personal.companion
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
+import android.content.res.ColorStateList
+import android.widget.ScrollView
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
@@ -26,7 +30,32 @@ import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
 
+private object PersonalAITheme {
+    val root = Color.rgb(8, 9, 13)
+    val surface = Color.rgb(16, 19, 25)
+    val text = Color.rgb(244, 247, 255)
+    val secondary = Color.rgb(193, 199, 211)
+    val accent = Color.rgb(61, 125, 255)
+}
+
 class MainActivity : AppCompatActivity() {
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private fun finishButton(button: Button, primary: Boolean = false) {
+        button.isAllCaps = false
+        button.textSize = 14f
+        button.minHeight = dp(48)
+        button.setTextColor(PersonalAITheme.text)
+        val shape = GradientDrawable().apply {
+            cornerRadius = dp(12).toFloat()
+            setColor(if (primary) PersonalAITheme.accent else PersonalAITheme.surface)
+        }
+        button.background = RippleDrawable(ColorStateList.valueOf(Color.argb(35, 255, 255, 255)), shape, null)
+        button.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(8)
+        }
+    }
+
     companion object {
         const val PERSONAL_AI_CLOUD_URL = "https://personal-ai-runtime-production.up.railway.app/iphone/"
     }
@@ -54,20 +83,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(40, 52, 40, 40)
-            setBackgroundColor(Color.rgb(3, 6, 13))
+            setPadding(dp(20), dp(24), dp(20), dp(24))
+            setBackgroundColor(PersonalAITheme.root)
         }
         val brand = TextView(this).apply {
-            text = "P E R S O N A L   A I"
+            text = "Personal AI"
             textSize = 25f
-            setTextColor(Color.WHITE)
-            setPadding(0, 0, 0, 16)
+            setTextColor(PersonalAITheme.text)
+            setPadding(0, 0, 0, dp(12))
         }
         val description = TextView(this).apply {
             text = "Your owner-controlled intelligence"
             textSize = 16f
-            setTextColor(Color.rgb(148, 163, 184))
-            setPadding(0, 0, 0, 40)
+            setTextColor(PersonalAITheme.secondary)
+            setPadding(0, 0, 0, dp(24))
         }
         val openCloud = Button(this).apply {
             text = "Open Personal AI"
@@ -76,8 +105,8 @@ class MainActivity : AppCompatActivity() {
         val continuity = TextView(this).apply {
             text = "Voice, Google sign-in, memory and conversations continue securely in your trusted browser."
             textSize = 14f
-            setTextColor(Color.rgb(148, 163, 184))
-            setPadding(4, 18, 4, 36)
+            setTextColor(PersonalAITheme.secondary)
+            setPadding(0, dp(16), 0, dp(24))
         }
         val advanced = Button(this).apply { text = "Advanced device pairing" }
         val pairingBox = LinearLayout(this).apply {
@@ -99,14 +128,30 @@ class MainActivity : AppCompatActivity() {
         }
         status = TextView(this).apply {
             text = "Device companion is not paired"
-            setTextColor(Color.rgb(148, 163, 184))
+            setTextColor(PersonalAITheme.secondary)
             setPadding(0, 14, 0, 0)
         }
         val pair = Button(this).apply { text = "Pair" }
         val connect = Button(this).apply { text = "Start background connection" }
         listOf(base, pairToken, code, pair, connect, status).forEach(pairingBox::addView)
         listOf(brand, description, openCloud, continuity, advanced, pairingBox).forEach(box::addView)
-        setContentView(box)
+        finishButton(openCloud, primary = true)
+        listOf(advanced, pair, connect).forEach { finishButton(it) }
+        listOf(base, pairToken, code).forEach {
+            it.minHeight = dp(48)
+            it.setTextColor(PersonalAITheme.text)
+            it.setHintTextColor(PersonalAITheme.secondary)
+            it.textSize = 16f
+            it.contentDescription = it.hint
+        }
+        status.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        window.statusBarColor = PersonalAITheme.root
+        window.navigationBarColor = PersonalAITheme.root
+        setContentView(ScrollView(this).apply {
+            isFillViewport = true
+            setBackgroundColor(PersonalAITheme.root)
+            addView(box)
+        })
         openCloud.setOnClickListener { openPersonalAI() }
         advanced.setOnClickListener {
             val show = pairingBox.visibility != View.VISIBLE
@@ -120,8 +165,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun openPersonalAI() {
         val colors = CustomTabColorSchemeParams.Builder()
-            .setToolbarColor(Color.rgb(3, 6, 13))
-            .setNavigationBarColor(Color.rgb(3, 6, 13))
+            .setToolbarColor(PersonalAITheme.root)
+            .setNavigationBarColor(PersonalAITheme.root)
             .build()
         val customTab = CustomTabsIntent.Builder()
             .setDefaultColorSchemeParams(colors)
@@ -147,14 +192,14 @@ class MainActivity : AppCompatActivity() {
             .build()
         client.newCall(req).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread { status.text = "Pair failed: ${e.message}" }
+                runOnUiThread { status.text = "Could not connect. Check the computer address and try again." }
             }
 
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     val text = it.body?.string().orEmpty()
                     if (!it.isSuccessful) {
-                        runOnUiThread { status.text = "Pair failed: $text" }
+                        runOnUiThread { status.text = "Pairing failed. Check your token and code, then try again." }
                         return
                     }
                     val obj = JSONObject(text)

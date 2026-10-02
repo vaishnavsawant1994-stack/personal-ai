@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - 'pwa/**'
+      - 'web-companion/**'
+      - 'tests/companion_visual_preview.mjs'
       - 'tests/pwa_mobile_preview.mjs'
+      - 'tests/pwa_canonical_adapter_preview.mjs'
       - '.github/workflows/pwa-mobile-preview.yml'
 
 permissions:
@@ -14,6 +17,12 @@ jobs:
   mobile-preview:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      PERSONAL_AI_BROWSER: ${{ matrix.browser }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,8 +30,8 @@ jobs:
           node-version: 22
       - name: Install Playwright
         run: |
-          npm install --no-save playwright
-          npx playwright install --with-deps chromium
+          npm install --no-save playwright axe-core
+          npx playwright install --with-deps ${{ matrix.browser }}
       - name: Serve the PWA at its deployed /iphone/ route
         run: |
           mkdir -p /tmp/pwa-preview
@@ -33,11 +42,21 @@ jobs:
             sleep 1
           done
           curl --fail --silent http://127.0.0.1:4173/iphone/ >/dev/null
+          node tests/pwa_service_worker.mjs
           node tests/pwa_mobile_preview.mjs
+          node tests/pwa_canonical_adapter_preview.mjs
+          python3 -m http.server 4175 --bind 0.0.0.0 --directory web-companion >/tmp/companion-preview-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4175/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/companion_visual_preview.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: personal-ai-mobile-preview
-          path: artifacts/*.png
+          name: personal-ai-mobile-preview-${{ matrix.browser }}
+          path: |
+            artifacts/*.png
+            artifacts/*verification.json
           if-no-files-found: warn
           retention-days: 7

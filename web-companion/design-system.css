@@ -1,0 +1,33 @@
+/* Generated from pwa/design-system.css; verify with tests/test_ui_design_system.py. */
+/* Personal AI shared visual system. Layout/feature behavior lives in layout.css.
+   Semantic tokens are the public styling contract for every web surface. */
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --bg-root: #08090d; --bg-primary: #0b0d12; --bg-secondary: #101319; --bg-tertiary: #151820;
+  --surface-1: rgba(255,255,255,.035); --surface-2: rgba(255,255,255,.055); --surface-3: rgba(255,255,255,.075);
+  --surface-hover: var(--surface-3); --surface-active: rgba(255,255,255,.105);
+  --border-subtle: rgba(255,255,255,.075); --border-default: rgba(255,255,255,.11); --border-strong: rgba(255,255,255,.16);
+  --text-primary: #f4f7ff; --text-secondary: #c1c7d3; --text-tertiary: #939cab; --text-disabled: #636c7c;
+  --accent: #3d7dff; --action-primary: #2f69e6; --action-hover: #285dce; --accent-hover: #528cff; --accent-active: #2f69e6; --accent-soft: rgba(61,125,255,.15);
+  --scrim: rgba(0,0,0,.44); --violet: #9b84ff; --orb-highlight: #d3fbff; --orb-cyan: #62dfff; --orb-blue: #4c7dff; --orb-violet: #5b31aa; --orb-depth: #16102f; --cyan: #38d8ff; --cyan-soft: rgba(56,216,255,.12); --danger: #ff9caf; --danger-soft: rgba(255,113,141,.1);
+  --status-success: #8fe5c4; --status-warning: #ffd58f;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --radius-xs: 6px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-2xl: 24px; --radius-pill: 999px;
+  --shadow-small: 0 4px 16px rgba(0,0,0,.18); --shadow-panel: 0 12px 40px rgba(0,0,0,.28); --shadow-modal: 0 20px 60px rgba(0,0,0,.38);
+  --glass-solid: #101319; --glass: rgba(12,15,21,.82); --glass-blur: 22px;
+  --motion-fast: 120ms; --motion-normal: 180ms; --motion-panel: 220ms; --ease: cubic-bezier(.2,.8,.2,1);
+  --z-content: 0; --z-sticky: 10; --z-header: 20; --z-backdrop: 30; --z-sidebar: 40; --z-popover: 50; --z-modal: 60; --z-toast: 70;
+  --reading-width: 820px; --page-width: 1180px;
+  /* Compatibility aliases for existing functional components. */
+  --bg: var(--bg-root); --panel: var(--surface-1); --line: var(--border-default); --text: var(--text-primary); --muted: var(--text-tertiary);
+  --text-muted: var(--text-tertiary); --blue: var(--accent); --accent-blue: var(--accent); --accent-cyan: var(--cyan); --accent-purple: var(--violet); --border-active: var(--accent);
+}
+/* Optional theme architecture: no unsupported theme switch is exposed. */
+:root[data-theme='light'] {
+  color-scheme: light; --bg-root:#f7f8fa; --bg-primary:#fff; --bg-secondary:#f1f3f6; --bg-tertiary:#e9edf3;
+  --surface-1:rgba(0,0,0,.025); --surface-2:rgba(0,0,0,.045); --surface-3:rgba(0,0,0,.065); --surface-active:rgba(0,0,0,.09);
+  --border-subtle:rgba(0,0,0,.08); --border-default:rgba(0,0,0,.13); --border-strong:rgba(0,0,0,.2);
+  --text-primary:#19202e; --text-secondary:#414b5b; --text-tertiary:#596579; --text-disabled:#8791a1;
+  --glass-solid:#f1f3f6; --glass:rgba(249,250,252,.88); --danger:#a82445;
+}

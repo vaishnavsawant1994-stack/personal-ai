@@ -294,6 +294,14 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
     def iphone_home():
         return HTMLResponse((web_dir / 'index.html').read_text(encoding='utf-8'), headers={'Cache-Control': 'no-store'})
 
+    @router.get('/layout.css', include_in_schema=False)
+    def layout_styles():
+        return Response((web_dir / 'layout.css').read_text(encoding='utf-8'), media_type='text/css', headers={'Cache-Control': 'no-cache'})
+
+    @router.get('/design-system.css', include_in_schema=False)
+    def design_styles():
+        return Response((web_dir / 'design-system.css').read_text(encoding='utf-8'), media_type='text/css', headers={'Cache-Control': 'no-cache'})
+
     @router.get('/manifest.webmanifest', include_in_schema=False)
     def manifest():
         return Response((web_dir / 'manifest.webmanifest').read_text(encoding='utf-8'), media_type='application/manifest+json')
