@@ -5,7 +5,6 @@ import json
 from app.main import build_runtime
 from core.config import settings
 from core.storage import validate_runtime_storage
-from core.instance_identity import bind_instance_identity
 from security.pwa_sessions import PwaSessionStore
 from server.api import create_app
 from server.activities_api import activities_router
@@ -48,15 +47,12 @@ class CanonicalConversationProjection:
         return self._continuity.append(thread_id,device_id=device_id,kind=kind,payload=payload,event_id=event_id)
 
 storage_status=validate_runtime_storage(settings)
-instance_status=bind_instance_identity(settings.data_dir,settings.instance_id)
 runtime=build_runtime();runtime['storage_status']=storage_status;runtime['pwa_sessions']=PwaSessionStore(settings.data_dir/'pwa-sessions.sqlite3')
-runtime['instance_status']=instance_status
-print(json.dumps({'event':'storage.ready',**storage_status,'instance_id':instance_status['instance_id']}),flush=True)
+print(json.dumps({'event':'storage.ready',**storage_status}),flush=True)
 
 @asynccontextmanager
 async def lifespan(app):
-    if settings.automation_execution_enabled: runtime['automations'].start()
-    evaluation_task=None
+    runtime['automations'].start();evaluation_task=None
     if settings.model_evaluation_on_startup:
         async def evaluate_model():
             result=await asyncio.to_thread(runtime['model_evaluation'].run);safe={key:value for key,value in result.items() if key!='cases'};safe['case_results']=[{'case':item['case'],'passed':item['passed'],'error_code':item['error_code']} for item in result['cases']];print(json.dumps({'event':'model.dialogue_evaluation',**safe}),flush=True)

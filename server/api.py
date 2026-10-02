@@ -442,16 +442,13 @@ def create_app(
         x_device_id: str | None = Header(default=None),
     ):
         device_id = auth_device(authorization, x_device_id, 'workflow:write')
-        try:
-            run_id = require_runtime('automations').run_workflow(
-                body.workflow_id,
-                background=True,
-                owner_id='owner',
-                device_id=device_id,
-                idempotency_key=body.idempotency_key,
-            )
-        except RuntimeError as exc:
-            raise HTTPException(409, str(exc)) from exc
+        run_id = require_runtime('automations').run_workflow(
+            body.workflow_id,
+            background=True,
+            owner_id='owner',
+            device_id=device_id,
+            idempotency_key=body.idempotency_key,
+        )
         return {'run_id': run_id}
 
     @app.post('/workflows/pause')
