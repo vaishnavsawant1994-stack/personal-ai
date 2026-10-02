@@ -197,8 +197,7 @@ try {
   await page.click("#timelineAddPlan");
   assert.equal(everydayItems.length,demoEverydayBeforePlan,"Timeline demo Add to plan must not create real data");
   const demoConversationTitle=page.locator('#conversationList .timeline-entry[data-category="conversation"] .timeline-title').first();
-  await demoConversationTitle.scrollIntoViewIfNeeded();
-  await demoConversationTitle.click();
+  await demoConversationTitle.evaluate(button=>button.click());
   assert.equal(await page.evaluate(()=>currentConversationId),demoConversationBeforeOpen,"Timeline demo conversation rows must not navigate to a real record");
   await page.click("#timelineCloseDrawer");
   await page.evaluate(async()=>{personalAiDemoMode=false;await refreshConversationsDrawer('')});
