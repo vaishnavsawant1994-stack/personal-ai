@@ -1602,7 +1602,7 @@
     .conversation-drawer[data-mode="timeline"]{
       position:fixed!important;z-index:51!important;
       inset:0 0 0 auto!important;left:auto!important;right:0!important;
-      width:min(89vw,380px)!important;height:var(--conversation-visible-height,100dvh)!important;max-height:100dvh!important;
+      width:min(92vw,390px)!important;height:var(--conversation-visible-height,100dvh)!important;max-height:100dvh!important;
       padding:0!important;gap:0!important;overflow:hidden!important;
       border:0!important;border-left:1px solid rgba(54,132,225,.22)!important;
       border-radius:24px 0 0 24px!important;
@@ -2881,6 +2881,8 @@ function openConversationsDrawer(){
 }
 function openTimelineDrawer(){
  closeFloatingMenus();
+ conversationFilter='all';$('conversationSearch').value='';
+ document.querySelectorAll('[data-conversation-filter]').forEach(button=>{const active=button.dataset.conversationFilter==='all';button.classList.toggle('active',active);button.setAttribute('aria-pressed',active?'true':'false')});
  const fromSidebar=!$('appDrawer').classList.contains('hidden');
  lastFocusedElement=fromSidebar?$('historyButton'):document.activeElement;
  conversationDrawerReturnToMain=fromSidebar;
