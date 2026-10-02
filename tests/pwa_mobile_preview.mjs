@@ -908,6 +908,7 @@ try {
     if (![320,430].includes(width)) {
       await page.click("#ownerButton");
       await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+      await page.waitForFunction(()=>{const r=document.querySelector("#conversationDrawer").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1});
       const timelineViewport=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth,doc:document.documentElement.scrollWidth}));
       assert.ok(timelineViewport.drawer.left>=0&&timelineViewport.drawer.right<=timelineViewport.width+1,"Timeline must fit viewport at "+width+"x"+height);
       assert.ok(timelineViewport.doc<=timelineViewport.width,"Timeline must not introduce horizontal overflow at "+width+"x"+height);
@@ -957,6 +958,7 @@ try {
     if(width===1440)await page.screenshot({path:"artifacts/personal-ai-home-desktop-1440x1000.png",fullPage:true});
     await page.click("#ownerButton");
     await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+    await page.waitForFunction(()=>{const r=document.querySelector("#conversationDrawer").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth+1});
     const timelineWide=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth,doc:document.documentElement.scrollWidth}));
     assert.ok(timelineWide.drawer.width>=360&&timelineWide.drawer.width<=400,"wide Timeline must remain a contextual panel instead of stretching at "+width+"x"+height);
     assert.ok(timelineWide.drawer.left>=0&&timelineWide.drawer.right<=timelineWide.width+1&&timelineWide.doc<=timelineWide.width,"wide Timeline must fit without horizontal overflow at "+width+"x"+height);
