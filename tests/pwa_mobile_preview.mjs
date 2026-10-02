@@ -1060,7 +1060,7 @@ try {
   await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
   await page.click("#ownerButton");
   await page.waitForFunction(()=>document.querySelector("#conversationCount").textContent==="Sign in required");
-  assert.match(await page.locator("#conversationList").innerText(),/Sign in to view your conversations, plans, and activity\./);
+  assert.match(await page.locator("#conversationList").innerText(),/Sign in to view timeline\s+Your chats, plans and activity will appear here after authentication\./);
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Project Planning|Team planning meeting|Finish daily review/,
     "signed-out timeline must not retain authenticated conversation or activity rows");
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Loading your timeline|Loading real Personal AI activity/,
