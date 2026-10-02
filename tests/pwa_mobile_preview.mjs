@@ -580,16 +580,28 @@ try {
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right Timeline must keep existing planning functionality");
   assert.deepEqual(await page.evaluate(()=>auditTimelinePresentation({label:"Model",kind:"model",action:"selected"})),{title:"Model selected",preview:"Personal AI model selection updated"},"generic Model selected audit events must be humanized without fabricating hidden data");
   await page.screenshot({path:"artifacts/personal-ai-timeline-approved-all-390x844.png",fullPage:true});
+  const yesterdayHeading=page.locator(".timeline-day",{hasText:"Yesterday"}).first();
+  assert.ok(await yesterdayHeading.count(),"Timeline fixture must expose a Yesterday section for date-group qualification");
+  await yesterdayHeading.scrollIntoViewIfNeeded();
+  await page.screenshot({path:"artifacts/personal-ai-timeline-today-yesterday-390x844.png",fullPage:true});
+  await page.locator("#conversationList").evaluate(node=>{node.scrollTop=0});
+
+  await page.locator('[data-conversation-filter="recent"]').click();
+  await page.screenshot({path:"artifacts/personal-ai-timeline-filter-recent-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
+  await page.screenshot({path:"artifacts/personal-ai-timeline-filter-meetings-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="task"]').click();
   assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Finish daily review"),"Tasks filter must isolate actual task events");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-filter-tasks-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="conversation"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),conversations.map(x=>x.title));
+  await page.screenshot({path:"artifacts/personal-ai-timeline-filter-chats-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="all"]').click();
   await page.fill("#conversationSearch","Onion");
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===1&&document.querySelector(".timeline-title").textContent.includes("Onion"));
   assert.ok((await page.locator("#conversationCount").innerText()).startsWith("1 entry"));
+  await page.screenshot({path:"artifacts/personal-ai-timeline-search-results-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="recent"]').click();
   assert.equal(await page.locator('[data-conversation-filter="recent"]').getAttribute("aria-pressed"),"true");
   assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Onion Cultivation Guide"),"Recent must preserve cross-category search results");
@@ -597,13 +609,51 @@ try {
   await page.fill("#conversationSearch","weekly report");
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===1&&document.querySelector(".timeline-title").textContent.includes("Complete weekly report"));
   await page.fill("#conversationSearch","nonexistent title");
-  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===0&&document.querySelector(".timeline-empty")?.textContent.includes("No matching"));
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length===0&&document.querySelector(".timeline-empty")?.textContent.includes("No results for"));
+  await page.screenshot({path:"artifacts/personal-ai-timeline-search-empty-390x844.png",fullPage:true});
+
   await page.fill("#conversationSearch","");
   await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
+  await page.evaluate(()=>{timelineLoaded=false;renderUnifiedTimeline()});
+  assert.ok(await page.locator(".timeline-loading-entry").count()>=4,"Timeline loading state must use structured skeleton rows");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-loading-390x844.png",fullPage:true});
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
+  await page.evaluate(()=>{timelineLoaded=true;timelineAvailable={conversations:false,plans:false,activity:false,workflows:false};conversationManagerResults=[];timelineItems=[];timelineAudit=[];timelineRuns=[];renderUnifiedTimeline()});
+  assert.ok((await page.locator(".timeline-empty").innerText()).includes("Unable to load timeline"),"Timeline full-source failure must render an explicit retryable error state");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-error-390x844.png",fullPage:true});
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
+  await page.evaluate(()=>{conversationManagerResults=[];timelineItems=[];timelineAudit=[];timelineRuns=[];timelineAvailable={conversations:true,plans:true,activity:true,workflows:true};timelineLoaded=true;conversationFilter='all';renderUnifiedTimeline()});
+  assert.ok((await page.locator(".timeline-empty").innerText()).includes("No timeline activity yet"),"Timeline must render a calm true-empty state without mock events");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-empty-390x844.png",fullPage:true});
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
+  await page.locator('[data-conversation-filter="meeting"]').click();
+  await page.evaluate(()=>{timelineItems=timelineItems.filter(item=>!String(item.context||'').includes(':meeting'));renderUnifiedTimeline()});
+  assert.ok((await page.locator(".timeline-empty").innerText()).includes("No meetings found"),"empty category state must name the active filter");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-filter-empty-390x844.png",fullPage:true});
+  await page.evaluate(()=>refreshUnifiedTimeline(''));
+  await page.locator('[data-conversation-filter="all"]').click();
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
+  await page.evaluate(()=>{
+    window.__timelineVisualBackup={title:conversationCache[0].title,preview:conversationCache[0].preview};
+    conversationCache[0].title='A very long Personal AI conversation title that must truncate cleanly inside the approved premium Timeline card';
+    conversationCache[0].preview='This is an intentionally long real-data-style preview used only by the browser acceptance fixture to verify single-line truncation without changing production content.';
+    renderUnifiedTimeline();
+  });
+  await page.screenshot({path:"artifacts/personal-ai-timeline-long-title-preview-390x844.png",fullPage:true});
+  await page.evaluate(()=>{conversationCache[0].title=window.__timelineVisualBackup.title;conversationCache[0].preview=window.__timelineVisualBackup.preview;delete window.__timelineVisualBackup;renderUnifiedTimeline()});
   await page.locator('[data-conversation-filter="all"]').click();
   await page.locator('.timeline-entry[data-category="work"] .timeline-event-menu-button').click();
   await page.waitForFunction(()=>!document.querySelector("#timelineEventMenu").classList.contains("hidden"));
   assert.ok((await page.locator("#timelineEventMenu").innerText()).includes("Mark complete"),"pending work menu must expose the existing completion action");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-context-menu-390x844.png",fullPage:true});
   await page.getByRole('menuitem',{name:'Mark complete'}).click();
   await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="work"]')?.dataset.status==="done");
   assert.ok((await page.locator(".timeline-title").allTextContents()).includes("Prepare client proposal"),"Mark complete must preserve the plan event in the approved All view");
@@ -616,11 +666,24 @@ try {
   await page.waitForFunction(()=>document.querySelector('.timeline-entry[data-category="activity"]'));
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-filtered-390x844.png",fullPage:true});
 
+  await page.click("#timelineAddPlan");
+  await page.waitForFunction(()=>!document.querySelector("#todayForm").classList.contains("hidden"));
+  await page.screenshot({path:"artifacts/personal-ai-timeline-add-to-plan-390x844.png",fullPage:true});
+  await page.evaluate(()=>document.querySelector("#todayForm").classList.add("hidden"));
+  await page.click("#ownerButton");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
+
   // Open a real persisted conversation from the preserved Timeline to continue chat qualification.
   await page.locator('[data-conversation-filter="conversation"]').click();
   await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
+  await page.click("#ownerButton");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+  await page.screenshot({path:"artifacts/personal-ai-timeline-from-chat-390x844.png",fullPage:true});
+  await page.click("#timelineCloseDrawer");
+  await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden"));
   const chatState = await page.evaluate(() => ({
     coreVisibility: getComputedStyle(document.querySelector(".core-stage")).visibility,
     messageCount: document.querySelectorAll("#messageStream .message").length,
@@ -844,6 +907,11 @@ try {
     }
     if (width === 430) {
       await page.screenshot({ path: "artifacts/personal-ai-home-430x932.png", fullPage: true });
+      await page.click("#ownerButton");
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").dataset.mode==="timeline"&&!document.querySelector("#conversationDrawer").classList.contains("hidden"));
+      await page.screenshot({path:"artifacts/personal-ai-timeline-approved-large-iphone-430x932.png",fullPage:true});
+      await page.click("#timelineCloseDrawer");
+      await page.waitForFunction(()=>document.querySelector("#conversationDrawer").classList.contains("hidden"));
       await page.click("#historyButton");
       assert.ok(await page.locator("#sidebarAccountButton").isVisible());
       await page.screenshot({ path: "artifacts/personal-ai-sidebar-430x932.png", fullPage: true });
