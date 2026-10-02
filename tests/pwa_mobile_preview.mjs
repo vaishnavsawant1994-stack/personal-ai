@@ -303,6 +303,7 @@ try {
   }));
   assert.ok(approvedEmptyLayout.greeting.top>=approvedEmptyLayout.header.bottom+6,"approved Home capture must keep the greeting clear of the floating Home controls");
   assert.ok(approvedEmptyLayout.composer.bottom<=approvedEmptyLayout.viewport+1,"approved empty-Today Home composition must keep the composer visible in the primary iPhone viewport");
+  assert.ok(approvedEmptyLayout.composer.bottom>=approvedEmptyLayout.viewport-1,"approved Home composer must sit flush against the bottom edge with no external gap");
   assert.ok(approvedEmptyLayout.scrollWidth<=approvedEmptyLayout.viewportWidth,"approved empty-Today Home must not overflow horizontally");
   assert.ok(approvedEmptyLayout.calendar.scrollWidth<=approvedEmptyLayout.calendar.clientWidth+2,"calendar disconnected status must remain fully readable at the primary iPhone width");
   await page.screenshot({ path: "artifacts/personal-ai-home-today-empty-390x844.png", fullPage: true });
@@ -624,6 +625,7 @@ try {
     assert.ok(layout.core.width > 0 && layout.core.height > 0, "sphere missing at " + width + "x" + height);
     assert.ok(layout.sphereInk > 90, "mini sphere animation did not repaint after chat at " + width + "x" + height);
     assert.ok(layout.composer.bottom <= layout.viewportHeight + 1, "composer clipped at " + width + "x" + height);
+    assert.ok(layout.composer.bottom >= layout.viewportHeight - 1, "Home composer must remain flush to the bottom at " + width + "x" + height);
     assert.ok(layout.header.left >= -1 && layout.header.right <= layout.viewportWidth + 1, "header clipped at " + width + "x" + height);
     assert.ok(layout.quick.left >= -1 && layout.quick.right <= layout.viewportWidth + 1, "quick actions clipped at " + width + "x" + height);
     assert.ok(layout.cards.length === 4, "four Home cards required");
@@ -692,6 +694,7 @@ try {
       quick:[...document.querySelectorAll(".quick-action")].map(node=>node.getBoundingClientRect()),
     }));
     assert.ok(wide.doc<=wide.inner,"wide Home must not horizontally overflow at "+width+"x"+height);
+    assert.ok(wide.composer.bottom>=height-1&&wide.composer.bottom<=height+1,"wide Home composer must stay flush to the viewport bottom at "+width+"x"+height);
     assert.ok(wide.home.width<=722&&wide.header.width<=722&&wide.composer.width<=722,"Home content must remain centered within its intended max width at "+width+"x"+height);
     assert.ok(Math.abs(wide.home.left-(wide.inner-wide.home.width)/2)<=2,"Home content must remain centered at "+width+"x"+height);
     assert.ok(wide.quick.every(card=>card.width<wide.home.width*.52),"2x2 shortcut grid must stay proportionate at "+width+"x"+height);
@@ -821,6 +824,7 @@ try {
   }));
   assert.ok(landscape.scrollWidth <= landscape.innerWidth, "landscape must not scroll horizontally");
   assert.ok(landscape.composerBottom <= landscape.innerHeight + 1, "landscape composer must stay in viewport");
+  assert.ok(landscape.composerBottom >= landscape.innerHeight - 1, "landscape Home composer must stay flush to the bottom edge");
   assert.ok(landscape.headerLeft >= 0 && landscape.headerRight <= landscape.innerWidth + 1, "landscape header must fit");
   await page.screenshot({ path: "artifacts/personal-ai-home-landscape-844x390.png", fullPage: true });
   assert.equal(await page.locator("#chatMenuButton").isVisible(),false,"conversation actions must disappear on Home even when old chat exists");
