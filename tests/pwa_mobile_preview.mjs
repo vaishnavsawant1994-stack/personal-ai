@@ -162,6 +162,30 @@ try {
   await page.click("#todayScreenClose");
   await page.evaluate(()=>{todayScreenDemo=false});
 
+  // All three approved surfaces share one explicitly enabled, non-persistent preview dataset.
+  await page.evaluate(async()=>{personalAiDemoMode=true;await openConversationsDrawer()});
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===11);
+  assert.equal(await page.locator("#conversationsDemoNote").isVisible(),true,"Conversations sample data must be labeled preview-only");
+  assert.equal(await page.locator(".conversations-group-title").allTextContents().then(x=>[...new Set(x)]).then(x=>x.join("|")),"Today|Yesterday|Previous 7 days");
+  await page.fill("#conversationManagerSearch","retrospective");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===1);
+  assert.match(await page.locator("#conversationManagerList").innerText(),/Team retrospective/,"conversation search must filter preview data");
+  await page.fill("#conversationManagerSearch","");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===11);
+  await page.screenshot({path:"artifacts/personal-ai-conversations-demo-390x844.png",fullPage:true});
+  await page.click("#closeDrawer");
+  await page.evaluate(()=>openTimelineDrawer());
+  await page.waitForFunction(()=>document.querySelectorAll("#conversationList .timeline-entry").length>=15);
+  assert.equal(await page.locator("#timelineDemoNote").isVisible(),true,"Timeline sample data must be labeled preview-only");
+  const previewTimeline=await page.locator("#conversationList").innerText();
+  assert.match(previewTimeline,/Project update discussion/,"Timeline preview must include sample conversation history");
+  assert.match(previewTimeline,/Weekly team sync/,"Timeline preview must include sample meetings");
+  assert.match(previewTimeline,/Review design feedback/,"Timeline preview must include sample task history");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-demo-390x844.png",fullPage:true});
+  await page.click("#timelineCloseDrawer");
+  await page.evaluate(async()=>{personalAiDemoMode=false;await refreshConversationsDrawer('')});
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===3);
+
   const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
     const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
