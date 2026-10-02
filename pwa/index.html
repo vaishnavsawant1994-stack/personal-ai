@@ -890,12 +890,12 @@
       grid-template-rows:auto minmax(0,1fr);gap:0;
     }
     body.home-landing .topbar{
-      width:min(100%,var(--home-max));min-height:62px;margin:0 auto 0;
+      width:min(100%,var(--home-max));min-height:52px;margin:0 auto;
       grid-template-columns:52px minmax(0,1fr) 52px;align-items:center;
-      padding:3px 14px;border:1px solid rgba(91,153,255,.16);border-radius:25px;
-      background:linear-gradient(145deg,rgba(13,20,31,.88),rgba(7,11,18,.78));
-      -webkit-backdrop-filter:blur(18px) saturate(115%);backdrop-filter:blur(18px) saturate(115%);
-      box-shadow:0 10px 30px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.025);
+      padding:2px 14px;border:0;border-radius:0;
+      background:transparent;
+      -webkit-backdrop-filter:none;backdrop-filter:none;
+      box-shadow:none;
     }
     body.home-landing .history-button,
     body.home-landing .owner-status{
@@ -914,18 +914,14 @@
     body.home-landing .owner-status svg{width:23px;height:23px;stroke-width:1.8}
     body.home-landing .header-core.brand{
       position:relative;left:auto;transform:none;justify-self:center;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:0;width:64px;min-width:64px;height:60px;pointer-events:none;
+      align-items:center;justify-content:center;gap:0;width:64px;min-width:64px;height:52px;pointer-events:none;
     }
     body.home-landing .topbar .header-core .core-stage{
       display:block!important;width:46px!important;height:46px!important;min-width:46px!important;
       flex:0 0 46px!important;margin:0!important;
     }
     body.home-landing .topbar .header-core .core-glow{inset:18% 19%;opacity:.24;filter:blur(16px)}
-    .home-header-active{display:none}
-    body.home-landing .home-header-active{
-      display:block!important;margin-top:-1px;color:#dce9fa;font-size:10px;font-weight:500;
-      line-height:1;letter-spacing:.27em;text-indent:.27em;
-    }
+    .home-header-active{display:none!important}
     body.home-landing .home{
       height:100%;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
       scrollbar-width:thin;-webkit-overflow-scrolling:touch;
@@ -939,7 +935,7 @@
       margin:0 auto;padding:0 0 14px;overflow-y:auto;overflow-x:hidden;
       overscroll-behavior:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch;
     }
-    body.home-landing .home-greeting{padding:0;margin:17px 0 14px;text-align:center}
+    body.home-landing .home-greeting{padding:0;margin:14px 0 14px;text-align:center}
     body.home-landing .home-greeting h1{
       margin:0;color:var(--home-text);font-size:clamp(26px,6.9vw,30px);font-weight:630;
       line-height:1.12;letter-spacing:-.025em;
@@ -1172,7 +1168,7 @@
 <main class="app-shell">
   <header class="topbar">
     <button id="historyButton" class="history-button" type="button" aria-label="Open Personal AI menu" aria-expanded="false" aria-controls="appDrawer"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-    <div class="brand header-core" role="img" aria-label="Personal AI animated neural sphere"><div class="core-stage" aria-hidden="true"><div class="core-glow"></div><canvas id="neuralCanvas"></canvas></div><span class="home-header-active" aria-hidden="true">ACTIVE</span></div>
+    <div class="brand header-core" role="img" aria-label="Personal AI animated neural sphere"><div class="core-stage" aria-hidden="true"><div class="core-glow"></div><canvas id="neuralCanvas"></canvas></div></div>
     <div class="topbar-actions">
       <button id="chatMenuButton" class="chat-menu-button hidden" type="button" aria-label="Conversation options" aria-haspopup="menu" aria-expanded="false" aria-controls="chatActionMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg></button>
     <button id="ownerButton" class="owner-status" type="button" aria-label="Recent conversations" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.5v5.2l3.4 2"/></svg><span class="trust"><span id="greeting">Good day.</span><small id="devicePill">Checking device…</small></span></button>
