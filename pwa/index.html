@@ -1803,6 +1803,13 @@
       .conversation-drawer[data-mode="timeline"],.timeline-loading-entry i{animation:none!important}
       .timeline-search-wrap,.timeline-content,.conversation-drawer[data-mode="timeline"] .conversation-filter{transition:none!important}
     }
+
+    /* Shared topbar regression guard: compact sphere scale must stay identical
+       on short/narrow conversation viewports as required by the approved chrome. */
+    body:not(.home-landing) .topbar .header-core .core-stage,
+    body.has-conversation:not(.home-landing) .topbar .header-core .core-stage{
+      width:46px!important;height:46px!important;min-width:46px!important;max-width:46px!important;flex:0 0 46px!important;
+    }
 </style>
 </head>
 <body>
