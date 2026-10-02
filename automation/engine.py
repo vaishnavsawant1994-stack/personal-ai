@@ -37,12 +37,14 @@ class AutomationEngine:
     TERMINAL = {'completed', 'failed', 'cancelled', 'interrupted', 'budget_exceeded'}
 
     def __init__(self, path: Path, executor=None, events=None, poll_seconds: float = 2.0,
-                 context_provider=None, default_timeout_seconds: int = 120, default_retries: int = 2):
+                 context_provider=None, default_timeout_seconds: int = 120, default_retries: int = 2,
+                 execution_enabled: bool = True):
         self.path = Path(path); self.path.parent.mkdir(parents=True, exist_ok=True)
         self.executor = executor; self.events = events; self.poll_seconds = poll_seconds
         self.context_provider = context_provider or (lambda: {})
         self.default_timeout_seconds = max(1, int(default_timeout_seconds))
         self.default_retries = max(0, int(default_retries))
+        self.execution_enabled = bool(execution_enabled)
         self._stop = threading.Event(); self._thread = None
         self._workflow_pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix='personal-ai-workflow')
         self._step_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix='personal-ai-workflow-step')
@@ -159,6 +161,7 @@ class AutomationEngine:
         return {'workflow_id':workflow_id,'enabled':bool(enabled)}
 
     def trigger(self,event_name,payload=None):
+        if not self.execution_enabled: return []
         payload=dict(payload or {}); matches=[]
         for wf in self.workflows():
             if not wf['enabled'] or wf['paused']: continue
@@ -174,6 +177,8 @@ class AutomationEngine:
         if name: self.trigger(name,dict(event.get('payload') or {}))
 
     def run_workflow(self,workflow_id,*,trigger_payload=None,context=None,background=False,owner_id=None,device_id=None,session_id=None,reauthenticated_at=None,idempotency_key=None):
+        if not self.execution_enabled:
+            raise RuntimeError('automation execution is disabled for this installation')
         wf=self.workflow(workflow_id)
         if not wf['enabled']: raise RuntimeError('workflow is disabled')
         if wf['paused']: raise RuntimeError('workflow is paused')
@@ -200,6 +205,7 @@ class AutomationEngine:
         reason=exc.user_message if isinstance(exc,WorkflowBudgetError) else str(exc); self._update_run(run_id,status='budget_exceeded',error=reason,completed_at=now()); self.budgets.mark_stopped(run_id,reason); self._emit('workflow.budget_exceeded',run_id=run_id,workflow_id=wf['id'],reason=reason)
 
     def _continue_run(self,run_id,*,approved_result=None):
+        if not self.execution_enabled: return
         lock=self._run_locks.setdefault(run_id,threading.Lock())
         if not lock.acquire(blocking=False): return
         try:
@@ -278,6 +284,8 @@ class AutomationEngine:
         return text
 
     def approve_run(self,run_id,approval_id,*,owner_id=None,device_id=None,session_id=None,reauthenticated_at=None):
+        if not self.execution_enabled:
+            raise RuntimeError('automation execution is disabled for this installation')
         run=self._run(run_id)
         self._assert_authority(run,owner_id=owner_id,device_id=device_id,session_id=session_id)
         if run['status']!='waiting_approval' or run['pending_approval_id']!=approval_id: raise PermissionError('run is not waiting for this approval')
@@ -392,6 +400,8 @@ class AutomationEngine:
         return {'run_id':run_id,'status':self._run(run_id)['status'],'recovery':view}
 
     def resume_run(self,run_id,*,background=True,owner_id=None,device_id=None,session_id=None):
+        if not self.execution_enabled:
+            raise RuntimeError('automation execution is disabled for this installation')
         run=self._run(run_id); self._assert_authority(run,owner_id=owner_id,device_id=device_id,session_id=session_id)
         if run['status'] not in {'recovery_required','interrupted'}: raise RuntimeError('workflow run is not waiting for recovery')
         wf=self.workflow(run['workflow_id'])
@@ -449,8 +459,10 @@ class AutomationEngine:
         if self.events: self.events.emit(event,**payload)
 
     def start(self):
+        if not self.execution_enabled: return False
         if self._thread and self._thread.is_alive(): return
         self._stop.clear(); self._thread=threading.Thread(target=self._loop,daemon=True,name='personal-ai-automation'); self._thread.start()
+        return True
     def stop(self):
         self._stop.set()
         if self._thread and self._thread.is_alive(): self._thread.join(timeout=max(1.0,self.poll_seconds+.5))
@@ -472,6 +484,7 @@ class AutomationEngine:
             else:
                 with self._con() as con: con.execute('UPDATE workflows SET next_run_at=NULL,updated_at=? WHERE id=?',(now(),row['id']))
     def _run_one(self,row):
+        if not self.execution_enabled: return
         result={'executed':False}
         try:
             condition=json.loads(row['condition_json'] or '{}'); context=self.context_provider() or {}
