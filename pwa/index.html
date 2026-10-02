@@ -1597,6 +1597,212 @@
       .conversation-drawer[data-mode="conversations"],.conversations-skeleton-icon,.conversations-skeleton-copy i,.conversations-skeleton-time{animation:none!important}
       .conversations-row,.conversations-search-wrap{transition:none!important}
     }
+
+    /* Approved Timeline sidebar — scope: Timeline mode only. */
+    .conversation-drawer[data-mode="timeline"]{
+      position:fixed!important;z-index:51!important;
+      inset:0 0 0 auto!important;left:auto!important;right:0!important;
+      width:min(89vw,380px)!important;height:var(--conversation-visible-height,100dvh)!important;max-height:100dvh!important;
+      padding:0!important;gap:0!important;overflow:hidden!important;
+      border:0!important;border-left:1px solid rgba(54,132,225,.22)!important;
+      border-radius:24px 0 0 24px!important;
+      background:linear-gradient(155deg,rgba(8,18,31,.97),rgba(5,12,21,.95))!important;
+      -webkit-backdrop-filter:blur(22px) saturate(120%)!important;backdrop-filter:blur(22px) saturate(120%)!important;
+      box-shadow:-18px 0 60px rgba(0,0,0,.36)!important;
+      animation:timelineDrawerIn .22s cubic-bezier(.2,.8,.2,1)!important;
+    }
+    @keyframes timelineDrawerIn{from{transform:translateX(18px);opacity:.45}to{transform:none;opacity:1}}
+    .timeline-drawer-mode{
+      box-sizing:border-box;height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+      color:rgba(245,248,255,.96);
+    }
+    .timeline-drawer-mode.hidden{display:none!important}
+    .timeline-top{
+      flex:0 0 auto;padding:max(15px,env(safe-area-inset-top)) 18px 10px;background:linear-gradient(180deg,rgba(7,15,26,.52),rgba(7,15,26,0));
+    }
+    .timeline-approved-header{
+      display:grid;grid-template-columns:46px minmax(0,1fr) 46px;gap:10px;align-items:center;min-height:52px;
+    }
+    .timeline-header-button{
+      width:46px;height:46px;min-width:46px;min-height:46px;padding:0;border-radius:50%;
+      border:1px solid rgba(255,255,255,.065);background:rgba(255,255,255,.055);color:#eef4fc;
+      display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.15);
+    }
+    .timeline-header-button:hover,.timeline-header-button:focus-visible{background:rgba(255,255,255,.09);border-color:rgba(92,156,241,.24)}
+    .timeline-header-button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75}
+    .timeline-title-block{min-width:0}
+    .timeline-title-block h2{margin:0;color:#f8fbff;font-size:28px;font-weight:600;line-height:1.08;letter-spacing:-.025em}
+    .timeline-title-block p{margin:4px 0 0;color:rgba(177,194,219,.68);font-size:14.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .timeline-plan-row{display:flex;justify-content:flex-end;margin-top:14px}
+    .timeline-plan-button{
+      min-height:48px!important;padding:0 16px!important;border:1px solid rgba(45,125,255,.78)!important;border-radius:16px!important;
+      background:rgba(28,82,170,.12)!important;color:#4e91ff!important;font-size:15px!important;font-weight:560!important;
+      display:inline-flex!important;align-items:center!important;gap:9px!important;cursor:pointer;box-shadow:inset 0 1px rgba(255,255,255,.025)!important;
+    }
+    .timeline-plan-button:hover,.timeline-plan-button:focus-visible{background:rgba(38,92,185,.19)!important;border-color:rgba(75,148,255,.92)!important}
+    .timeline-plan-button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7}
+    .timeline-search-wrap{
+      height:52px;margin-top:16px;padding:0 14px;border-radius:18px;border:1px solid rgba(95,145,210,.18);
+      background:rgba(10,18,30,.72);display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:center;
+      transition:border-color .14s ease,box-shadow .14s ease;
+    }
+    .timeline-search-wrap:focus-within{border-color:rgba(61,125,255,.75);box-shadow:0 0 0 2px rgba(61,125,255,.12)}
+    .timeline-search-wrap svg{width:21px;height:21px;fill:none;stroke:#98a9c1;stroke-width:1.8}
+    .conversation-drawer[data-mode="timeline"] .conversation-search{
+      width:100%!important;height:100%!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;
+      box-shadow:none!important;outline:0!important;color:#f5f8fc!important;font-size:16px!important;line-height:1.2!important;
+    }
+    .conversation-drawer[data-mode="timeline"] .conversation-search::placeholder{color:rgba(177,194,219,.60);opacity:1}
+    .conversation-drawer[data-mode="timeline"] .conversation-filters{
+      display:flex!important;flex-wrap:nowrap!important;gap:8px!important;min-width:0;margin-top:12px!important;padding:0 0 3px!important;
+      overflow-x:auto!important;overscroll-behavior-x:contain;scrollbar-width:none;scroll-snap-type:x proximity;
+    }
+    .conversation-drawer[data-mode="timeline"] .conversation-filters::-webkit-scrollbar{display:none}
+    .conversation-drawer[data-mode="timeline"] .conversation-filter{
+      flex:0 0 auto!important;min-height:40px!important;padding:0 13px!important;border:0!important;border-radius:999px!important;
+      background:transparent!important;color:rgba(214,224,239,.78)!important;font-size:13.5px!important;font-weight:500!important;
+      white-space:nowrap;scroll-snap-align:start;cursor:pointer;
+    }
+    .conversation-drawer[data-mode="timeline"] .conversation-filter.active{
+      color:#fff!important;background:linear-gradient(135deg,#0a8cff,#166af4)!important;box-shadow:0 5px 16px rgba(16,106,244,.18)!important;
+    }
+    .conversation-count{
+      min-height:22px!important;margin:11px 2px 0!important;display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+      color:rgba(177,194,219,.66)!important;font-size:13px!important;line-height:1.3!important;
+    }
+    .timeline-count-part{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.timeline-count-part i{width:7px;height:7px;border-radius:50%;display:inline-block}
+    .timeline-count-part.entries i{background:#1f7dff;box-shadow:0 0 9px rgba(31,125,255,.28)}
+    .timeline-count-part.pending i{background:#f0aa24;box-shadow:0 0 9px rgba(240,170,36,.22)}
+    .timeline-count-part.done i{background:#22c985;box-shadow:0 0 9px rgba(34,201,133,.22)}
+    .timeline-count-sep{color:rgba(177,194,219,.32)}
+    .conversation-drawer[data-mode="timeline"] .conversation-list{
+      flex:1 1 auto!important;min-height:0!important;margin:0!important;
+      padding:8px 14px calc(14px + env(safe-area-inset-bottom)) 14px!important;
+      display:flex!important;flex-direction:column!important;gap:0!important;
+      overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;scrollbar-color:rgba(63,108,172,.35) transparent;
+    }
+    .timeline-day{
+      flex:0 0 auto;margin:13px 0 9px!important;padding:10px 13px!important;border-radius:13px!important;
+      border:1px solid rgba(100,150,220,.055)!important;background:rgba(18,31,48,.62)!important;
+      color:rgba(245,248,255,.95)!important;font-size:18px!important;font-weight:600!important;line-height:1.2!important;letter-spacing:-.016em;
+    }
+    .timeline-day:first-child{margin-top:0!important}
+    .timeline-entry{
+      position:relative!important;display:grid!important;grid-template-columns:28px minmax(0,1fr)!important;gap:8px!important;
+      min-width:0!important;padding:0 0 7px!important;border-radius:0!important;
+    }
+    .timeline-entry:before{
+      content:"";position:absolute!important;left:13px!important;top:-7px!important;bottom:-7px!important;width:1.5px!important;
+      background:linear-gradient(180deg,rgba(44,120,255,.18),rgba(44,120,255,.70),rgba(44,120,255,.18))!important;
+    }
+    .timeline-entry:first-of-type:before{top:14px!important}
+    .timeline-dot{
+      position:relative!important;z-index:2!important;box-sizing:border-box!important;
+      width:10px!important;height:10px!important;margin:20px 0 0 8px!important;align-self:start!important;
+      border:2px solid rgba(5,12,21,.96)!important;border-radius:50%!important;background:#1f7dff!important;
+      box-shadow:0 0 0 1px rgba(45,133,255,.55),0 0 10px rgba(31,125,255,.20)!important;
+    }
+    .timeline-entry[data-status="done"] .timeline-dot{background:#22c985!important;box-shadow:0 0 0 1px rgba(34,201,133,.58),0 0 10px rgba(34,201,133,.16)!important}
+    .timeline-entry[data-category="meeting"][data-status="pending"] .timeline-dot,
+    .timeline-entry[data-status="overdue"] .timeline-dot{background:#f0aa24!important;box-shadow:0 0 0 1px rgba(240,170,36,.58),0 0 10px rgba(240,170,36,.16)!important}
+    .timeline-content{
+      min-width:0!important;min-height:104px!important;padding:11px 9px 10px 11px!important;
+      display:grid!important;grid-template-columns:44px minmax(0,1fr) 38px!important;gap:10px!important;align-items:start!important;
+      border:1px solid rgba(100,150,210,.085)!important;border-radius:17px!important;background:rgba(12,23,36,.70)!important;
+      box-shadow:inset 0 1px rgba(255,255,255,.018)!important;transition:background .15s ease,border-color .15s ease!important;
+    }
+    .timeline-entry:hover .timeline-content{background:rgba(16,29,44,.79)!important;border-color:rgba(100,150,210,.14)!important}
+    .timeline-event-icon{
+      width:44px;height:44px;border-radius:13px;display:grid;place-items:center;color:#4f95ff;
+      background:rgba(22,85,160,.27);border:1px solid rgba(61,131,222,.13);
+    }
+    .timeline-event-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.75}
+    .timeline-event-body{min-width:0}
+    .timeline-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-width:0!important}
+    .timeline-type{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(177,194,219,.74)!important;font-size:12.5px!important;font-weight:500!important;line-height:1.2!important}
+    .timeline-clock{flex:0 0 auto;color:rgba(207,218,234,.74)!important;font-size:12px!important;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .timeline-title{
+      display:block!important;width:100%!important;margin:4px 0 0!important;padding:0!important;border:0!important;background:transparent!important;
+      color:rgba(248,250,255,.98)!important;text-align:left!important;font-size:15.5px!important;font-weight:540!important;line-height:1.24!important;
+      overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;cursor:pointer;
+    }
+    .timeline-title:hover{text-decoration:none!important;color:#fff!important}
+    .timeline-preview{
+      margin:5px 0 0!important;color:rgba(177,194,219,.62)!important;font-size:12.5px!important;line-height:1.25!important;
+      overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;display:block!important;
+    }
+    .timeline-meta{display:flex!important;align-items:center!important;gap:7px!important;margin-top:8px!important;min-height:24px!important}
+    .timeline-status{
+      display:inline-flex!important;align-items:center!important;width:max-content!important;min-height:24px!important;padding:2px 8px!important;
+      border:1px solid rgba(113,148,193,.12)!important;border-radius:999px!important;
+      background:rgba(80,110,150,.18)!important;color:#b8c7db!important;font-size:11.5px!important;font-weight:500!important;line-height:1!important;
+    }
+    .timeline-status.done{background:rgba(16,130,80,.16)!important;border-color:rgba(25,190,110,.18)!important;color:#58d796!important}
+    .timeline-status.pending{background:rgba(185,115,10,.14)!important;border-color:rgba(230,160,35,.18)!important;color:#f0b541!important}
+    .timeline-status.overdue{background:rgba(181,81,24,.14)!important;border-color:rgba(236,128,56,.20)!important;color:#f3a263!important}
+    .timeline-status.error{background:rgba(150,43,65,.17)!important;border-color:rgba(232,89,119,.20)!important;color:#ff8ca5!important}
+    .timeline-status.running{background:rgba(37,96,181,.18)!important;border-color:rgba(66,139,240,.20)!important;color:#79aef8!important}
+    .timeline-event-menu-button{
+      width:38px;height:42px;min-width:38px;padding:0;border:0;border-radius:11px;background:transparent;color:#d7e1ef;
+      display:grid;place-items:center;cursor:pointer;font-size:13px;letter-spacing:1px;
+    }
+    .timeline-event-menu-button:hover,.timeline-event-menu-button:focus-visible{background:rgba(63,91,133,.20);color:#fff}
+    .timeline-details{
+      margin-top:7px!important;padding-top:7px!important;border-top:1px solid rgba(120,160,210,.10)!important;
+      color:rgba(177,194,219,.66)!important;font-size:11.5px!important;line-height:1.45!important;white-space:normal!important;
+    }
+    .timeline-event-menu{
+      position:fixed;z-index:73;padding:6px;border:1px solid rgba(118,157,211,.20);border-radius:15px;
+      background:linear-gradient(155deg,rgba(16,25,39,.985),rgba(8,14,23,.985));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+      box-shadow:0 18px 52px rgba(0,0,0,.48);
+    }
+    .timeline-event-menu button{
+      width:100%;min-height:40px;padding:7px 10px;border:0;border-radius:10px;background:transparent;color:#e7eef8;
+      text-align:left;font-size:13px;cursor:pointer;
+    }
+    .timeline-event-menu button:hover,.timeline-event-menu button:focus-visible{background:rgba(49,76,113,.34)}
+    .timeline-notice{
+      margin:4px 0 8px!important;padding:9px 11px!important;border:1px solid rgba(197,166,96,.10)!important;border-radius:11px!important;
+      background:rgba(80,61,24,.10)!important;color:#cbbd98!important;font-size:11.5px!important;line-height:1.4!important;
+    }
+    .timeline-empty{
+      margin:24px 2px 0!important;padding:22px 16px!important;border:1px solid rgba(120,160,210,.10)!important;border-radius:17px!important;
+      background:rgba(14,22,34,.42)!important;text-align:center!important;color:rgba(177,194,219,.66)!important;
+      display:flex!important;flex-direction:column!important;align-items:center!important;gap:8px!important;font-size:13px!important;line-height:1.45!important;
+    }
+    .timeline-empty strong{color:rgba(245,248,255,.94);font-size:15px;font-weight:580}
+    .timeline-retry{min-height:40px!important;margin:5px 0 0!important;padding:0 14px!important;border-radius:12px!important;border:1px solid rgba(70,139,235,.28)!important;background:rgba(30,76,145,.28)!important;color:#8fbcff!important}
+    .timeline-loading-day{height:42px;margin:0 0 9px;border-radius:13px;background:rgba(34,51,73,.35)}
+    .timeline-loading-entry{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;margin-bottom:7px}
+    .timeline-loading-entry>span{width:10px;height:10px;margin:20px 0 0 8px;border-radius:50%;background:rgba(55,112,197,.42)}
+    .timeline-loading-entry>div{min-height:104px;padding:14px;border-radius:17px;background:rgba(16,28,43,.50);display:grid;gap:10px}
+    .timeline-loading-entry i{display:block;height:11px;border-radius:8px;background:linear-gradient(90deg,rgba(64,82,108,.27),rgba(103,126,159,.43),rgba(64,82,108,.27));background-size:220% 100%;animation:timelineSkeleton 1.25s ease-in-out infinite}
+    .timeline-loading-entry i:nth-child(2){width:76%}.timeline-loading-entry i:nth-child(3){width:52%}
+    @keyframes timelineSkeleton{0%{background-position:100% 0}100%{background-position:-100% 0}}
+    @media(max-width:350px){
+      .conversation-drawer[data-mode="timeline"]{width:min(92vw,350px)!important}
+      .timeline-top{padding-left:14px;padding-right:14px}
+      .timeline-title-block h2{font-size:25px}.timeline-title-block p{font-size:13px}
+      .conversation-drawer[data-mode="timeline"] .conversation-list{padding-left:11px!important;padding-right:11px!important}
+      .timeline-content{grid-template-columns:40px minmax(0,1fr) 36px!important;gap:8px!important;padding-left:9px!important}
+      .timeline-event-icon{width:40px;height:40px}.timeline-title{font-size:14.5px!important}.timeline-preview{font-size:12px!important}
+    }
+    @media(min-width:768px){
+      .conversation-drawer[data-mode="timeline"]{width:390px!important;max-width:390px!important}
+    }
+    @media(orientation:landscape) and (max-height:520px){
+      .timeline-top{padding-top:max(8px,env(safe-area-inset-top));padding-bottom:7px}
+      .timeline-approved-header{min-height:46px}.timeline-header-button{width:42px;height:42px;min-width:42px;min-height:42px}
+      .timeline-title-block h2{font-size:23px}.timeline-title-block p{font-size:12.5px}
+      .timeline-plan-row{margin-top:8px}.timeline-plan-button{min-height:42px!important}
+      .timeline-search-wrap{height:44px;margin-top:9px}.conversation-drawer[data-mode="timeline"] .conversation-filters{margin-top:7px!important}
+      .conversation-count{margin-top:6px!important}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .conversation-drawer[data-mode="timeline"],.timeline-loading-entry i{animation:none!important}
+      .timeline-search-wrap,.timeline-content,.conversation-drawer[data-mode="timeline"] .conversation-filter{transition:none!important}
+    }
 </style>
 </head>
 <body>
@@ -1759,14 +1965,15 @@
     <div id="conversationManagerList" class="conversations-manager-list" role="list" aria-label="Your conversations"></div>
   </section>
 
-  <section id="timelineDrawerMode" class="timeline-drawer-mode hidden" aria-label="Timeline">
-    <div class="conversation-top">
-      <header class="conversation-manager-head">
-        <button id="timelineCloseDrawer" class="conversation-close" type="button" aria-label="Close timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
-        <div class="conversation-manager-heading"><h2>Timeline</h2><p>Chats, plans and activity</p></div>
+  <section id="timelineDrawerMode" class="timeline-drawer-mode hidden" aria-labelledby="timelineDrawerTitle">
+    <div class="timeline-top">
+      <header class="timeline-approved-header">
+        <button id="timelineBackDrawer" class="timeline-header-button timeline-back-button" type="button" aria-label="Back from timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+        <div class="timeline-title-block"><h2 id="timelineDrawerTitle">Timeline</h2><p>Chats, plans and activity</p></div>
+        <button id="timelineCloseDrawer" class="timeline-header-button timeline-dismiss-button" type="button" aria-label="Close timeline"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </header>
-      <div class="timeline-top-actions"><button id="timelineNewConversation" class="conversation-new-chat" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>New chat</span></button><button id="timelineAddPlan" class="timeline-plan-button" type="button" aria-label="Add task, work or meeting">+ Plan</button></div>
-      <div class="conversation-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" placeholder="Search everything…" aria-label="Search timeline entries"/></div>
+      <div class="timeline-plan-row"><button id="timelineAddPlan" class="timeline-plan-button" type="button" aria-label="Add task, work or meeting"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>Add to plan</span></button></div>
+      <label class="timeline-search-wrap" for="conversationSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="conversationSearch" class="conversation-search" type="search" autocomplete="off" placeholder="Search everything…" aria-label="Search timeline entries"/></label>
       <div class="conversation-filters" role="group" aria-label="Timeline filters">
         <button class="conversation-filter active" type="button" data-conversation-filter="all" aria-pressed="true">All</button>
         <button class="conversation-filter" type="button" data-conversation-filter="recent" aria-pressed="false">Recent</button>
@@ -1782,6 +1989,7 @@
       <p id="conversationCount" class="conversation-count" aria-live="polite">Loading your timeline…</p>
     </div>
     <div id="conversationList" class="conversation-list timeline-list" role="list" aria-label="Your activity timeline"></div>
+    <div id="timelineEventMenu" class="timeline-event-menu hidden" role="menu" aria-label="Timeline item options"></div>
   </section>
 
   <div id="conversationRowMenu" class="conversation-row-menu hidden" role="menu" aria-label="Conversation options">
@@ -2360,6 +2568,73 @@ function timelineCategory(item){
  if(kind==='commitment')return'commitment';
  return'work'
 }
+function titleCaseToken(value){
+ return String(value||'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim().replace(/\b\w/g,letter=>letter.toUpperCase())
+}
+function auditTimelinePresentation(item){
+ const label=String(item.label||item.kind||'Activity').trim(),action=String(item.action||'').trim();
+ const actionText=titleCaseToken(action),lower=(label+' '+action).toLowerCase();
+ const safeDetail=[item.summary,item.description,item.detail,item.details,item.model_name,item.model,item.provider].find(value=>typeof value==='string'&&value.trim());
+ if(lower.includes('model')&&lower.includes('select')){
+   return {title:'Model selected',preview:safeDetail?String(safeDetail):'Personal AI model selection updated'}
+ }
+ if(action){
+   const actionTitle=actionText||label;
+   return {title:label&&label.toLowerCase()!=='activity'&&label.toLowerCase()!=='workflow'?label:actionTitle,preview:safeDetail?String(safeDetail):actionTitle}
+ }
+ return {title:label||'Activity',preview:safeDetail?String(safeDetail):'Recorded Personal AI activity'}
+}
+function timelineTypeLabel(category){
+ return ({conversation:'Conversation',meeting:'Meeting',task:'Task',work:'Plan',reminder:'Reminder',commitment:'Plan',activity:'Activity',workflow:'Workflow'})[category]||'Plan'
+}
+function timelineStatusLabel(status){
+ return ({done:'Completed',pending:'Upcoming',overdue:'Overdue',cancelled:'Cancelled',recorded:'Updated',running:'Running',error:'Error'})[status]||titleCaseToken(status)
+}
+function timelineIconSvg(item){
+ const category=item.category;
+ if(category==='conversation')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14v11H9l-4 3z"/><path d="M9 9h6M9 12h4"/></svg>';
+ if(category==='meeting')return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
+ if(category==='task'||category==='work'||category==='reminder'||category==='commitment')return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 2.5 2.5L16 9"/></svg>';
+ if(category==='activity')return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>';
+ return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h8l4 4v12H7z"/><path d="M15 4v5h5M10 13h6M10 16h6"/></svg>'
+}
+let timelineEventMenuItem=null,timelineEventMenuDetails=null,timelineEventMenuAnchor=null;
+function closeTimelineEventMenu(){
+ const menu=$('timelineEventMenu');if(!menu)return;menu.classList.add('hidden');menu.replaceChildren();menu.removeAttribute('style');
+ timelineEventMenuItem=null;timelineEventMenuDetails=null;timelineEventMenuAnchor=null
+}
+function openTimelineEventMenu(item,button,details){
+ closeTimelineEventMenu();timelineEventMenuItem=item;timelineEventMenuDetails=details;timelineEventMenuAnchor=button;
+ const menu=$('timelineEventMenu');
+ const addAction=(action,label,destructive=false)=>{
+  const control=document.createElement('button');control.type='button';control.setAttribute('role','menuitem');control.dataset.timelineAction=action;
+  if(destructive)control.classList.add('danger');control.textContent=label;control.onclick=()=>handleTimelineEventAction(action);menu.append(control)
+ };
+ if(item.category==='conversation')addAction('open','Open conversation');
+ else addAction('details','View details');
+ if(['pending','overdue'].includes(item.status)&&!['activity','workflow','conversation'].includes(item.category))addAction('complete','Mark complete');
+ menu.classList.remove('hidden');
+ requestAnimationFrame(()=>{
+  const drawer=$('conversationDrawer').getBoundingClientRect(),anchor=button.getBoundingClientRect();
+  const width=Math.min(190,drawer.width-24);menu.style.width=width+'px';
+  const measured=menu.getBoundingClientRect();
+  menu.style.left=Math.round(Math.max(drawer.left+12,Math.min(anchor.right-width,drawer.right-width-12)))+'px';
+  menu.style.top=Math.round(Math.max(drawer.top+12,Math.min(anchor.bottom+5,drawer.bottom-measured.height-12)))+'px';
+  menu.querySelector('[role="menuitem"]')?.focus({preventScroll:true})
+ })
+}
+async function handleTimelineEventAction(action){
+ const item=timelineEventMenuItem,details=timelineEventMenuDetails;closeTimelineEventMenu();if(!item)return;
+ if(action==='open'&&item.category==='conversation'){openConversation(item.source.id).catch(error=>showToast(error.message));return}
+ if(action==='details'&&details){details.hidden=!details.hidden;return}
+ if(action==='complete'){
+  try{
+   await api('/everyday/'+encodeURIComponent(item.source.id)+'/complete',{method:'POST',body:'{}'});
+   await Promise.all([refreshUnifiedTimeline($('conversationSearch').value),refreshToday()]);showToast('Marked complete')
+  }catch(error){showToast(error.message||'Unable to complete item')}
+ }
+}
+
 function timelineEntries(){
  const entries=[],convos=conversationManagerResults!==null?conversationManagerResults:conversationCache;
  for(const item of (Array.isArray(convos)?convos:[])){
@@ -2395,22 +2670,26 @@ function timelineEntries(){
  for(const item of timelineAudit){
   const date=timelineDate(item.created_at);if(!date)continue;
   const status=item.status==='completed'?'done':item.status==='error'?'error':item.status||'recorded';
-  const label=item.label||item.kind||'Activity';
-  entries.push({key:'audit:'+item.id,category:'activity',title:String(label),
-   preview:String(item.action||'Audited event').replaceAll('_',' '),date,recentAt:date,allDay:false,status,
-   source:item,details:'Recorded '+date.toLocaleString()+' · '+String(item.action||'activity')});
+  const presentation=auditTimelinePresentation(item);
+  entries.push({key:'audit:'+item.id,category:'activity',title:presentation.title,
+   preview:presentation.preview,date,recentAt:date,allDay:false,status,
+   source:item,details:'Recorded '+date.toLocaleString()+(item.action?' · '+titleCaseToken(item.action):'')});
  }
  return entries.sort((a,b)=>b.date.getTime()-a.date.getTime()||a.key.localeCompare(b.key))
 }
 function renderUnifiedTimeline(){
- const host=$('conversationList');host.replaceChildren();
+ const host=$('conversationList');host.replaceChildren();closeTimelineEventMenu();
+ const count=$('conversationCount');
  if(!sessionActive){
-  $('conversationCount').textContent='Sign in required';
-  const p=document.createElement('p');p.className='timeline-empty';p.textContent='Sign in to view your conversations, plans, and activity.';host.append(p);return
+  count.textContent='Sign in required';
+  const p=document.createElement('div');p.className='timeline-empty';p.innerHTML='<strong>Sign in to view timeline</strong><span>Your chats, plans and activity will appear here after authentication.</span>';host.append(p);return
  }
  if(!timelineLoaded){
-  $('conversationCount').textContent='Loading your timeline…';
-  const p=document.createElement('p');p.className='timeline-empty';p.textContent='Loading real Personal AI activity…';host.append(p);return
+  count.textContent='Loading your timeline…';
+  const group=document.createElement('div');group.className='timeline-loading-group';
+  const head=document.createElement('div');head.className='timeline-loading-day';group.append(head);
+  for(let i=0;i<4;i++){const row=document.createElement('div');row.className='timeline-loading-entry';row.innerHTML='<span></span><div><i></i><i></i><i></i></div>';group.append(row)}
+  host.append(group);return
  }
  const query=$('conversationSearch').value.trim().toLowerCase(),cutoff=Date.now()-7*86400000;
  let rows=timelineEntries().filter(item=>{
@@ -2421,64 +2700,52 @@ function renderUnifiedTimeline(){
   return true
  });
  const pending=rows.filter(item=>['pending','overdue'].includes(item.status)).length,done=rows.filter(item=>item.status==='done').length;
- $('conversationCount').textContent=rows.length+' '+(rows.length===1?'entry':'entries')+' · '+pending+' pending · '+done+' done';
+ count.innerHTML='<span class="timeline-count-part entries"><i aria-hidden="true"></i>'+rows.length+' '+(rows.length===1?'entry':'entries')+'</span><span class="timeline-count-sep" aria-hidden="true">·</span><span class="timeline-count-part pending"><i aria-hidden="true"></i>'+pending+' pending</span><span class="timeline-count-sep" aria-hidden="true">·</span><span class="timeline-count-part done"><i aria-hidden="true"></i>'+done+' done</span>';
  if(!timelineAvailable.plans||!timelineAvailable.conversations){
-  const warning=document.createElement('p');warning.className='timeline-notice';
-  warning.textContent='Some timeline sources are unavailable. Refresh to retry.';host.append(warning);
+  const warning=document.createElement('p');warning.className='timeline-notice';warning.textContent='Some timeline sources are unavailable. Refresh to retry.';host.append(warning)
  }
  if(!timelineAvailable.activity&&['all','activity'].includes(conversationFilter)){
-  const notice=document.createElement('p');notice.className='timeline-notice';
-  notice.textContent='Audited activity is unavailable or not permitted on this device.';host.append(notice);
+  const notice=document.createElement('p');notice.className='timeline-notice';notice.textContent='Audited activity is unavailable or not permitted on this device.';host.append(notice)
  }
  if(!timelineAvailable.workflows&&conversationFilter==='workflow'){
-  const notice=document.createElement('p');notice.className='timeline-notice';notice.textContent='Workflow history is unavailable or not permitted.';host.append(notice);
+  const notice=document.createElement('p');notice.className='timeline-notice';notice.textContent='Workflow history is unavailable or not permitted.';host.append(notice)
  }
  if(!rows.length){
-  const p=document.createElement('p');p.className='timeline-empty';
-  p.textContent=query?'No matching timeline entries.':
-   conversationFilter==='recent'?'Nothing updated in the last seven days.':
-   'Nothing here yet. Your real activities will appear when available.';
-  const retry=document.createElement('button');retry.className='timeline-retry';retry.type='button';retry.textContent='Refresh';
-  retry.onclick=()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{});
-  p.append(retry);host.append(p);return
+  const empty=document.createElement('div');empty.className='timeline-empty';
+  const title=document.createElement('strong');title.textContent=query?'No matching timeline activity':conversationFilter==='recent'?'Nothing updated recently':'No timeline activity yet';
+  const copy=document.createElement('span');copy.textContent=query?'Try a different search or filter.':conversationFilter==='recent'?'Chats, tasks and meetings from the last seven days will appear here.':'Chats, tasks and meetings will appear here.';
+  const retry=document.createElement('button');retry.className='timeline-retry';retry.type='button';retry.textContent=query?'Clear search':'Refresh';
+  retry.onclick=()=>{if(query)$('conversationSearch').value='';refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{})};
+  empty.append(title,copy,retry);host.append(empty);return
  }
  let prevDay='';
  for(const item of rows){
   const group=timelineDayLabel(item.date);
   if(group!==prevDay){
-   prevDay=group;const heading=document.createElement('h3');heading.className='timeline-day';heading.textContent=group;host.append(heading);
+   prevDay=group;const heading=document.createElement('h3');heading.className='timeline-day';heading.textContent=group;host.append(heading)
   }
-  const article=document.createElement('article');article.className='timeline-entry';article.dataset.category=item.category;article.dataset.status=item.status;article.setAttribute('role','listitem');
+  const article=document.createElement('article');article.className='timeline-entry';article.dataset.category=item.category;article.dataset.status=item.status;article.dataset.key=item.key;article.setAttribute('role','listitem');
   const dot=document.createElement('span');dot.className='timeline-dot';dot.setAttribute('aria-hidden','true');
   const card=document.createElement('div');card.className='timeline-content';
+  const icon=document.createElement('span');icon.className='timeline-event-icon';icon.setAttribute('aria-hidden','true');icon.innerHTML=timelineIconSvg(item);
+  const body=document.createElement('div');body.className='timeline-event-body';
   const head=document.createElement('div');head.className='timeline-head';
-  const kind=document.createElement('span');kind.className='timeline-type';
-  kind.textContent=({conversation:'Conversation',meeting:'Meeting',task:'Task',work:'Work',reminder:'Reminder',commitment:'Commitment',activity:'Activity',workflow:'Workflow'})[item.category]||'Plan';
+  const kind=document.createElement('span');kind.className='timeline-type';kind.textContent=timelineTypeLabel(item.category);
   const clock=document.createElement('time');clock.className='timeline-clock';clock.dateTime=item.date.toISOString();clock.textContent=timelineTime(item.date,item.allDay);head.append(kind,clock);
   const name=document.createElement('button');name.type='button';name.className='timeline-title';name.textContent=item.title;
-  const preview=document.createElement('p');preview.className='timeline-preview';preview.textContent=item.preview;
+  const preview=document.createElement('p');preview.className='timeline-preview';preview.textContent=item.preview||'';
   const meta=document.createElement('div');meta.className='timeline-meta';
-  const status=document.createElement('span');status.className='timeline-status '+item.status;
-  status.textContent=({done:'Done',pending:'Pending',overdue:'Overdue',cancelled:'Cancelled',recorded:'Updated',running:'Running',error:'Error'})[item.status]||item.status;
-  meta.append(status);
+  const status=document.createElement('span');status.className='timeline-status '+item.status;status.textContent=timelineStatusLabel(item.status);meta.append(status);
   const details=document.createElement('div');details.className='timeline-details';details.textContent=item.details;details.hidden=true;
   if(item.category==='conversation'){
-    name.setAttribute('aria-label','Open conversation '+item.title);
-    name.onclick=()=>openConversation(item.source.id).catch(error=>showToast(error.message));
+    name.setAttribute('aria-label','Open conversation '+item.title);name.onclick=()=>openConversation(item.source.id).catch(error=>showToast(error.message))
   }else{
     name.setAttribute('aria-expanded','false');name.setAttribute('aria-label','Show details for '+item.title);
     name.onclick=()=>{details.hidden=!details.hidden;name.setAttribute('aria-expanded',String(!details.hidden))}
-    if(['pending','overdue'].includes(item.status)&&!['activity','workflow'].includes(item.category)){
-      const complete=document.createElement('button');complete.className='timeline-complete';complete.type='button';complete.textContent='Mark done';complete.setAttribute('aria-label','Mark '+item.title+' done');
-      complete.onclick=async()=>{complete.disabled=true;try{
-        await api('/everyday/'+encodeURIComponent(item.source.id)+'/complete',{method:'POST',body:'{}'});
-        await Promise.all([refreshUnifiedTimeline($('conversationSearch').value),refreshToday()]);
-        showToast('Marked complete');
-      }catch(error){complete.disabled=false;showToast(error.message||'Unable to complete item')}};
-      meta.append(complete);
-    }
   }
-  card.append(head,name,preview,meta,details);article.append(dot,card);host.append(article);
+  const more=document.createElement('button');more.type='button';more.className='timeline-event-menu-button';more.setAttribute('aria-haspopup','menu');more.setAttribute('aria-label','Options for '+item.title);more.innerHTML='<span aria-hidden="true">•••</span>';more.onclick=event=>{event.stopPropagation();openTimelineEventMenu(item,more,details)};
+  body.append(head,name);if(preview.textContent)body.append(preview);body.append(meta,details);
+  card.append(icon,body,more);article.append(dot,card);host.append(article)
  }
 }
 function renderConversationList(items,updateCache=true){
@@ -2828,6 +3095,7 @@ $('chatDelete').onclick=async()=>{
 document.addEventListener('pointerdown',event=>{
  if(!$('chatActionMenu').classList.contains('hidden')&&!event.target.closest('.topbar-actions'))closeChatActionMenu();
  if(!$('conversationRowMenu').classList.contains('hidden')&&!event.target.closest('.conversation-row-menu')&&!event.target.closest('.conversation-row-menu-button'))closeConversationRowMenu();
+ if(!$('timelineEventMenu').classList.contains('hidden')&&!event.target.closest('.timeline-event-menu')&&!event.target.closest('.timeline-event-menu-button'))closeTimelineEventMenu();
 });
 
 function closeFloatingMenus(){closeChatActionMenu();$('ownerMenu').classList.add('hidden');$('ownerButton').setAttribute('aria-expanded','false')}
@@ -2883,10 +3151,10 @@ $('sidebarToday').onclick=async()=>{await openModule('home');$('todayHeading').s
 $('appConversations').onclick=openConversationsDrawer;
 $('sidebarSeeAll').onclick=openConversationsDrawer;
 $('closeDrawer').onclick=()=>closeDrawer(false);
-$('timelineCloseDrawer').onclick=()=>closeDrawer();
+$('timelineBackDrawer').onclick=()=>closeDrawer();
+$('timelineCloseDrawer').onclick=()=>closeDrawer(false);
 $('drawerOverlay').onclick=closeAllDrawers;
 $('newConversation').onclick=()=>{$('conversationManagerSearch').value='';conversationsDrawerResults=[];createConversation().catch(error=>showToast(error.message))};
-$('timelineNewConversation').onclick=()=>createConversation().catch(error=>showToast(error.message));
 $('timelineAddPlan').onclick=async()=>{closeAllDrawers();await openModule('home');if($('todayForm').classList.contains('hidden'))$('todayAdd').click();$('todayTitle').focus()};
 $('conversationSearch').oninput=()=>{if(searchTimer)clearTimeout(searchTimer);searchTimer=setTimeout(()=>refreshUnifiedTimeline($('conversationSearch').value).catch(()=>{}),220)};
 $('conversationManagerSearch').oninput=()=>{if(conversationsDrawerSearchTimer)clearTimeout(conversationsDrawerSearchTimer);conversationsDrawerSearchTimer=setTimeout(()=>refreshConversationsDrawer($('conversationManagerSearch').value).catch(()=>{}),180)};
@@ -2930,6 +3198,7 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape'){
     event.preventDefault();
     if(!$('conversationRowMenu').classList.contains('hidden')){closeConversationRowMenu();return}
+    if(!$('timelineEventMenu').classList.contains('hidden')){closeTimelineEventMenu();return}
     if(!$('conversationDrawer').classList.contains('hidden')){closeDrawer();return}
     if(!$('sidebarAccountMenu').classList.contains('hidden')){
       closeSidebarAccountMenu();$('sidebarAccountButton').focus();return
