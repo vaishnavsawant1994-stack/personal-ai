@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const axePath = process.env.PERSONAL_AI_AXE_PATH || require.resolve("axe-core/axe.min.js");
-import { chromium } from "playwright";
+import { chromium, firefox, webkit } from "playwright";
+const engine=process.env.PERSONAL_AI_BROWSER || "chromium";
+assert.ok(["chromium","firefox","webkit"].includes(engine),"supported browser engine");
 
-const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {}) });
+const executablePath=process.env.PERSONAL_AI_BROWSER_EXECUTABLE || (engine==="chromium" ? process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE : undefined);
+const browser = await ({chromium,firefox,webkit})[engine].launch({headless:true,...(executablePath?{executablePath}:{})});
 
 const auditResults=[];
 async function audit(page,label){
@@ -58,7 +61,8 @@ try {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
-    isMobile: true,
+    isMobile: engine!=="firefox",
+    serviceWorkers: "block", // API fixtures must not be bypassed by the separately tested worker.
     hasTouch: true,
   });
 
@@ -256,8 +260,11 @@ try {
   assert.ok(!((await page.locator("#todayTimeline").innerText()).includes("Finish daily review")), "completing a task must remove it from today's pending list");
   await page.evaluate(() => renderToday([]));
   assert.ok((await page.locator("#todayTimeline").innerText()).includes("Nothing planned yet"), "empty Today panel must not invent calendar meetings");
-  await page.evaluate(() => refreshToday());
-
+  await audit(page,"Today empty");
+  await page.evaluate(()=>todayLoadError(new Error("Fixture failure")));
+  await audit(page,"Today unavailable");
+  await page.locator("#todayTimeline button").click();
+  await page.waitForFunction(()=>document.querySelectorAll("#todayTimeline .today-item").length===2);
 
   // The conversation-first sidebar keeps owner security behind its anchored account footer.
   await page.click("#historyButton");
@@ -896,7 +903,7 @@ try {
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,viewports:productViewports,accessibility:auditResults,longThreadPerformance,uncaughtErrors:pageErrors},null,2));
+  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,engine,viewports:productViewports,accessibility:auditResults,longThreadPerformance,uncaughtErrors:pageErrors},null,2));
   console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eleven viewports.");
 } finally {
   await browser.close();

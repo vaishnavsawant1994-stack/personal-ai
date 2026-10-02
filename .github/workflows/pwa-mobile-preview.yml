@@ -16,6 +16,12 @@ jobs:
   mobile-preview:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      PERSONAL_AI_BROWSER: ${{ matrix.browser }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,7 +30,7 @@ jobs:
       - name: Install Playwright
         run: |
           npm install --no-save playwright axe-core
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps ${{ matrix.browser }}
       - name: Serve the PWA at its deployed /iphone/ route
         run: |
           mkdir -p /tmp/pwa-preview
@@ -46,7 +52,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: personal-ai-mobile-preview
+          name: personal-ai-mobile-preview-${{ matrix.browser }}
           path: |
             artifacts/*.png
             artifacts/*verification.json

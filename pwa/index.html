@@ -401,7 +401,7 @@ function todayItemKind(item){
 function todayKindLabel(kind){return ({task:'Task',work:'Work',meeting:'Meeting',reminder:'Reminder',followup:'Follow-up',commitment:'Commitment'})[kind]||'Work'}
 function renderToday(items){
  const host=$('todayTimeline');if(!host)return;
- host.replaceChildren();
+ host.replaceChildren();host.removeAttribute('role');
  $('todayDate').textContent=new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
  const key=todayKey(new Date());
  const records=(Array.isArray(items)?items:[]).map(item=>({item,due:todayItemDue(item)}))
@@ -436,8 +436,8 @@ async function refreshToday(){
 }
 function todayLoadError(error){
  const panel=$('todayTimeline');if(!panel)return;
- panel.textContent='';const p=document.createElement('p');p.className='today-empty';p.textContent='Today is unavailable. Use the button to retry.';
- const retry=document.createElement('button');retry.type='button';retry.textContent='Retry';retry.onclick=()=>refreshToday().catch(todayLoadError);
+ panel.textContent='';panel.removeAttribute('role');const p=document.createElement('p');p.className='today-empty';p.textContent='Today is unavailable. Use the button to retry.';
+ const retry=document.createElement('button');retry.type='button';retry.className='ui-button';retry.textContent='Retry';retry.onclick=()=>refreshToday().catch(todayLoadError);
  p.append(document.createElement('br'),retry);panel.append(p);
 }
 function closeTodayForm(){

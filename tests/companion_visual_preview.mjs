@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
-import {chromium} from 'playwright';
+import {chromium,firefox,webkit} from 'playwright';
+const engine=process.env.PERSONAL_AI_BROWSER || 'chromium';
+assert.ok(['chromium','firefox','webkit'].includes(engine),'supported browser engine');
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE}:{})});
+const executablePath=process.env.PERSONAL_AI_BROWSER_EXECUTABLE || (engine==="chromium"?process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE:undefined);
+const browser=await ({chromium,firefox,webkit})[engine].launch({headless:true,...(executablePath?{executablePath}:{})});
 try {
- const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];let emergencyCalls=0;
+ const page=await browser.newPage({viewport:{width:390,height:844},serviceWorkers:"block"}),errors=[];let emergencyCalls=0;
  page.on('pageerror',error=>errors.push(error.message));
  await page.route('https://runtime.example/**',route=>{
   const path=new URL(route.request().url()).pathname;
