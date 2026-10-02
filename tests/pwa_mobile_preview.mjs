@@ -293,7 +293,7 @@ try {
     return !drawer.classList.contains("hidden") && rect.left>=-1 && Math.abs(rect.right-innerWidth)<=1;
   });
   assert.equal(await page.locator("#appDrawer").isVisible(),false,"direct history must not open the main hamburger sidebar");
-  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close timeline");
   await page.screenshot({ path: "artifacts/personal-ai-right-conversations-direct-390x844.png", fullPage: true });
   await page.click("#closeDrawer");
   await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
@@ -388,6 +388,8 @@ try {
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  assert.equal(await page.locator("#conversationDrawer").getAttribute("aria-label"),"Timeline");
+  assert.equal(await page.locator("#newConversation").count(),0,"Timeline controls stay focused on chronology and planning");
   await audit(page,"unified-timeline-all-390x844");
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
@@ -460,14 +462,14 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), true, "idle conversations must show the approved compact ACTIVE status under the Personal AI sphere");
+  assert.equal(await page.locator(".state").isVisible(), false, "voice status remains announced to assistive technology without adding visible thinking labels");
   assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
   assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
   assert.equal(chatState.messageCount, 2);
   assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
   assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
   assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
-  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant .message-avatar").count(),0,"assistant responses must not repeat an orb avatar; the original header sphere carries Personal AI identity");
   assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
   assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
   const messageVisual=await page.evaluate(()=>({
@@ -475,13 +477,15 @@ try {
     assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
     user:document.querySelector(".message.user").getBoundingClientRect(),
     stream:document.querySelector("#messageStream").getBoundingClientRect(),
-    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
+    footer:document.querySelector(".message-entry.assistant .message-footer").getBoundingClientRect(),
   }));
   assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
   assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
-  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
+  assert.ok(messageVisual.footer.width>0,"message metadata and actions must share one aligned footer row");
+  assert.equal(await page.locator(".message-entry.assistant .message-footer .message-time").count(),1);
+  assert.equal(await page.locator(".message-entry.assistant .message-footer .message-actions").count(),1);
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
   assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
@@ -823,6 +827,8 @@ try {
       assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
       assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
       if(width===390)await audit(page,name);
+      if(width===320&&name==='knowledge'){const search=await page.locator('#knowledgeSearch').boundingBox(),panel=await page.locator('#moduleBody').boundingBox();assert.ok(search.width>=panel.width-4,'Knowledge search must use available mobile width without clipping')}
+      if(width===390&&name==='workflows'){assert.equal(await page.locator('#moduleBody h2').filter({hasText:/^Workflows$/}).count(),0,'Workflows body must not repeat its page heading')}
       if([320,390,820,1440].includes(width))await page.screenshot({path:`artifacts/personal-ai-${name}-${width}x${height}.png`,fullPage:true});
     }
     await page.evaluate(()=>openModule('home'));
@@ -830,6 +836,7 @@ try {
   }
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>openModule('memory'));
+  const emptyGraph=await page.evaluate(()=>drawMemoryGraph({nodes:[],edges:[]}));assert.match(emptyGraph,/No memory relationships yet/);assert.doesNotMatch(emptyGraph,/<svg/,'empty graph must use readable text instead of tiny SVG labels');
   await page.click('#memoryGraph');await page.waitForSelector('.graph-view');
   await audit(page,'Memory graph');
   await page.screenshot({path:'artifacts/personal-ai-memory-graph-390x844.png',fullPage:true});
@@ -837,6 +844,7 @@ try {
   await audit(page,'Memory tree');
   await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
   await page.evaluate(()=>openModule('settings'));
+  await page.evaluate(()=>renderSettingsIndex());assert.equal(await page.locator('.settings-index h2').count(),0,'Settings category list must not duplicate the page heading');
   for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
     await page.evaluate(section=>renderSettings(section),section);
     assert.ok(await page.locator('.settings-content h2').count(),section+' must have a settings heading');
