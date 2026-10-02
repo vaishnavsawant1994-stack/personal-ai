@@ -733,7 +733,9 @@ try {
 
   // Open a real persisted conversation from the preserved Timeline to continue chat qualification.
   await page.locator('[data-conversation-filter="conversation"]').click();
-  await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
+  const actualTimelineConversation=page.locator(".timeline-entry[data-category=conversation] .timeline-title").first();
+  await actualTimelineConversation.scrollIntoViewIfNeeded();
+  await actualTimelineConversation.click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   await page.click("#ownerButton");
