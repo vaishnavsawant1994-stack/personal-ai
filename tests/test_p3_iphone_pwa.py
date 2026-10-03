@@ -764,7 +764,8 @@ def test_pwa_home_is_conversation_first_and_qualification_lives_in_advanced(tmp_
     assert 'id="stopSession"' not in page
     assert 'Continue with Face ID' in page
     assert 'Use owner password' in page
-    assert 'Having trouble?' in page
+    assert 'id="troubleChoice"' in page
+    assert 'Having trouble signing in?' in page
     assert 'Use enrollment code' in page
     assert 'Trust this iPhone' not in page
     assert 'localStorage' not in page
