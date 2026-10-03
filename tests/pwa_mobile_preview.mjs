@@ -440,7 +440,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
   await page.click("#historyButton");
   await page.click("#sidebarAccountButton");
-  await page.click("#appSettings");
+  await page.locator("#sidebarAccountMenu [data-app-module=\"settings\"]").click();
   await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Settings" && document.querySelector("#moduleBody")?.innerText.toLowerCase().includes("ai & intelligence"));
   await page.screenshot({ path: "artifacts/personal-ai-settings-390x844.png", fullPage: true });
   await page.reload();
