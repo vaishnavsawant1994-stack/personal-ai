@@ -148,7 +148,7 @@ try {
   });
 
   await page.route("https://accounts.google.com/**", route => route.abort());
-  await page.goto("http://127.0.0.1:4173/iphone/?qaDiagnostics=1", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:4173/iphone/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !document.querySelector("#voicePanel").classList.contains("hidden"));
   await page.waitForFunction(() => document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => {
@@ -427,13 +427,12 @@ try {
   }
   await page.screenshot({ path: "artifacts/personal-ai-sidebar-account-390x844.png", fullPage: true });
   await page.click("#appOwnerControls");
-  await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
-  for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
-    assert.ok((await page.locator("#ownerMenu").innerText()).includes(item), "Owner Controls missing " + item);
+  await page.waitForFunction(() => document.querySelector("#modulePanel")?.dataset.surface === "owner" && document.querySelector("#moduleBody")?.innerText.includes("Personal AI Owner"));
+  const ownerPageText = await page.locator("#moduleBody").innerText();
+  for (const item of ["Account & Plan", "Profile & Preferences", "Security & Access", "Data & Privacy", "Sign out"]) {
+    assert.ok(ownerPageText.includes(item), "Owner page missing " + item);
   }
   await page.screenshot({ path: "artifacts/personal-ai-owner-controls-390x844.png", fullPage: true });
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
 
   // Approved Timeline is a premium RIGHT-side contextual drawer and must not regress Home or Conversations.
   await page.click("#ownerButton");
