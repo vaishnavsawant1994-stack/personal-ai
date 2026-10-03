@@ -931,7 +931,7 @@ try {
 
   memoryMode='loading';
   await page.evaluate(()=>{void openModule('memory')});
-  await page.waitForSelector('.ui-skeleton');
+  await page.waitForSelector('.mx-loading');
   await page.screenshot({path:'artifacts/personal-ai-loading-390x844.png',fullPage:true});
   memoryMode='ready';releaseMemory();
   await page.waitForSelector('#memorySearch');
