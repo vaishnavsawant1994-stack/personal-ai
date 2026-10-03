@@ -940,8 +940,11 @@ try {
   await page.locator('#mxSearch').waitFor({state:'visible'});
   for(const mode of ['permission','failure']){
     memoryMode=mode;await page.evaluate(()=>openModule('memory'));
-    assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Internal trace/);
-    assert.match(await page.locator('#moduleBody').innerText(),mode==='permission'?/permission/:/Unable to load/);
+    await page.locator('.mx-tabs [data-tab="all"]').click();
+    await page.waitForFunction(()=>document.querySelector('.mx-error')?.textContent);
+    const memoryError=await page.locator('#moduleBody').innerText();
+    assert.doesNotMatch(memoryError,/Internal trace/);
+    assert.match(memoryError,mode==='permission'?/permission/:/Unable to load saved memories/);
     await audit(page,'Memory '+mode);
     await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
     memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry]').click();
