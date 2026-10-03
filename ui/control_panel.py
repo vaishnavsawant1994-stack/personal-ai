@@ -1,9 +1,10 @@
 from __future__ import annotations
 import json
+from ui.design_system import stylesheet
 from PyQt6.QtWidgets import QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QTabWidget,QTextBrowser
 class ControlPanel(QDialog):
     def __init__(self,runtime,parent=None):
-        super().__init__(parent); self.runtime=runtime; self.setWindowTitle('Personal AI — Owner Control Center'); self.resize(900,650); lay=QVBoxLayout(self); top=QHBoxLayout(); top.addWidget(QLabel('OWNER CONTROL CENTER')); top.addStretch(1); b=QPushButton('Refresh'); b.clicked.connect(self.refresh); top.addWidget(b); lay.addLayout(top); self.tabs=QTabWidget(); lay.addWidget(self.tabs); self.views={}
+        super().__init__(parent); self.runtime=runtime; self.setWindowTitle('Personal AI — Owner Control Center'); self.resize(900,650); self.setStyleSheet(stylesheet(bool(runtime.get('preferences',{}).get('high_contrast')))); lay=QVBoxLayout(self); top=QHBoxLayout(); top.addWidget(QLabel('OWNER CONTROL CENTER')); top.addStretch(1); b=QPushButton('Refresh'); b.clicked.connect(self.refresh); top.addWidget(b); lay.addLayout(top); self.tabs=QTabWidget(); lay.addWidget(self.tabs); self.views={}
         for name in ['Overview','Devices & Presence','Automations','Integrations','Models','Privacy & Data','Security','Preferences']:
             view=QTextBrowser(); self.views[name]=view; self.tabs.addTab(view,name)
         self.refresh()

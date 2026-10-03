@@ -175,6 +175,8 @@ class MemoryStore:
             'parent_id', 'importance', 'occurred_at', 'valid_from', 'valid_to', 'superseded_by',
         }
         fields = {key: value for key, value in changes.items() if key in allowed}
+        if 'parent_id' in fields and fields['parent_id'] is not None:
+            fields['parent_id'] = str(fields['parent_id'])
         if 'tags' in changes:
             fields['tags_json'] = json.dumps(changes['tags'] or [])
         if 'evidence' in changes:
@@ -186,6 +188,22 @@ class MemoryStore:
         fields['updated_at'] = now()
         query = ','.join(f'{key}=?' for key in fields)
         with self.lock, self.con() as con:
+            con.execute('BEGIN IMMEDIATE')
+            if fields.get('parent_id') is not None:
+                parent_id = fields['parent_id']
+                if parent_id == str(memory_id):
+                    raise ValueError('A memory cannot be its own parent')
+                if not con.execute(f'SELECT 1 FROM memories WHERE id=? AND {self.STORABLE_SQL}', (parent_id,)).fetchone():
+                    raise ValueError('Parent memory was not found')
+                cursor, seen = parent_id, set()
+                while cursor:
+                    if cursor == str(memory_id):
+                        raise ValueError('Moving this memory would create a hierarchy cycle')
+                    if cursor in seen:
+                        raise ValueError('The existing memory hierarchy contains a cycle')
+                    seen.add(cursor)
+                    row = con.execute('SELECT parent_id FROM memories WHERE id=?', (cursor,)).fetchone()
+                    cursor = row['parent_id'] if row else None
             cur = con.execute(
                 f'UPDATE memories SET {query} WHERE id=? AND {self.STORABLE_SQL}',
                 [*fields.values(), memory_id],
@@ -325,6 +343,87 @@ class MemoryStore:
             ]
             return {'nodes': nodes, 'edges': edges}
 
+    def graph_projection(self, *, limit=36, focal_id=None, memory_type=None, include_sensitive=True):
+        """Return a bounded graph projection for owner-facing exploration."""
+        bounded = max(1, min(int(limit), 60))
+        with self.con() as con:
+            clauses = [self.STORABLE_SQL]
+            visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+            clauses.append('1=1' + visibility)
+            params = []
+            if memory_type and memory_type != 'all':
+                clauses.append('lower(type)=lower(?)')
+                params.append(str(memory_type))
+            rows = [dict(row) for row in con.execute(
+                f'SELECT * FROM memories WHERE {" AND ".join(clauses)} ORDER BY COALESCE(occurred_at,created_at) DESC,id LIMIT ?',
+                [*params, bounded],
+            ).fetchall()]
+            by_id = {row['id']: row for row in rows}
+            if focal_id:
+                focus_visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+                focal = con.execute(f"SELECT * FROM memories WHERE id=? AND {self.STORABLE_SQL}{focus_visibility}", (str(focal_id),)).fetchone()
+                if focal:
+                    # Keep the requested focal node inside the caller's hard limit.
+                    # The recent-node query may already have filled the projection.
+                    if focal['id'] not in by_id and len(by_id) >= bounded:
+                        by_id.pop(next(reversed(by_id)))
+                    by_id[focal['id']] = dict(focal)
+                    neighbors = con.execute(
+                        f'''SELECT m.* FROM relations r JOIN memories m
+                             ON m.id=CASE WHEN r.source_id=? THEN r.target_id ELSE r.source_id END
+                             WHERE (r.source_id=? OR r.target_id=?) AND {self.STORABLE_SQL.replace('sensitivity', 'm.sensitivity')}
+                               AND (? OR lower(replace(replace(trim(COALESCE(m.sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret'))
+                             ORDER BY r.created_at DESC,m.id LIMIT ?''',
+                        (str(focal_id), str(focal_id), str(focal_id), int(include_sensitive), min(24, bounded - 1)),
+                    ).fetchall()
+                    for row in neighbors:
+                        if len(by_id) >= bounded:
+                            break
+                        by_id[row['id']] = dict(row)
+            ids = list(by_id)
+            if ids:
+                marks = ','.join('?' for _ in ids)
+                edges = [dict(row) for row in con.execute(
+                    f'SELECT * FROM relations WHERE source_id IN ({marks}) AND target_id IN ({marks}) ORDER BY created_at DESC LIMIT 120',
+                    [*ids, *ids],
+                ).fetchall()]
+            else:
+                edges = []
+            type_rows = con.execute(
+                f'''SELECT lower(type) AS type,COUNT(*) AS total FROM memories WHERE {self.STORABLE_SQL}{visibility}
+                    GROUP BY lower(type) ORDER BY lower(type)'''
+            ).fetchall()
+            total = int(con.execute(f'SELECT COUNT(*) FROM memories WHERE {self.STORABLE_SQL}{visibility}').fetchone()[0])
+        return {'nodes': list(by_id.values()), 'edges': edges, 'type_counts': [dict(row) for row in type_rows], 'total': total, 'limited': True, 'limit': bounded}
+
+    def tree_children(self, *, parent_id=None, limit=100, offset=0, include_sensitive=True, entity_type=None):
+        """Fetch a single hierarchy branch, with counts scoped to visible rows."""
+        bounded = max(1, min(int(limit), 200))
+        start = max(0, min(int(offset), 1000000))
+        visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(m.sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+        child_visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(c.sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+        m_storable = "lower(replace(replace(trim(COALESCE(m.sensitivity,'')),'-','_'),' ','_')) != 'never_store'"
+        child_storable = "lower(replace(replace(trim(COALESCE(c.sensitivity,'')),'-','_'),' ','_')) != 'never_store'"
+        type_clause = '' if not entity_type or entity_type == 'all' else ' AND lower(m.type)=lower(?)'
+        query_params = (parent_id, str(entity_type)) if type_clause else (parent_id,)
+        with self.con() as con:
+            rows = [dict(row) for row in con.execute(
+                f'''SELECT m.*,
+                    (SELECT COUNT(*) FROM memories c WHERE c.parent_id=m.id AND {child_storable}{child_visibility}) AS child_count
+                    FROM memories m WHERE {m_storable}{visibility} AND m.parent_id IS ?{type_clause}
+                    ORDER BY lower(COALESCE(m.type,'')),lower(COALESCE(m.subject,'')),m.id LIMIT ? OFFSET ?''',
+                (*query_params, bounded, start),
+            ).fetchall()]
+            total = int(con.execute(
+                f'''SELECT COUNT(*) FROM memories m WHERE {m_storable}{visibility} AND m.parent_id IS ?{type_clause}''',
+                query_params,
+            ).fetchone()[0])
+            type_rows = con.execute(
+                f'''SELECT lower(m.type) AS type,COUNT(*) AS total FROM memories m WHERE {m_storable}{visibility}
+                    GROUP BY lower(m.type) ORDER BY lower(m.type)'''
+            ).fetchall()
+        return {'nodes': rows, 'total': total, 'limit': bounded, 'offset': start, 'types': [dict(row) for row in type_rows]}
+
     def tree(self):
         """Return parent/child memory structure without changing graph semantics."""
         nodes = self.graph()['nodes']
@@ -372,6 +471,26 @@ class MemoryStore:
             for memory_id in ids:
                 self.delete_memory(memory_id)
         return {'dry_run': bool(dry_run), 'older_than_days': days, 'matched': len(ids), 'memory_ids': ids}
+
+    def ambient_cleanup_candidates(self, *, older_than_days: int, limit: int = 200):
+        """Return only stale, unused, low-importance conversation-derived memories."""
+        days = max(30, min(int(older_than_days), 3650))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        with self.con() as con:
+            rows = con.execute(
+                f'''SELECT m.id FROM memories m
+                    WHERE {self.STORABLE_SQL.replace('sensitivity', 'm.sensitivity')}
+                      AND lower(COALESCE(m.source,'')) LIKE '%user-message%'
+                      AND lower(COALESCE(m.sensitivity,'normal'))='normal'
+                      AND COALESCE(m.importance,0.5)<0.4
+                      AND COALESCE(m.use_count,0)=0
+                      AND m.updated_at<?
+                      AND m.parent_id IS NULL
+                      AND NOT EXISTS(SELECT 1 FROM memories c WHERE c.parent_id=m.id)
+                      AND NOT EXISTS(SELECT 1 FROM relations r WHERE r.source_id=m.id OR r.target_id=m.id)
+                    ORDER BY m.updated_at LIMIT ?''', (cutoff, max(1, min(int(limit), 1000))),
+            ).fetchall()
+        return [row['id'] for row in rows]
 
     def export(self, *, include_sensitive: bool = True):
         with self.con() as con:

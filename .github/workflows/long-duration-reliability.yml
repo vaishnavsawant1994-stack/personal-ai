@@ -23,6 +23,8 @@ jobs:
       - run: pip install -r requirements.txt pip-audit
       - run: pip-audit -r requirements.txt
       - run: python -m compileall -q app agent automation browser core dashboard desktop devices future_intelligence integrations knowledge memory models security server tools ui updates vision voice packaging
+      - name: Install offscreen Qt runtime libraries
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
       - run: pytest -q
 
   soak:

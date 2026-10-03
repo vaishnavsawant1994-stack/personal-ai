@@ -30,10 +30,17 @@ extension Notification.Name {
     static let personalAIBackgroundRefresh=Notification.Name("personalAIBackgroundRefresh")
 }
 
+enum PersonalAITheme {
+    static let root = Color(red: 8/255, green: 9/255, blue: 13/255)
+    static let surface = Color(red: 16/255, green: 19/255, blue: 25/255)
+    static let accent = Color(red: 61/255, green: 125/255, blue: 1)
+}
+
 @main
 struct PersonalAICompanionApp: App {
     @UIApplicationDelegateAdaptor(CompanionAppDelegate.self) private var appDelegate
     @StateObject private var store = CompanionStore()
+    @State private var confirmingForget = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -45,37 +52,49 @@ struct PersonalAICompanionApp: App {
                             Label("Open Personal AI",systemImage:"sparkles")
                         }
                         Text("Uses Safari so Google sign-in, trusted-device cookies, microphone access and conversation continuity work correctly.").font(.caption).foregroundStyle(.secondary)
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Personal AI computer") {
                         TextField("https://your-computer:8766",text:$store.baseURL).textInputAutocapitalization(.never).keyboardType(.URL)
                         Toggle("Allow insecure local development",isOn:$store.allowInsecureDevelopment)
                         if store.allowInsecureDevelopment {
                             Text("Development only. HTTP/WS exposes pairing and bearer credentials to the local network.").font(.caption).foregroundStyle(.orange)
                         }
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Secure pairing") {
-                        TextField("Pairing token from desktop",text:$store.pairingToken).textInputAutocapitalization(.never)
+                        SecureField("Pairing token from desktop",text:$store.pairingToken).textInputAutocapitalization(.never)
                         TextField("6-digit code",text:$store.pairingCode).keyboardType(.numberPad)
                         Button("Pair iPhone") { Task { await store.pair() } }
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Connection") {
                         LabeledContent("Status",value:store.status)
                         LabeledContent("Channel",value:store.connected ? "Connected" : "Offline")
                         HStack { Button("Connect") { store.connect() }; Button("Disconnect",role:.cancel) { store.disconnect() } }
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Voice") {
                         Toggle("Active voice session",isOn:Binding(get:{store.voiceActive},set:{ value in Task { await store.setVoiceActive(value) }}))
                         Text("Background audio is used only while an active voice session is running. Ordinary device connectivity follows iOS lifecycle rules.").font(.caption).foregroundStyle(.secondary)
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Notifications") {
                         Text("The iPhone registers its APNs token and sends it through the authenticated Personal AI device channel. A later APNs provider stage can use this registration for server-initiated background notifications.").font(.caption).foregroundStyle(.secondary)
-                    }
+                    }.listRowBackground(PersonalAITheme.surface)
                     Section("Security") {
                         Text("Device ID and bearer token are stored in the iPhone Keychain with this-device-only protection.").font(.caption)
-                        Button("Forget this iPhone",role:.destructive) { store.forgetDevice() }
-                    }
-                }.navigationTitle("Personal AI")
+                        Button("Forget this iPhone",role:.destructive) { confirmingForget = true }
+                    }.listRowBackground(PersonalAITheme.surface)
+                }
+                .scrollContentBackground(.hidden)
+                .background(PersonalAITheme.root)
+                .navigationTitle("Personal AI")
+                .environment(\.defaultMinListRowHeight, 44)
+                .confirmationDialog("Forget this iPhone?", isPresented: $confirmingForget, titleVisibility: .visible) {
+                    Button("Forget this iPhone", role: .destructive) { store.forgetDevice() }
+                    Button("Cancel", role: .cancel) { }
+                } message: {
+                    Text("Removes this device’s saved pairing. You will need to pair again to reconnect.")
+                }
             }
+            .tint(PersonalAITheme.accent)
+            .preferredColorScheme(.dark)
             .onAppear { if store.deviceID != nil { store.connect() } }
             .onChange(of:scenePhase) { _,phase in
                 if phase == .active { store.connect() }

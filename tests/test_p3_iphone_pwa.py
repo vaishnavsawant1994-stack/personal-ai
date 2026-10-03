@@ -764,7 +764,8 @@ def test_pwa_home_is_conversation_first_and_qualification_lives_in_advanced(tmp_
     assert 'id="stopSession"' not in page
     assert 'Continue with Face ID' in page
     assert 'Use owner password' in page
-    assert 'Having trouble?' in page
+    assert 'id="troubleChoice"' in page
+    assert 'Having trouble signing in?' in page
     assert 'Use enrollment code' in page
     assert 'Trust this iPhone' not in page
     assert 'localStorage' not in page
@@ -843,3 +844,14 @@ def test_stage8_rotating_forwarded_addresses_cannot_bypass_global_access_limit(t
         headers={'x-forwarded-for': '203.0.113.250'},
     )
     assert blocked.status_code == 429
+
+
+def test_public_design_assets_are_css_and_do_not_require_owner_login(tmp_path):
+    client, _ = make_client(tmp_path)
+    for name in ('layout.css', 'design-system.css', 'primitives.css'):
+        response = client.get('/iphone/' + name)
+        assert response.status_code == 200
+        assert response.headers['content-type'].startswith('text/css')
+        assert '<!doctype html>' not in response.text
+    assert '--bg-root:' in client.get('/iphone/design-system.css').text
+    assert '.pa-page' in client.get('/iphone/primitives.css').text

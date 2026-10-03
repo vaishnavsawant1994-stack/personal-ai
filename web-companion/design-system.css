@@ -1,0 +1,59 @@
+/* Generated from pwa/design-system.css; verify with tests/test_ui_design_system.py. */
+/* Personal AI shared visual system. Layout/feature behavior lives in layout.css.
+   Semantic tokens are the public styling contract for every web surface. */
+:root {
+  color-scheme: dark;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --bg-root: #08090d; --bg-primary: #0b0d12; --bg-secondary: #101319; --bg-tertiary: #151820;
+  --surface-1: rgba(255,255,255,.035); --surface-2: rgba(255,255,255,.055); --surface-3: rgba(255,255,255,.075);
+  --surface-hover: var(--surface-3); --surface-active: rgba(255,255,255,.105);
+  --border-subtle: rgba(255,255,255,.075); --border-default: rgba(255,255,255,.11); --border-strong: rgba(255,255,255,.16);
+  --text-primary: #f4f7ff; --text-secondary: #c1c7d3; --text-tertiary: #939cab; --text-disabled: #636c7c;
+  --accent: #3d7dff; --action-primary: #2f69e6; --action-hover: #285dce; --accent-hover: #528cff; --accent-active: #2f69e6; --accent-soft: rgba(61,125,255,.15);
+  --scrim: rgba(0,0,0,.44); --violet: #9b84ff; --orb-highlight: #d3fbff; --orb-cyan: #62dfff; --orb-blue: #4c7dff; --orb-violet: #5b31aa; --orb-depth: #16102f; --cyan: #38d8ff; --cyan-soft: rgba(56,216,255,.12); --danger: #ff9caf; --danger-soft: rgba(255,113,141,.1);
+  --status-success: #8fe5c4; --status-warning: #ffd58f;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --radius-xs: 6px; --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 20px; --radius-2xl: 24px; --radius-pill: 999px;
+  --shadow-small: 0 4px 16px rgba(0,0,0,.18); --shadow-panel: 0 12px 40px rgba(0,0,0,.28); --shadow-modal: 0 20px 60px rgba(0,0,0,.38);
+  --glass-solid: #101319; --glass: rgba(12,15,21,.82); --glass-blur: 22px;
+  --motion-fast: 120ms; --motion-normal: 180ms; --motion-panel: 220ms; --ease: cubic-bezier(.2,.8,.2,1);
+  --z-content: 0; --z-sticky: 10; --z-header: 20; --z-backdrop: 30; --z-sidebar: 40; --z-popover: 50; --z-modal: 60; --z-toast: 70;
+  --reading-width: 820px; --page-width: 1180px;
+  /* Compatibility aliases for existing functional components. */
+  --bg: var(--bg-root); --panel: var(--surface-1); --line: var(--border-default); --text: var(--text-primary); --muted: var(--text-tertiary);
+  --text-muted: var(--text-tertiary); --blue: var(--accent); --accent-blue: var(--accent); --accent-cyan: var(--cyan); --accent-purple: var(--violet); --border-active: var(--accent);
+}
+/* Optional theme architecture: no unsupported theme switch is exposed. */
+:root[data-theme='light'] {
+  color-scheme: light; --bg-root:#f7f8fa; --bg-primary:#fff; --bg-secondary:#f1f3f6; --bg-tertiary:#e9edf3;
+  --surface-1:rgba(0,0,0,.025); --surface-2:rgba(0,0,0,.045); --surface-3:rgba(0,0,0,.065); --surface-active:rgba(0,0,0,.09);
+  --border-subtle:rgba(0,0,0,.08); --border-default:rgba(0,0,0,.13); --border-strong:rgba(0,0,0,.2);
+  --text-primary:#19202e; --text-secondary:#414b5b; --text-tertiary:#596579; --text-disabled:#8791a1;
+  --glass-solid:#f1f3f6; --glass:rgba(249,250,252,.88); --danger:#a82445;
+}
+/* Public V1 design constitution tokens. Legacy tokens above remain available so
+   already-approved layouts keep their exact appearance during migration. */
+:root {
+  --pa-bg-0:#02070d; --pa-bg-1:#04101a; --pa-bg-2:#071522; --pa-bg-3:#0a1a2a;
+  --pa-surface-1:rgba(7,19,31,.72); --pa-surface-2:rgba(9,24,39,.80); --pa-surface-3:rgba(12,31,49,.88); --pa-surface-hover:rgba(18,41,64,.88);
+  --pa-border-subtle:rgba(108,151,205,.12); --pa-border-default:rgba(94,149,214,.20); --pa-border-strong:rgba(27,139,255,.58);
+  --pa-text-primary:#f4f7fc; --pa-text-secondary:#adb9ce; --pa-text-tertiary:#76859e; --pa-text-disabled:#526178;
+  --pa-blue:#1688ff; --pa-blue-light:#249bff; --pa-blue-dark:#075fe0; --pa-success:#18d685; --pa-warning:#ffb62d; --pa-danger:#ff5368; --pa-info:var(--pa-blue);
+  --pa-purple:#a35bff; --pa-cyan:#1bd6e8; --pa-pink:#f05b9b; --pa-control-off:#344052; --pa-on-accent:#fff; --pa-danger-text:#ff8291; --pa-danger-border:rgba(255,83,104,.38); --pa-danger-surface:rgba(255,83,104,.08); --pa-scrim:rgba(0,0,0,.48);
+  --pa-font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','Inter',system-ui,sans-serif;
+  --pa-text-micro:11px; --pa-text-caption:12px; --pa-text-label:13px; --pa-text-small:14px; --pa-text-body:16px; --pa-text-title:17px; --pa-text-h3:20px; --pa-text-h2:24px; --pa-text-h1:30px; --pa-text-display:34px;
+  --pa-space-1:4px; --pa-space-2:8px; --pa-space-3:12px; --pa-space-4:16px; --pa-space-5:20px; --pa-space-6:24px; --pa-space-8:32px; --pa-space-10:40px; --pa-space-12:48px; --pa-space-16:64px;
+  --pa-radius-xs:8px; --pa-radius-sm:10px; --pa-radius-md:14px; --pa-radius-lg:18px; --pa-radius-xl:22px; --pa-radius-modal:26px; --pa-radius-pill:999px;
+  --pa-shadow-elevated:0 10px 32px rgba(0,0,0,.20); --pa-shadow-popup:0 18px 60px rgba(0,0,0,.34);
+  --pa-motion-fast:120ms; --pa-motion-normal:180ms; --pa-motion-medium:240ms; --pa-motion-slow:320ms; --pa-ease:cubic-bezier(.2,.8,.2,1);
+  --pa-touch-min:44px; --pa-z-base:0; --pa-z-sticky:10; --pa-z-floating:20; --pa-z-sidebar:40; --pa-z-overlay:50; --pa-z-modal:60; --pa-z-popover:70; --pa-z-toast:80; --pa-z-critical:90;
+  --pa-page-inset:clamp(14px,4.6vw,20px); --pa-page-max:1200px; --pa-reading-max:820px;
+}
+:root[data-theme='light'] {
+  --pa-bg-0:#f7f9fc; --pa-bg-1:#eef3f8; --pa-bg-2:#e7eef6; --pa-bg-3:#dfe9f4;
+  --pa-surface-1:rgba(255,255,255,.88); --pa-surface-2:rgba(255,255,255,.94); --pa-surface-3:#fff; --pa-surface-hover:#f1f6fb;
+  --pa-border-subtle:rgba(27,59,96,.12); --pa-border-default:rgba(27,78,137,.20); --pa-border-strong:rgba(7,95,224,.58);
+  --pa-text-primary:#152235; --pa-text-secondary:#3f5068; --pa-text-tertiary:#5d6e85; --pa-text-disabled:#7a8798;
+  --pa-blue:#075fe0; --pa-blue-light:#0878eb; --pa-blue-dark:#064fb9; --pa-success:#087d4b; --pa-warning:#8c5b00; --pa-danger:#bd2940; --pa-info:var(--pa-blue);
+  --pa-purple:#7541bc; --pa-cyan:#007b8b; --pa-pink:#b72d70; --pa-control-off:#a7b2c0; --pa-on-accent:#fff; --pa-danger-text:#9d2335; --pa-danger-border:rgba(157,35,53,.38); --pa-danger-surface:rgba(157,35,53,.08); --pa-scrim:rgba(12,25,42,.42);
+}

@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 from agent.executor import ConfirmationRequired
+from ui.design_system import stylesheet, icon, COLORS
 from ui.control_panel import ControlPanel
 from ui.memory_panel import MemoryPanel
 from ui.pulse import PulseWidget
@@ -100,141 +101,7 @@ class MainWindow(QMainWindow):
 
         prefs = self.runtime.get("preferences")
         high = bool(prefs.get("high_contrast")) if prefs else False
-        muted = "#9badb7" if high else "#71818b"
-        border = "#2b4350" if high else "#17242c"
-
-        self.setStyleSheet(
-            f"""
-            QMainWindow, QWidget {{
-                background: #030405;
-                color: #edf3f6;
-                font-family: Inter, "Segoe UI", Arial;
-            }}
-            QLabel#brand {{
-                color: #d4e0e5;
-                font-size: 14px;
-                font-weight: 700;
-                letter-spacing: 3px;
-            }}
-            QLabel#muted {{
-                color: {muted};
-            }}
-            QLabel#heroState {{
-                color: #eef7fa;
-                font-size: 20px;
-                font-weight: 620;
-            }}
-            QLabel#heroHint {{
-                color: #64757f;
-                font-size: 12px;
-            }}
-            QLabel#attention {{
-                color: #d8cfab;
-                font-size: 12px;
-            }}
-            QLineEdit {{
-                background: transparent;
-                border: 0;
-                padding: 11px 5px;
-                color: #eef5f8;
-                font-size: 15px;
-                selection-background-color: #244656;
-            }}
-            QPushButton {{
-                background: transparent;
-                border: 1px solid transparent;
-                border-radius: 12px;
-                padding: 9px 13px;
-                color: #92a3ac;
-            }}
-            QPushButton:hover {{
-                background: #0a0f13;
-                color: #edf6fa;
-                border-color: #17252d;
-            }}
-            QPushButton:checked {{
-                background: #0b1217;
-                color: #eef7fa;
-                border-color: #223640;
-            }}
-            QPushButton#navAction {{
-                border: 1px solid #15242c;
-                background: #070b0e;
-                color: #a9b8bf;
-                padding: 8px 14px;
-            }}
-            QPushButton#navAction:hover {{
-                border-color: #29434f;
-                color: #eff8fb;
-            }}
-            QPushButton#send {{
-                background: #dcebef;
-                color: #071015;
-                border: 0;
-                border-radius: 17px;
-                font-weight: 700;
-                min-width: 34px;
-                max-width: 34px;
-                min-height: 34px;
-                max-height: 34px;
-                padding: 0;
-            }}
-            QPushButton#mic {{
-                color: #90a4ae;
-                min-width: 36px;
-                max-width: 36px;
-                min-height: 34px;
-                max-height: 34px;
-                padding: 0;
-            }}
-            QPushButton#indicator {{
-                background: #05080a;
-                border: 1px solid #111c22;
-                border-radius: 14px;
-                padding: 8px 14px;
-                color: #788a94;
-                font-size: 12px;
-            }}
-            QPushButton#indicator:hover {{
-                color: #d5e2e7;
-                border-color: #223640;
-            }}
-            QTextBrowser#homeConversation {{
-                background: rgba(6, 9, 11, 0.72);
-                border: 1px solid #101b21;
-                border-radius: 16px;
-                padding: 10px 14px;
-                color: #cbd7dc;
-            }}
-            QTextBrowser {{
-                background: #05080a;
-                border: 1px solid #131f27;
-                border-radius: 16px;
-                padding: 14px;
-            }}
-            QFrame#composer {{
-                background: #070a0d;
-                border: 1px solid #17252d;
-                border-radius: 22px;
-            }}
-            QFrame#card {{
-                background: #06090b;
-                border: 1px solid {border};
-                border-radius: 16px;
-            }}
-            QFrame#menuDrawer {{
-                background: #05080a;
-                border-left: 1px solid #111b21;
-                border-radius: 18px;
-            }}
-            QLabel#menuCaption {{
-                color: #5f7079;
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 2px;
-            }}
-            """
-        )
+        self.setStyleSheet(stylesheet(high))
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -300,8 +167,9 @@ class MainWindow(QMainWindow):
         self.cloud_btn.clicked.connect(self.open_cloud)
         nav.addWidget(self.cloud_btn)
 
-        self.menu_btn = QPushButton("Main Menu  ☰")
+        self.menu_btn = QPushButton("Main Menu")
         self.menu_btn.setObjectName("navAction")
+        self.menu_btn.setIcon(icon("menu"))
         self.menu_btn.setCheckable(True)
         self.menu_btn.clicked.connect(self._toggle_main_menu)
         nav.addSpacing(6)
@@ -358,7 +226,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(12, 18, 12, 12)
         title = QLabel(name)
-        title.setStyleSheet("font-size:28px;font-weight:650")
+        title.setObjectName("pageHeading")
         layout.addWidget(title)
         subtitle = QLabel(self._subtitle(name))
         subtitle.setObjectName("muted")
@@ -423,8 +291,9 @@ class MainWindow(QMainWindow):
         composer_row.setContentsMargins(8, 3, 8, 3)
         composer_row.setSpacing(4)
 
-        self.mic_btn = QPushButton("●")
+        self.mic_btn = QPushButton()
         self.mic_btn.setObjectName("mic")
+        self.mic_btn.setIcon(icon("mic"))
         self.mic_btn.setAccessibleName("Start voice")
         self.mic_btn.clicked.connect(self.toggle_voice)
         composer_row.addWidget(self.mic_btn)
@@ -435,8 +304,10 @@ class MainWindow(QMainWindow):
         self.input.returnPressed.connect(lambda: self.submit(self.input))
         composer_row.addWidget(self.input, 1)
 
-        send_btn = QPushButton("↑")
+        send_btn = QPushButton()
         send_btn.setObjectName("send")
+        send_btn.setIcon(icon("send"))
+        send_btn.setAccessibleName("Send message")
         send_btn.setAccessibleName("Send")
         send_btn.clicked.connect(lambda _checked=False: self.submit(self.input))
         composer_row.addWidget(send_btn)
@@ -472,7 +343,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(12, 18, 12, 12)
 
         title = QLabel("Conversation")
-        title.setStyleSheet("font-size:28px;font-weight:650")
+        title.setObjectName("pageHeading")
         layout.addWidget(title)
 
         subtitle = QLabel(
@@ -490,20 +361,25 @@ class MainWindow(QMainWindow):
         row = QHBoxLayout(composer)
         row.setContentsMargins(8, 3, 8, 3)
 
-        self.conversation_mic_btn = QPushButton("●")
+        self.conversation_mic_btn = QPushButton()
         self.conversation_mic_btn.setObjectName("mic")
+        self.conversation_mic_btn.setIcon(icon("mic"))
+        self.conversation_mic_btn.setAccessibleName("Start voice")
         self.conversation_mic_btn.clicked.connect(self.toggle_voice)
         row.addWidget(self.conversation_mic_btn)
 
         self.conversation_input = QLineEdit()
+        self.conversation_input.setAccessibleName("Message Personal AI")
         self.conversation_input.setPlaceholderText("Continue the conversation…")
         self.conversation_input.returnPressed.connect(
             lambda: self.submit(self.conversation_input)
         )
         row.addWidget(self.conversation_input, 1)
 
-        send_btn = QPushButton("↑")
+        send_btn = QPushButton()
         send_btn.setObjectName("send")
+        send_btn.setIcon(icon("send"))
+        send_btn.setAccessibleName("Send message")
         send_btn.clicked.connect(lambda _checked=False: self.submit(self.conversation_input))
         row.addWidget(send_btn)
         layout.addWidget(composer)
@@ -516,7 +392,7 @@ class MainWindow(QMainWindow):
         label = QLabel(title)
         label.setObjectName("muted")
         value_label = QLabel(str(value))
-        value_label.setStyleSheet("font-size:25px;font-weight:650")
+        value_label.setObjectName("metric")
         layout.addWidget(label)
         layout.addWidget(value_label)
         if detail:
@@ -798,12 +674,12 @@ class MainWindow(QMainWindow):
             SettingsPanel(self.runtime, self).exec()
 
     def _update_voice_buttons(self):
-        label = "■" if self.voice_running else "●"
+        icon_name = "stop" if self.voice_running else "mic"
         accessible = "Stop voice" if self.voice_running else "Start voice"
         for attr in ("mic_btn", "conversation_mic_btn"):
             button = getattr(self, attr, None)
             if button:
-                button.setText(label)
+                button.setIcon(icon(icon_name))
                 button.setAccessibleName(accessible)
                 button.setChecked(self.voice_running)
 
@@ -866,8 +742,8 @@ class MainWindow(QMainWindow):
         safe_text = html.escape(str(text)).replace("\n", "<br>")
         block = (
             f'<div style="margin:4px 0 8px 0;">'
-            f'<span style="color:#71838d;font-size:11px;">{safe_who}</span><br>'
-            f'<span style="color:#d8e2e6;">{safe_text}</span></div>'
+            f'<span style="color:{COLORS['muted']};font-size:13px;">{safe_who}</span><br>'
+            f'<span style="color:{COLORS['text']};">{safe_text}</span></div>'
         )
         if hasattr(self, "chat"):
             self.chat.append(block)

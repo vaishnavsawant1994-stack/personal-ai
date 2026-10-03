@@ -544,6 +544,12 @@ class SecondBrain:
             result['dry_run'] = False
         return result
 
+    def run_ambient_auto_clean(self, *, older_than_days: int = 365, limit: int = 200):
+        """Prune only stale, unused, low-importance, unlinked normal Ambient memories."""
+        ids = self.store.ambient_cleanup_candidates(older_than_days=older_than_days, limit=limit)
+        deleted = sum(1 for memory_id in ids if self.delete(memory_id))
+        return {'matched': len(ids), 'deleted': deleted, 'older_than_days': max(30, min(int(older_than_days), 3650))}
+
     def extract_candidates(self, user_text: str, assistant_text: str | None = None):
         if not self.models:
             return []

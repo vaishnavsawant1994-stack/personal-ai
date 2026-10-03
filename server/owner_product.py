@@ -3,7 +3,10 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import os
+import re
 import time
+import tomllib
 from pathlib import Path
 from typing import Literal
 
@@ -46,6 +49,18 @@ class RetentionBody(BaseModel):
     older_than_days: int = Field(ge=1, le=36500)
     sensitivity: Literal['normal', 'sensitive', 'secret'] | None = None
     confirm_delete: bool = False
+
+
+class AmbientSettingsBody(BaseModel):
+    enabled: bool | None = None
+    sources: dict[str, bool] | None = None
+    retention_days: int | None = Field(default=None, ge=30, le=3650)
+    auto_clean: bool | None = None
+
+
+class AmbientRelationBody(BaseModel):
+    source_id: str = Field(min_length=1, max_length=100)
+    target_id: str = Field(min_length=1, max_length=100)
 
 
 class KnowledgeUploadBody(BaseModel):
@@ -250,6 +265,11 @@ def owner_product_router(runtime):
             return rows
         return [row for row in rows if str(row.get('sensitivity', 'normal')) not in {'sensitive', 'secret'}]
 
+    def memory_ui_row(row):
+        allowed = ('id', 'type', 'subject', 'content', 'source', 'sensitivity', 'importance', 'confidence',
+                   'verified', 'occurred_at', 'valid_from', 'valid_to', 'parent_id', 'created_at', 'updated_at', 'use_count')
+        return {key: row.get(key) for key in allowed if key in row}
+
     def filter_tree(rows, device_id: str):
         output = []
         for row in rows:
@@ -272,17 +292,172 @@ def owner_product_router(runtime):
         return {'memories': filter_memories(rows, device_id)}
 
     @router.get('/memory/graph')
-    def memory_graph(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+    def memory_graph(limit: int = 36, focus_id: str | None = None, entity_type: str | None = None, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
         device_id = authenticate(pa_device, pa_token, 'memory:read')
-        graph = second_brain.graph()
-        nodes = filter_memories(graph.get('nodes', []), device_id)
+        if focus_id:
+            focus = memory.get(focus_id)
+            if not focus or not filter_memories([focus], device_id):
+                raise HTTPException(404, 'Memory not found')
+        project = getattr(memory, 'graph_projection', None)
+        if not callable(project):
+            raise HTTPException(503, 'Bounded Memory Graph projection is unavailable')
+        graph = project(limit=max(1, min(limit, 60)), focal_id=focus_id, memory_type=entity_type, include_sensitive=can_read_sensitive_memory(device_id))
+        nodes = [memory_ui_row(row) for row in filter_memories(graph.get('nodes', []), device_id)]
         ids = {row['id'] for row in nodes}
-        return {'nodes': nodes, 'edges': [edge for edge in graph.get('edges', []) if edge['source_id'] in ids and edge['target_id'] in ids]}
+        return {**graph, 'nodes': nodes, 'edges': [edge for edge in graph.get('edges', []) if edge['source_id'] in ids and edge['target_id'] in ids]}
 
     @router.get('/memory/tree')
     def memory_tree(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
         device_id = authenticate(pa_device, pa_token, 'memory:read')
         return {'roots': filter_tree(memory.tree(), device_id)}
+
+    @router.get('/memory/tree/children')
+    def memory_tree_children(parent_id: str | None = None, limit: int = 100, offset: int = 0, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        query = getattr(memory, 'tree_children', None)
+        if not callable(query):
+            raise HTTPException(503, 'Lazy Memory Tree loading is unavailable')
+        if parent_id:
+            parent = memory.get(parent_id)
+            if not parent or not filter_memories([parent], device_id):
+                raise HTTPException(404, 'Memory not found')
+        result = query(parent_id=parent_id, limit=max(1, min(limit, 200)), offset=max(0, offset), include_sensitive=can_read_sensitive_memory(device_id))
+        visible = {row['id']: row for row in filter_memories(result.get('nodes', []), device_id)}
+        result['nodes'] = [{**memory_ui_row(row), 'child_count': int(result_row.get('child_count', 0))} for result_row in result.get('nodes', []) if (row := visible.get(result_row['id']))]
+        return result
+
+    @router.get('/memory/tree/path/{memory_id}')
+    def memory_tree_path(memory_id: str, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        row = memory.get(memory_id)
+        if not row or (str(row.get('sensitivity', 'normal')) in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id)):
+            raise HTTPException(404, 'Memory not found')
+        path, seen = [], set()
+        cursor = row
+        while cursor:
+            if cursor['id'] in seen or len(path) >= 64:
+                raise HTTPException(409, 'Memory hierarchy path is invalid')
+            if str(cursor.get('sensitivity', 'normal')) in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id):
+                raise HTTPException(404, 'Memory not found')
+            seen.add(cursor['id'])
+            path.append({key: cursor.get(key) for key in ('id', 'parent_id', 'type', 'subject', 'updated_at', 'created_at')})
+            cursor = memory.get(cursor['parent_id']) if cursor.get('parent_id') else None
+        return {'path': list(reversed(path))}
+
+    @router.get('/memory/ambient/summary')
+    def memory_ambient_summary(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        sensitive = can_read_sensitive_memory(device_id)
+        visibility = '' if sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+        try:
+            with memory.con() as con:
+                ambient_captured = int(con.execute(
+                    f"SELECT COUNT(*) FROM memories WHERE {memory.STORABLE_SQL} AND lower(COALESCE(source,'')) LIKE '%user-message%' {visibility}"
+                ).fetchone()[0])
+                active_context = int(con.execute(
+                    f"SELECT COUNT(*) FROM memories WHERE {memory.STORABLE_SQL} AND last_used_at>=datetime('now','-30 days') AND valid_to IS NULL {visibility}"
+                ).fetchone()[0])
+            count_candidates = getattr(second_brain, 'candidate_counts', None)
+            candidate_counts = count_candidates(owner_id='owner', include_sensitive=sensitive) if callable(count_candidates) else {}
+            pending_count = int(candidate_counts.get('pending', 0))
+            ignored_count = int(candidate_counts.get('rejected', 0))
+        except (AttributeError, TypeError, ValueError):
+            raise HTTPException(503, 'Ambient Memory summary is unavailable')
+        settings_reader = getattr(second_brain, 'ambient_settings', None)
+        settings_available = callable(settings_reader)
+        ambient_settings = settings_reader(owner_id='owner') if callable(settings_reader) else {'enabled': False, 'sources': {'conversations': False}, 'review_before_save': True, 'retention_days': None, 'auto_clean': False}
+        enabled = bool(ambient_settings.get('enabled'))
+        capture_state = ('active' if enabled else 'paused') if settings_available else 'unavailable'
+        return {
+            'capture_available': settings_available,
+            'capture_state': capture_state,
+            'capture_message': 'Captures candidate memories from owner conversations for review.' if enabled else ('New background capture is paused. Existing memories remain available.' if settings_available else 'Ambient Memory settings are unavailable on this runtime.'),
+            'metrics': {'captured': ambient_captured, 'needs_review': pending_count, 'active_context': active_context, 'ignored': ignored_count},
+            'source_controls_available': settings_available,
+            'sources': [
+                {'id': 'conversations', 'label': 'Chats', 'available': True, 'enabled': bool(ambient_settings['sources'].get('conversations'))},
+                {'id': 'tasks', 'label': 'Tasks', 'available': False, 'enabled': False},
+                {'id': 'calendar', 'label': 'Calendar', 'available': False, 'enabled': False},
+                {'id': 'apps', 'label': 'Apps', 'available': False, 'enabled': False},
+            ],
+            'privacy_controls_available': settings_available,
+            'review_required': True,
+            'settings': ambient_settings,
+            'sensitive_memory_access': sensitive,
+        }
+
+    @router.patch('/memory/ambient/settings')
+    def update_ambient_settings(body: AmbientSettingsBody, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:write')
+        if body.sources and set(body.sources) - {'conversations'}:
+            raise HTTPException(422, 'Only configured capture sources can be changed')
+        updater = getattr(second_brain, 'update_ambient_settings', None)
+        if not callable(updater):
+            raise HTTPException(503, 'Ambient Memory settings are unavailable')
+        updated = updater(body.model_dump(exclude_none=True), owner_id='owner')
+        audit('memory.ambient.settings_updated', device_id=device_id, enabled=updated['enabled'], conversations=updated['sources']['conversations'])
+        return {'settings': updated}
+
+    def memory_link_suggestions(device_id: str, limit: int = 8):
+        projection = memory.graph_projection(limit=60, include_sensitive=can_read_sensitive_memory(device_id))
+        nodes = {row['id']: row for row in projection['nodes']}
+        adjacency: dict[str, set[str]] = {key: set() for key in nodes}
+        direct = set()
+        for edge in projection['edges']:
+            left, right = edge['source_id'], edge['target_id']
+            if left in nodes and right in nodes and left != right:
+                adjacency[left].add(right); adjacency[right].add(left)
+                direct.add(tuple(sorted((left, right))))
+        suggestions, seen = [], set()
+        for middle, neighbors in adjacency.items():
+            ordered = sorted(neighbors)
+            for index, left in enumerate(ordered):
+                for right in ordered[index + 1:]:
+                    pair = tuple(sorted((left, right)))
+                    if pair in direct or pair in seen:
+                        continue
+                    seen.add(pair)
+                    a, b, bridge = nodes[pair[0]], nodes[pair[1]], nodes[middle]
+                    suggestions.append({
+                        'id': f"{pair[0]}:{pair[1]}", 'source_id': pair[0], 'target_id': pair[1],
+                        'title': 'Explore a possible connection',
+                        'summary': f"{a.get('subject','Memory')} and {b.get('subject','another memory')} are both linked to {bridge.get('subject','a shared memory')}.",
+                        'source_title': a.get('subject') or 'Memory', 'target_title': b.get('subject') or 'Memory',
+                        'bridge_title': bridge.get('subject') or 'Memory',
+                    })
+                    if len(suggestions) >= max(1, min(limit, 20)):
+                        return suggestions
+        return suggestions
+
+    @router.get('/memory/ambient/suggestions')
+    def ambient_memory_suggestions(limit: int = 8, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        return {'suggestions': memory_link_suggestions(device_id, limit)}
+
+    @router.get('/memory/graph/insights')
+    def memory_graph_insights(limit: int = 8, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        return {'insights': memory_link_suggestions(device_id, limit)}
+
+    @router.post('/memory/graph/insights/accept')
+    def accept_memory_graph_insight(body: AmbientRelationBody, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:write')
+        if body.source_id == body.target_id:
+            raise HTTPException(422, 'A memory cannot be related to itself')
+        include_sensitive = can_read_sensitive_memory(device_id)
+        visible = {row['id'] for row in memory.graph_projection(limit=60, include_sensitive=include_sensitive)['nodes']}
+        if body.source_id not in visible or body.target_id not in visible:
+            raise HTTPException(404, 'Memory not found')
+        suggested = {tuple(sorted((item['source_id'], item['target_id']))) for item in memory_link_suggestions(device_id, 20)}
+        if tuple(sorted((body.source_id, body.target_id))) not in suggested:
+            raise HTTPException(409, 'This connection is no longer suggested by the current graph')
+        with memory.con() as con:
+            exists = con.execute('SELECT 1 FROM relations WHERE (source_id=? AND target_id=?) OR (source_id=? AND target_id=?) LIMIT 1', (body.source_id, body.target_id, body.target_id, body.source_id)).fetchone()
+        if exists:
+            raise HTTPException(409, 'These memories are already connected')
+        relation_id = memory.relate(body.source_id, 'related_to', body.target_id)
+        audit('memory.graph.insight_accepted', device_id=device_id, relation_id=relation_id)
+        return {'ok': True, 'relation_id': relation_id}
 
     @router.get('/memory/export')
     def memory_export(
@@ -365,8 +540,11 @@ def owner_product_router(runtime):
         if body.sensitivity in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id):
             raise HTTPException(403, 'This device cannot mark memory sensitive')
         changes = body.model_dump(exclude_none=True)
-        if not memory.update_memory(memory_id, **changes):
-            raise HTTPException(404, 'Memory not found or no supported changes supplied')
+        try:
+            if not memory.update_memory(memory_id, **body.model_dump(exclude_unset=True)):
+                raise HTTPException(404, 'Memory not found or no supported changes supplied')
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
         audit('memory.corrected', device_id=device_id, memory_id=memory_id, fields=sorted(changes))
         return second_brain.memory_detail(memory_id)
 
@@ -820,6 +998,19 @@ def owner_product_router(runtime):
             'emergency_stop': bool(getattr(runtime['tools'], 'emergency_stop', False)),
             'model_evaluation': runtime['model_evaluation'].latest(),
         }
+
+    @router.get('/system/app-info')
+    def system_app_info(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        authenticate(pa_device, pa_token, 'activities:read')
+        version = None
+        try:
+            project = tomllib.loads((Path(__file__).resolve().parent.parent / 'pyproject.toml').read_text())
+            version = project.get('project', {}).get('version')
+        except (OSError, ValueError, TypeError):
+            version = None
+        raw_build = next((os.environ.get(name, '') for name in ('PA_BUILD_ID', 'RAILWAY_GIT_COMMIT_SHA', 'RENDER_GIT_COMMIT', 'GITHUB_SHA') if os.environ.get(name)), '')
+        build = raw_build[:80] if raw_build and re.fullmatch(r'[A-Za-z0-9._-]{1,80}', raw_build) else None
+        return {'version': version, 'build': build, 'runtime': 'web-pwa'}
 
     @router.post('/system/model-evaluation')
     def run_model_evaluation(

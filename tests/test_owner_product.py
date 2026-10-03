@@ -1,5 +1,7 @@
 from types import SimpleNamespace
+from pathlib import Path
 import time
+import tomllib
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -99,6 +101,24 @@ def make_client(tmp_path, *, reauthenticated_at=None):
     client.cookies.set('pa_device', device['id'])
     client.cookies.set('pa_token', token)
     return client, runtime, device
+
+
+def test_system_app_info_uses_real_version_and_sanitizes_build_id(tmp_path, monkeypatch):
+    client, _, _ = make_client(tmp_path)
+    monkeypatch.setenv('PA_BUILD_ID', 'release-2026.10.03')
+
+    response = client.get('/iphone/api/system/app-info')
+
+    assert response.status_code == 200
+    project = tomllib.loads((Path(__file__).resolve().parents[1] / 'pyproject.toml').read_text())
+    assert response.json() == {
+        'version': project['project']['version'],
+        'build': 'release-2026.10.03',
+        'runtime': 'web-pwa',
+    }
+
+    monkeypatch.setenv('PA_BUILD_ID', 'secret token with spaces')
+    assert client.get('/iphone/api/system/app-info').json()['build'] is None
 
 
 def test_owner_memory_lifecycle_and_audit(tmp_path):

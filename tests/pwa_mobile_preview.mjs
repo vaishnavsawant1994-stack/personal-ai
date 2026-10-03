@@ -1,7 +1,21 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const axePath = process.env.PERSONAL_AI_AXE_PATH || require.resolve("axe-core/axe.min.js");
+import { chromium, firefox, webkit } from "playwright";
+const engine=process.env.PERSONAL_AI_BROWSER || "chromium";
+assert.ok(["chromium","firefox","webkit"].includes(engine),"supported browser engine");
 
-const browser = await chromium.launch({ headless: true });
+const executablePath=process.env.PERSONAL_AI_BROWSER_EXECUTABLE || (engine==="chromium" ? process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE : undefined);
+const browser = await ({chromium,firefox,webkit})[engine].launch({headless:true,...(executablePath?{executablePath}:{})});
+
+const auditResults=[];
+async function audit(page,label){
+ if(!await page.evaluate(()=>Boolean(window.axe)))await page.addScriptTag({path:axePath});
+ const violations=await page.evaluate(async()=> (await axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}})).violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})));
+ assert.deepEqual(violations,[],label+' accessibility');
+ auditResults.push({surface:label,viewport:page.viewportSize(),violations:0});
+}
 
 const conversations = [
   { id: "c1", title: "Project Planning", preview: "Continue planning the project", updated_at: "2026-09-30T12:30:00+05:30" },
@@ -21,10 +35,12 @@ const everydayItems = [
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
 const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const memoryEntries=[{id:'memory-qa',subject:'Project context',type:'note',content:'Browser qualification fixture with source evidence',source:'owner',confidence:1}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
 const deletedConversationIds=[];
+const renamedConversationIds=[];
 const exportedConversationIds=[];
 const turnConversationIds=[];
 let conversationCreateCount=0;
@@ -46,19 +62,29 @@ try {
   const page = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
-    isMobile: true,
+    isMobile: engine!=="firefox",
+    serviceWorkers: "block", // API fixtures must not be bypassed by the separately tested worker.
     hasTouch: true,
   });
 
   const pageErrors = [];
   const uploadedDocuments = [];
-  page.on("pageerror", error => pageErrors.push(error.message));
+  let memoryMode="ready",releaseMemory;
+  page.on("pageerror", error => pageErrors.push(error.stack || error.message));
 
-  await page.route("**/iphone/api/**", route => {
+  await page.route("**/iphone/api/**", async route => {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname.replace("/iphone/api", "");
     const method = request.method();
+    if(path==='/fixture-object-error')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({detail:{type:'service_error',internal:18}})});
+    if(path.startsWith('/conversations/')&&method==='PATCH')renamedConversationIds.push(decodeURIComponent(path.split('/')[2]));
+    if(path.startsWith('/conversations/')&&method==='DELETE')deletedConversationIds.push(decodeURIComponent(path.split('/')[2]));
+    if(path==='/memory'&&method==='GET'){
+      if(memoryMode==='loading')await new Promise(resolve=>{releaseMemory=resolve});
+      if(memoryMode==='permission')return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
+      if(memoryMode==='failure')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
+    }
 
     let body = {};
     if (path === "/status") {
@@ -84,6 +110,42 @@ try {
       const item = everydayItems.find(item => item.id === id);
       if(item){item.status="completed";item.completed_at=new Date().toISOString();item.updated_at=item.completed_at}
       body = item || {};
+    } else if (path === '/memory/graph') {
+      body={nodes:[{id:'memory-qa',subject:'Project context',type:'note'}],edges:[]};
+    } else if (path === '/memory/tree/children') {
+      body={nodes:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',type:'note',child_count:0}],total:1,types:[{type:'note',total:1}]};
+    } else if (path === '/memory/tree') {
+      body={roots:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',children:[]}]};
+    } else if (path === '/memory') {
+      if(method==='POST'){
+        const input=JSON.parse(request.postData()||'{}'),item={id:'memory-created-'+memoryEntries.length,subject:input.subject,type:input.type||'note',content:input.content,source:input.source||'owner',confidence:1};memoryEntries.unshift(item);
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(item)});
+      }
+      body={memories:memoryEntries};
+    } else if (path.startsWith('/memory/') && method==='GET') {
+      const item=memoryEntries.find(memory=>memory.id===decodeURIComponent(path.split('/')[2]));
+      if(!item)return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({detail:'Memory not found'})});
+      body=item;
+    } else if (path.startsWith('/memory/') && method==='PATCH') {
+      const item=memoryEntries.find(memory=>memory.id===decodeURIComponent(path.split('/')[2]));
+      if(item)Object.assign(item,JSON.parse(request.postData()||'{}'));
+      body=item||{};
+    } else if (path === '/knowledge' && method==='GET') {
+      body={documents:[{id:'knowledge-qa',title:'Project notes',filename:'notes.md',source:'owner-upload',access_class:'private',size_bytes:1024}]};
+    } else if (path === '/system/status') {
+      body={model:{state:'available',primary_provider:'private',providers:[{id:'self_hosted',configured:true,private:true,model:'Owner model',health:{state:'available'}}]},tools:[]};
+    } else if (path === '/system/app-info') {
+      body={version:'0.6.0',build:'qualification-fixture',runtime:'web-pwa'};
+    } else if (path === '/devices') {
+      body={devices:[{id:'qa-browser',name:'Qualification browser',platform:'browser',created_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),permissions:['ai:chat'],metadata:{}},{id:'qa-phone',name:'Test phone',platform:'ios-pwa',created_at:new Date(Date.now()-86400000).toISOString(),last_seen_at:new Date(Date.now()-3600000).toISOString(),permissions:['ai:chat'],metadata:{}}],current_device_id:'qa-browser'};
+    } else if (path === '/devices-presence') {
+      body={devices:[{device_id:'qa-browser',display_name:'Qualification browser',platform:'browser',trust_state:'trusted',presence_state:'online',connected:true,metadata:{}},{device_id:'qa-phone',display_name:'Test phone',platform:'ios-pwa',trust_state:'trusted',presence_state:'unknown',connected:false,metadata:{}}]};
+    } else if (path === '/apps-tools/tools') {
+      body={tools:[{tool_id:'qa-tool',name:'Approved tool',description:'Browser qualification fixture',availability:'available',approval_policy:'owner'}]};
+    } else if (path === '/apps-tools/apps') {
+      body={apps:[]};
+    } else if (path === '/access/security') {
+      body={passkeys:[],password_configured:true,recovery_codes_remaining:1,google_configured:false};
     } else if (path === "/preferences") {
       body = { continuous_voice: true, voice_rate: 1, quiet_hours: true };
     } else if (path.startsWith("/conversations/c1/activate")) {
@@ -98,7 +160,7 @@ try {
       body = { version: 1, conversation: activeConversation.thread, events: activeConversation.events };
     } else if (path === "/conversations/new" && method === "DELETE") {
       if(url.searchParams.get("confirm") !== "true")return route.fulfill({ status: 422, contentType:"application/json",body:JSON.stringify({detail:"Confirmation required"})});
-      deletedConversationIds.push("new");
+
       body = { deleted:true, conversation_id:"new" };
     } else if (path === "/conversations/new" && method === "GET") {
       body = newConversation;
@@ -146,6 +208,8 @@ try {
   });
   await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   await page.waitForTimeout(500);
+  const objectError=await page.evaluate(async()=>{try{await api('/fixture-object-error')}catch(error){return error.message}});
+  assert.doesNotMatch(objectError,/\[object Object\]/,'structured API errors must never render as [object Object]');
 
   const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
@@ -172,6 +236,10 @@ try {
     actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
     cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
     homeWidth: document.querySelector(".home-intro").getBoundingClientRect().width,
+    greeting: document.querySelector(".home-greeting").getBoundingClientRect().toJSON(),
+    recent: document.querySelector(".recent-feed").getBoundingClientRect().toJSON(),
+    today: document.querySelector(".today-panel").getBoundingClientRect().toJSON(),
+    topbar: document.querySelector(".topbar").getBoundingClientRect().toJSON(),
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     innerHeight,
@@ -193,19 +261,26 @@ try {
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.equal(homeState.todayTitle, "Today");
+  assert.ok(homeState.greeting.top>=homeState.topbar.bottom-1,"Home greeting must remain below the header");
+  assert.ok(homeState.today.top>=homeState.recent.bottom-1,"Today must start after Recent without overlapping its rows");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
   assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
-  assert.equal(await page.locator("#recentList").count(), 0, "old Recent box must be removed");
+  assert.equal(await page.locator("#recentList .recent-feed-row").count(), 3, "Recent must show canonical saved conversations alongside Today tasks");
   assert.equal(await page.locator(".prompt-chips, [data-prompt]").count(), 0, "bottom suggestion strip must be fully removed");
   assert.ok(homeState.menuButton.width >= 44 && homeState.menuButton.height >= 44, "hamburger target must be at least 44px");
   assert.ok(homeState.core.width > 0 && homeState.core.height > 0, "sphere must remain visible on Home");
   assert.ok(homeState.composer.bottom <= homeState.innerHeight + 1, "composer must remain inside the viewport");
   assert.ok(homeState.scrollWidth <= homeState.innerWidth, "home must not scroll horizontally");
+  await audit(page,"home-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-home-390x844.png", fullPage: true });
   // Today timeline is real: add a meeting, mark a task complete, verify empty-state.
   await page.click("#todayAdd");
   assert.ok(await page.locator("#todayForm").isVisible(), "Add control must reveal accessible item form");
-  await page.selectOption("#todayCategory", "meeting");
+  const dragHandle=await page.locator('.creation-header').boundingBox();
+  await page.mouse.move(dragHandle.x+dragHandle.width/2,dragHandle.y+20);await page.mouse.down();await page.mouse.move(-300,-300,{steps:5});await page.mouse.up();
+  const movedDialog=await page.locator('#todayDialog').boundingBox();
+  assert.ok(movedDialog.x>=8&&movedDialog.y>=8&&movedDialog.x+movedDialog.width<=391&&movedDialog.y+movedDialog.height<=845,'movable create dialog must stay inside viewport edges');
+  await page.click('[data-today-kind="meeting"]');
   await page.fill("#todayTitle", "Afternoon planning review");
   await page.fill("#todayTime", "15:30");
   await page.click("#todaySave");
@@ -217,8 +292,44 @@ try {
   assert.ok(!((await page.locator("#todayTimeline").innerText()).includes("Finish daily review")), "completing a task must remove it from today's pending list");
   await page.evaluate(() => renderToday([]));
   assert.ok((await page.locator("#todayTimeline").innerText()).includes("Nothing planned yet"), "empty Today panel must not invent calendar meetings");
-  await page.evaluate(() => refreshToday());
+  await audit(page,"Today empty");
+  await page.evaluate(()=>todayLoadError(new Error("Fixture failure")));
+  await audit(page,"Today unavailable");
+  await page.locator("#todayTimeline button").click();
+  await page.waitForFunction(()=>document.querySelectorAll("#todayTimeline .today-item").length===2);
 
+  // The same floating form creates a real Memory note from the Memory screen.
+  await page.evaluate(()=>openModule('memory'));
+  await page.waitForSelector('#memoryAdd');
+  await page.click('#memoryAdd');
+  await page.fill('#todayTitle','Popup note fixture');
+  await page.fill('#todayContent','Saved through the canonical Memory endpoint.');
+  await page.click('#todaySave');
+  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture'));
+  assert.ok(await page.locator('#todayDialog').isHidden(),'shared create dialog should close after a successful Memory save');
+  await page.locator('[data-memory-edit="memory-created-1"]').click();
+  await page.waitForSelector('#todayDialog[open]');
+  assert.equal(await page.locator('#todayDialogTitle').textContent(),'Edit Note');
+  assert.equal(await page.locator('#todayTitle').inputValue(),'Popup note fixture');
+  await page.fill('#todayContent','Updated through the shared edit popup.');
+  await page.click('#todaySave');
+  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Updated through the shared edit popup.'));
+
+  await page.evaluate(()=>openModule('devices'));
+  await page.waitForSelector('.trusted-page');
+  assert.match(await page.locator('.trusted-page').innerText(),/Current device/);
+  assert.match(await page.locator('.trusted-page').innerText(),/Total sessions/);
+  await audit(page,'trusted-devices-390x844');
+  await page.screenshot({path:'artifacts/personal-ai-trusted-devices-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('system'));
+  await page.waitForSelector('.system-page');
+  assert.match(await page.locator('.system-page').innerText(),/v0\.6\.0/);
+  assert.match(await page.locator('.system-page').innerText(),/Unavailable/);
+  await audit(page,'system-390x844');
+  await page.screenshot({path:'artifacts/personal-ai-system-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('home'));
 
   // The conversation-first sidebar keeps owner security behind its anchored account footer.
   await page.click("#historyButton");
@@ -247,7 +358,7 @@ try {
     return !drawer.classList.contains("hidden") && rect.left>=-1 && Math.abs(rect.right-innerWidth)<=1;
   });
   assert.equal(await page.locator("#appDrawer").isVisible(),false,"direct history must not open the main hamburger sidebar");
-  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close conversations");
+  assert.equal(await page.locator("#closeDrawer").getAttribute("aria-label"),"Close timeline");
   await page.screenshot({ path: "artifacts/personal-ai-right-conversations-direct-390x844.png", fullPage: true });
   await page.click("#closeDrawer");
   await page.waitForFunction(() => document.querySelector("#conversationDrawer").classList.contains("hidden"));
@@ -260,8 +371,8 @@ try {
   const drawerState = await page.evaluate(() => ({
     labels: [...document.querySelectorAll("#appDrawer .sidebar-nav-row span")].map(node => node.textContent.trim()),
     chatTitles: [...document.querySelectorAll("#sidebarChatList .sidebar-chat-row span")].map(node => node.textContent.trim()),
-    rect: document.querySelector("#appDrawer").getBoundingClientRect(),
-    footer: document.querySelector("#sidebarAccountButton").getBoundingClientRect(),
+    rect: (() => { const r=document.querySelector("#appDrawer").getBoundingClientRect(); return {left:r.left,width:r.width}; })(),
+    footer: (() => { const r=document.querySelector("#sidebarAccountButton").getBoundingClientRect(); return {bottom:r.bottom,height:r.height}; })(),
     expanded: document.querySelector("#historyButton").getAttribute("aria-expanded"),
   }));
   for (const expected of ["Home","Today","Conversations","Memory","Knowledge","Activities","Tools","Workflows"]) {
@@ -273,6 +384,7 @@ try {
   assert.ok(drawerState.footer.bottom <= 845 && drawerState.footer.height >= 44, "account actions must remain visible and touchable");
   assert.ok(await page.locator("#sidebarNewChat").isVisible(), "new chat must be a primary action");
   assert.ok(await page.locator("#sidebarSearchToggle").isVisible(), "chat search must be a primary action");
+  await audit(page,"menu-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
   await page.click("#sidebarSearchToggle");
   assert.equal(await page.locator("#sidebarSearchToggle").getAttribute("aria-expanded"), "true");
@@ -293,7 +405,28 @@ try {
   await page.click("#sidebarSearchToggle");
   assert.equal(await page.locator("#sidebarSearchPanel").isVisible(), false, "search must collapse cleanly");
 
-  await page.click("#appConversations");
+  await page.click('#appConversations');
+  await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===3);
+  assert.equal(await page.locator('#conversationDrawer').isVisible(),false,'History must be independent from Timeline');
+  await page.fill('#historySearch','Onion');
+  await page.waitForFunction(()=>document.querySelectorAll('#historyList .history-row').length===1);
+  assert.match(await page.locator('#historyList').innerText(),/Onion/);
+  await page.click('#historyList summary');
+  await audit(page,'History context actions');
+  await page.screenshot({path:'artifacts/personal-ai-history-context-menu-390x844.png',fullPage:true});
+  await page.keyboard.press('Escape');
+  assert.ok(await page.locator('#historyDrawer').isVisible(),'Escape closes history actions before closing the panel');
+  await page.click('#historyList summary');await page.click('#historyList .history-action-list button:not(.danger)');
+  await page.click('#uiDialogCancel');
+  assert.deepEqual(renamedConversationIds,[],'cancelled history rename must not change canonical data');
+  await page.click('#historyList summary');await page.click('#historyList .history-action-list button.danger');
+  await page.click('#uiDialogCancel');
+  assert.deepEqual(deletedConversationIds,[],'cancelled history delete must leave the conversation intact');
+  await audit(page,"history-390x844");
+  await page.screenshot({path:'artifacts/personal-ai-history-390x844.png',fullPage:true});
+  await page.click('#historyClose');
+  assert.equal(await page.locator('#appDrawer').isVisible(),true,'History close returns to its originating menu');
+  await page.evaluate(()=>openDrawer());
   await page.waitForFunction(() => {
     const panel=document.querySelector("#conversationDrawer");
     return !panel.classList.contains("hidden") && panel.getBoundingClientRect().left>=-1 &&
@@ -320,6 +453,10 @@ try {
   assert.ok((await page.locator("#conversationCount").innerText()).includes("pending"));
   assert.ok((await page.locator('.timeline-entry[data-status="done"]').count())>=2);
   assert.ok(await page.locator("#timelineAddPlan").isVisible(),"right timeline must let owner plan work");
+  assert.ok((await page.locator("#timelineAddPlan").boundingBox()).width<180,"timeline planning action stays compact in the sidebar");
+  assert.equal(await page.locator("#conversationDrawer").getAttribute("aria-label"),"Timeline");
+  assert.equal(await page.locator("#newConversation").count(),0,"Timeline controls stay focused on chronology and planning");
+  await audit(page,"unified-timeline-all-390x844");
   await page.screenshot({path:"artifacts/personal-ai-unified-timeline-all-390x844.png",fullPage:true});
   await page.locator('[data-conversation-filter="meeting"]').click();
   assert.deepEqual(await page.locator(".timeline-title").allTextContents(),["Afternoon planning review","Team planning meeting"]);
@@ -376,7 +513,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing"));
   assert.ok((await page.locator("#messageStream").innerText()).includes("Plan mushroom farm"), "sidebar chat selection must open the actual persisted conversation");
   await page.click("#historyButton");
-  await page.click("#appConversations");
+  await page.evaluate(()=>openDrawer());
 
   await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
@@ -391,14 +528,21 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), true, "idle conversations must show the approved compact ACTIVE status under the Personal AI sphere");
+  assert.ok(await page.evaluate(()=>Array.from({length:360},(_,frame)=>colorShiftPalette(frame)).every(([r,g,b])=>b>g&&g>r)),"idle sphere palette stays in Personal AI blue and cyan hues");
+  const statusVisual = await page.locator(".state").evaluate(node => {
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return { position: style.position, overflow: style.overflow, width: rect.width, height: rect.height };
+  });
+  assert.ok(statusVisual.position === "absolute" && statusVisual.overflow === "hidden" && statusVisual.width <= 1 && statusVisual.height <= 1,
+    "voice status remains announced to assistive technology without adding visible thinking labels");
   assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
   assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
   assert.equal(chatState.messageCount, 2);
   assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
   assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
   assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
-  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant .message-avatar").count(),0,"assistant responses must not repeat an orb avatar; the original header sphere carries Personal AI identity");
   assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
   assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
   const messageVisual=await page.evaluate(()=>({
@@ -406,13 +550,15 @@ try {
     assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
     user:document.querySelector(".message.user").getBoundingClientRect(),
     stream:document.querySelector("#messageStream").getBoundingClientRect(),
-    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
+    footer:document.querySelector(".message-entry.assistant .message-footer").getBoundingClientRect(),
   }));
   assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
   assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
-  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
+  assert.ok(messageVisual.footer.width>0,"message metadata and actions must share one aligned footer row");
+  assert.equal(await page.locator(".message-entry.assistant .message-footer .message-time").count(),1);
+  assert.equal(await page.locator(".message-entry.assistant .message-footer .message-actions").count(),1);
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
   assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
@@ -435,12 +581,13 @@ try {
   await page.click("#chatMenuButton");
   assert.equal(await page.locator("#chatActionMenu").isVisible(),true,"three-dot menu must open");
   assert.deepEqual(await page.locator("#chatActionMenu [role=menuitem]").allTextContents(),
-    ["✎Rename","↗Share transcript","⧉Copy transcript","↓Download JSON","⌫Delete conversation"],"conversation menu must expose only connected actions");
+    ["Rename","Share transcript","Copy transcript","Download JSON","Delete conversation"],"conversation menu must expose only connected actions");
   await page.keyboard.press("Escape");
   assert.equal(await page.locator("#chatActionMenu").isVisible(),false,"Escape must close the conversation menu");
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.accept("Mushroom Session Notes"));
   await page.click("#chatRename");
+  await page.fill("#uiDialogInput","Mushroom Session Notes");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>document.querySelector("#conversationTitle").textContent==="Mushroom Session Notes");
   assert.equal(conversations[0].title,"Mushroom Session Notes","rename must call the real conversation API");
   await page.evaluate(()=>{
@@ -461,21 +608,45 @@ try {
   await exportDownload;
   assert.deepEqual(exportedConversationIds,["c1"],"download must request the authenticated canonical export");
   await page.evaluate(()=>{messageReactions.clear();renderMessages();setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
+  await audit(page,"chat-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-chat-390x844.png", fullPage: true });
   await page.screenshot({ path: "artifacts/personal-ai-chat-date-separated-390x844.png", fullPage: true });
 
-  await page.evaluate(()=>{
-    conversationEvents.push({
+  const longResponseFixture=await page.evaluate(()=>{
+    const event={
       event_id:"visual-long-response",kind:"assistant_message",created_at:new Date().toISOString(),
       payload:{text:"## Detailed plan\n\nThis is a deliberately long Personal AI response used to verify that open assistant content stays readable and wide without being forced into a phone-chat bubble.\n\n- Preserve the original neural sphere\n- Keep the composer visible above the safe area\n- Keep actions close to the response\n\n```text\nLong content remains inside the same response block.\nNo token-sized bubbles are created.\n```\n\n| Check | Result |\n| --- | --- |\n| Wrapping | Correct |\n| Overflow | None |"}
-    });renderMessages();
+    };conversationEvents.push(event);renderMessages();return event;
   });
+  activeConversation.events.push(longResponseFixture);
   await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
+
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
+  await page.locator('.code-copy').last().click();
+  assert.match(await page.evaluate(()=>window.__copiedTranscript),/Long content remains/,'code copy uses only the canonical block text');
+  await page.evaluate(()=>{const stream=$('messageStream');stream.scrollTop=80;stream.dispatchEvent(new Event('scroll'));const before=stream.scrollTop;renderMessages();window.__preservedOffset={before,after:stream.scrollTop}});
+  const preservedOffset=await page.evaluate(()=>window.__preservedOffset);
+  assert.ok(preservedOffset.before>0&&Math.abs(preservedOffset.before-preservedOffset.after)<1,'updating messages must preserve the reader’s scroll position');
+  assert.ok(await page.locator('#scrollLatest').isVisible(),'show latest control when reading older messages');
+  await page.click('#scrollLatest');
+  await page.waitForFunction(()=>{const stream=$('messageStream');return stream.scrollHeight-stream.clientHeight-stream.scrollTop<48});
+  assert.ok(await page.locator('#scrollLatest').isHidden(),'latest control disappears near the bottom');
   await page.evaluate(()=>{setState('idle');document.querySelector('#toast')?.classList.add('hidden')});
   await page.screenshot({ path: "artifacts/personal-ai-chat-long-response-390x844.png", fullPage: true });
 
+  const longThreadPerformance=await page.evaluate(()=>{
+    const original=conversationEvents;let result;
+    try{
+      const canonicalTime=original.find(event=>event.created_at)?.created_at;
+      conversationEvents=Array.from({length:300},(_,index)=>({kind:index%2?'assistant_message':'user_message',created_at:canonicalTime,payload:{text:'Performance fixture message '+index}}));
+      const start=performance.now();renderMessages();result={messages:document.querySelectorAll('.message-entry').length,renderMs:performance.now()-start};
+    }finally{conversationEvents=original;conversationPinnedToBottom=true;renderMessages()}
+    return result;
+  });
+  assert.equal(longThreadPerformance.messages,300,'large histories remain one message per canonical event');
+  assert.ok(longThreadPerformance.renderMs<3000,'large conversation must render within a bounded interval');
+  activeConversation.events=activeConversation.events.filter(event=>event.event_id!=="visual-long-response");
   await page.evaluate(()=>openConversation("c1"));
   await page.waitForFunction(()=>document.querySelectorAll("#messageStream .message").length===2);
   const persistedTimesBeforeRefresh=await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>({dateTime:node.dateTime,text:node.textContent})));
@@ -556,14 +727,15 @@ try {
         const r=document.querySelector("#conversationDrawer").getBoundingClientRect();
         return r.left>=0 && Math.abs(r.right-innerWidth)<=1;
       });
+      await page.locator("#conversationDrawer").evaluate(async node=>{await Promise.all(node.getAnimations().map(animation=>animation.finished.catch(()=>{})))});
       const right320=await page.evaluate(()=>({
         width:innerWidth,
         drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),
-        back:document.querySelector("#closeDrawer").getBoundingClientRect(),
+        back:{width:document.querySelector("#closeDrawer").offsetWidth},
         search:document.querySelector("#conversationSearch").getBoundingClientRect(),
       }));
       assert.ok(right320.drawer.left>=0 && right320.drawer.right<=right320.width+1,"right Conversations must not clip at 320px");
-      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px");
+      assert.ok(right320.back.width>=44 && right320.search.width>180,"right Conversations controls must remain usable at 320px: "+JSON.stringify(right320));
       await page.waitForFunction(()=>document.querySelectorAll(".timeline-entry").length>=10);
       const filters320=await page.locator(".conversation-filters").evaluate(node=>({scroll:node.scrollWidth,width:node.clientWidth,overflow:getComputedStyle(node).overflowX}));
       assert.ok(filters320.scroll>filters320.width&&filters320.overflow==="auto","all timeline categories must remain horizontally scrollable at 320px");
@@ -586,7 +758,7 @@ try {
   await page.waitForFunction(() => document.querySelector("#appDrawer").classList.contains("hidden") && !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
   await page.click("#historyButton");
   await page.click("#appConversations");
-  await page.click("#newConversation");
+  await page.click("#historyNew");
   await page.waitForFunction(() => !document.body.classList.contains("home-landing") && document.querySelectorAll("#messageStream .message").length === 0);
 
   // Collapsed one-line pill expands on focus, and its action icons move to the bottom row.
@@ -706,35 +878,108 @@ try {
   await page.evaluate(()=>openConversation("new"));
   await page.waitForFunction(()=>!document.querySelector("#chatMenuButton").classList.contains("hidden"));
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.dismiss());
   await page.click("#chatDelete");
+  await audit(page,'Delete confirmation');
+  await page.screenshot({path:'artifacts/personal-ai-confirmation-390x844.png',fullPage:true});
+  await page.click("#uiDialogCancel");
   assert.deepEqual(deletedConversationIds,[],"cancel must leave conversation untouched");
   await page.click("#chatMenuButton");
-  page.once("dialog",dialog=>dialog.accept());
   await page.click("#chatDelete");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
+
+  // Product-wide responsive qualification, using API fixtures only in tests.
+  const productViewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[820,1180],[1024,768],[1280,800],[1440,900]];
+  for(const [width,height] of productViewports){
+    await page.setViewportSize({width,height});
+    for(const name of ['memory','knowledge','activities','devices','workflows','tools','dashboard','settings','system']){
+      await page.evaluate(name=>openModule(name),name);
+      assert.equal(await page.locator('#modulePanel').isVisible(),true,name+' must render');
+      assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Unable to load this section/,name+' API fixture must render successfully');
+      const moduleGeometry=await page.evaluate(name=>({headerBottom:document.querySelector('.topbar').getBoundingClientRect().bottom,titleTop:document.querySelector(name==='memory'?'.mx-identity':name==='devices'||name==='system'?'#moduleBody .page-title-row h2':'#moduleTitle').getBoundingClientRect().top}),name);
+      assert.ok(moduleGeometry.titleTop>=moduleGeometry.headerBottom-1,name+' page title overlaps the glass header at '+width+'px: '+JSON.stringify(moduleGeometry));
+      if(width===390&&name==='activities')assert.equal(await page.locator('.sidebar-nav-row.active').count(),1,'only the current page is selected in the main sidebar');
+      const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
+      assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
+      assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
+      if(width===390)await audit(page,name);
+      if(width===320&&name==='knowledge'){const search=await page.locator('#knowledgeSearch').boundingBox(),panel=await page.locator('#moduleBody').boundingBox();assert.ok(search.width>=panel.width-4,'Knowledge search must use available mobile width without clipping')}
+      if(width===390&&name==='workflows'){assert.equal(await page.locator('#moduleBody h2').filter({hasText:/^Workflows$/}).count(),0,'Workflows body must not repeat its page heading')}
+      if([320,390,820,1440].includes(width))await page.screenshot({path:`artifacts/personal-ai-${name}-${width}x${height}.png`,fullPage:true});
+    }
+    await page.evaluate(()=>openModule('home'));
+    assert.ok(await page.locator('#composer').isVisible(),'Home composer must survive module switching');
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>openModule('memory'));
+  const emptyGraph=await page.evaluate(()=>drawMemoryGraph({nodes:[],edges:[]}));assert.match(emptyGraph,/No memory relationships yet/);assert.doesNotMatch(emptyGraph,/<svg/,'empty graph must use readable text instead of tiny SVG labels');
+  await page.locator('[data-view="graph"]').click();await page.waitForSelector('.mx-graph-layout');
+  await audit(page,'Memory graph');
+  await page.screenshot({path:'artifacts/personal-ai-memory-graph-390x844.png',fullPage:true});
+  await page.locator('[data-view="tree"]').click();await page.waitForSelector('.mx-tree[role="tree"]');
+  await audit(page,'Memory tree');
+  await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
+  await page.evaluate(()=>openModule('settings'));
+  await page.evaluate(()=>renderSettingsIndex());assert.equal(await page.locator('.settings-index h2').count(),0,'Settings category list must not duplicate the page heading');
+  for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
+    await page.evaluate(section=>renderSettings(section),section);
+    const settingsHeading=section==='devices'||section==='system'?'#moduleBody .page-title-row h2':'.settings-content h2';
+    assert.ok(await page.locator(settingsHeading).count(),section+' must have its visible settings heading');
+    await audit(page,'Settings '+section);
+  }
+  await page.evaluate(()=>openModule('home'));
+
+  memoryMode='loading';
+  await page.evaluate(()=>{void openModule('memory')});
+  await page.waitForSelector('.mx-loading');
+  await page.screenshot({path:'artifacts/personal-ai-loading-390x844.png',fullPage:true});
+  memoryMode='ready';releaseMemory();
+  await page.waitForSelector('#mxSearch',{state:'attached'});
+  await page.locator('#mxSearch').evaluate(el=>el.closest('.mx-search-wrap').classList.remove('hidden'));
+  await page.locator('#mxSearch').waitFor({state:'visible'});
+  for(const mode of ['permission','failure']){
+    memoryMode=mode;await page.evaluate(()=>openModule('memory'));
+    await page.locator('.mx-tabs [data-tab="all"]').click();
+    await page.waitForFunction(()=>document.querySelector('.mx-tabs [data-tab="all"]')?.getAttribute('aria-selected')==='true');
+    await page.waitForFunction(mode=>{
+      const message=document.querySelector('.mx-error')?.textContent||'';
+      return mode==='permission'?message.includes('permission'):message.includes('Unable to load saved memories');
+    },mode);
+    const memoryError=await page.locator('#moduleBody').innerText();
+    assert.doesNotMatch(memoryError,/Internal trace/);
+    assert.match(memoryError,mode==='permission'?/permission/:/Unable to load saved memories/);
+    await audit(page,'Memory '+mode);
+    await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
+    memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry-ambient]').click();
+    await page.waitForSelector('#mxSearch',{state:'attached'});
+    await page.locator('#mxSearch').evaluate(el=>el.closest('.mx-search-wrap').classList.remove('hidden'));
+    await page.locator('#mxSearch').waitFor({state:'visible'});
+  }
+  await page.evaluate(()=>openModule('home'));
 
   // Signing out clears previously loaded private rows, and the drawer must not
   // leave an unauthorized request stuck in its loading state.
   revokeSession=true;
   await page.click("#historyButton");
   await page.click("#sidebarAccountButton");
-  page.once("dialog",dialog=>dialog.accept());
   await page.click("#drawerSignOut");
+  await page.click("#uiDialogAccept");
   await page.waitForFunction(()=>!document.querySelector("#enrollPanel").classList.contains("hidden"));
   await page.click("#ownerButton");
   await page.waitForFunction(()=>document.querySelector("#conversationCount").textContent==="Sign in required");
   assert.match(await page.locator("#conversationList").innerText(),/Sign in to view your conversations, plans, and activity\./);
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Project Planning|Team planning meeting|Finish daily review/,
     "signed-out timeline must not retain authenticated conversation or activity rows");
+  assert.equal(await page.locator("#recentList .recent-feed-row").count(),0,"sign-out must clear the Recent feed");
+  assert.equal(await page.locator("#historyList .history-row").count(),0,"sign-out must clear the independent history panel");
   assert.doesNotMatch(await page.locator("#conversationList").innerText(),/Loading your timeline|Loading real Personal AI activity/,
     "signed-out timeline must not spin indefinitely");
   await page.screenshot({path:"artifacts/personal-ai-signed-out-timeline-390x844.png",fullPage:true});
 
   // Authentication presentation only: real password, Google and passkey authority
   // are exercised separately by the server integration/security suite.
-  const locked = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const locked = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: engine!=="firefox", hasTouch: true, serviceWorkers:"block" });
   await locked.route("https://accounts.google.com/**", route => route.abort());
   await locked.route("**/iphone/api/**", route => {
     const path = new URL(route.request().url()).pathname;
@@ -751,11 +996,13 @@ try {
   assert.ok(await locked.locator("#passwordChoice").isVisible(), "real owner password option must remain accessible");
   await locked.click("#passwordChoice");
   assert.ok(await locked.locator("#ownerPassword").isVisible(), "owner password form must open");
+  await audit(locked,"login-390x844");
   await locked.screenshot({ path: "artifacts/personal-ai-login-390x844.png", fullPage: true });
   await locked.close();
 
   assert.deepEqual(pageErrors, [], "page must render without uncaught JavaScript errors");
-  console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eight viewports.");
+  await (await import('node:fs/promises')).writeFile('artifacts/pwa-verification.json',JSON.stringify({fixtureData:true,engine,viewports:productViewports,accessibility:auditResults,longThreadPerformance,uncaughtErrors:pageErrors},null,2));
+  console.log("Right unified timeline passed chats, meetings, work, reminders, workflow, done and authorized audit filters, chronological ordering, search, completion, Back, New chat, Plan and eleven viewports.");
 } finally {
   await browser.close();
 }

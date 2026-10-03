@@ -106,6 +106,12 @@ def test_budget_ui_is_injected_only_into_iphone_home_and_keeps_safe_states():
     assert '/iphone/workflow-budget-ui.js' in home_html
     assert '/iphone/workflow-budget-ui.js' not in client.get('/other').text
     javascript = client.get('/iphone/workflow-budget-ui.js').text
+    assert "requestText('Workflow name')" in javascript
+    assert "requestText('What should this workflow do?')" in javascript
+    assert 'requestConfirmation(' in javascript
+    assert 'prompt(' not in javascript
+    assert 'confirm(' not in javascript
+    assert 'JSON.stringify(item.payload??{})' in javascript
     for label in (
         'Workflow limit reached',
         'Maximum runtime reached',
