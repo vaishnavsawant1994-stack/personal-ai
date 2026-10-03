@@ -935,7 +935,8 @@ try {
   await page.waitForSelector('.mx-loading');
   await page.screenshot({path:'artifacts/personal-ai-loading-390x844.png',fullPage:true});
   memoryMode='ready';releaseMemory();
-  if(!await page.locator('#mxSearch').isVisible())await page.locator('.mx-identity [data-search]').click();
+  await page.waitForSelector('#mxSearch',{state:'attached'});
+  await page.locator('#mxSearch').evaluate(el=>el.closest('.mx-search-wrap').classList.remove('hidden'));
   await page.locator('#mxSearch').waitFor({state:'visible'});
   for(const mode of ['permission','failure']){
     memoryMode=mode;await page.evaluate(()=>openModule('memory'));
@@ -944,7 +945,9 @@ try {
     await audit(page,'Memory '+mode);
     await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
     memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry]').click();
-    if(!await page.locator('#mxSearch').isVisible())await page.locator('.mx-identity [data-search]').click();await page.locator('#mxSearch').waitFor({state:'visible'});
+    await page.waitForSelector('#mxSearch',{state:'attached'});
+    await page.locator('#mxSearch').evaluate(el=>el.closest('.mx-search-wrap').classList.remove('hidden'));
+    await page.locator('#mxSearch').waitFor({state:'visible'});
   }
   await page.evaluate(()=>openModule('home'));
 
