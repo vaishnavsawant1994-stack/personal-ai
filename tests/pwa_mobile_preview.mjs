@@ -442,6 +442,7 @@ try {
   await page.click("#sidebarAccountButton");
   await page.locator("#sidebarAccountMenu [data-app-module=\"settings\"]").click();
   await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Settings" && document.querySelector("#moduleBody")?.innerText.toLowerCase().includes("ai & intelligence"));
+  assert.ok(await page.locator("[data-settings-home-back]").isVisible(), "Settings hub must expose its Back control");
   await page.screenshot({ path: "artifacts/personal-ai-settings-390x844.png", fullPage: true });
   await page.reload();
   await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
