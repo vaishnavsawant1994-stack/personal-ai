@@ -306,7 +306,8 @@ try {
   await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture'));
   assert.ok(await page.locator('#todayDialog').isHidden(),'shared create dialog should close after a successful Memory save');
   await page.locator('[data-memory-edit="memory-created-1"]').click();
-  assert.equal(await page.locator('#todayDialog').isVisible(),true,'editing a saved Memory must open the shared editor');
+  await page.waitForSelector('#todayDialog[open]');
+  assert.equal(await page.locator('#todayDialogTitle').textContent(),'Edit Note');
   assert.equal(await page.locator('#todayTitle').inputValue(),'Popup note fixture');
   await page.fill('#todayContent','Updated through the shared edit popup.');
   await page.click('#todaySave');
