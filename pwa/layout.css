@@ -782,6 +782,3 @@
       .date-separator{margin:6px 0 20px;}
     }
     @media(max-width:350px){.message-entry.user{padding-left:12%;}.message-entry.assistant{grid-template-columns:34px minmax(0,1fr);column-gap:9px;}.message-avatar{width:33px;height:33px;}.message-entry .message{font-size:.94rem;}}
-
-/* Keep narrow mobile module headings below the fixed glass header. */
-@media(max-width:350px){.module-panel.open{padding-top:16px}}
