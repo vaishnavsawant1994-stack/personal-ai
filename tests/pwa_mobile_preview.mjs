@@ -941,7 +941,11 @@ try {
   for(const mode of ['permission','failure']){
     memoryMode=mode;await page.evaluate(()=>openModule('memory'));
     await page.locator('.mx-tabs [data-tab="all"]').click();
-    await page.waitForFunction(()=>document.querySelector('.mx-error')?.textContent);
+    await page.waitForFunction(()=>document.querySelector('.mx-tabs [data-tab="all"]')?.getAttribute('aria-selected')==='true');
+    await page.waitForFunction(mode=>{
+      const message=document.querySelector('.mx-error')?.textContent||'';
+      return mode==='permission'?message.includes('permission'):message.includes('Unable to load saved memories');
+    },mode);
     const memoryError=await page.locator('#moduleBody').innerText();
     assert.doesNotMatch(memoryError,/Internal trace/);
     assert.match(memoryError,mode==='permission'?/permission/:/Unable to load saved memories/);
