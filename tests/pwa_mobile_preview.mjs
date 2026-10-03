@@ -951,7 +951,7 @@ try {
     assert.match(memoryError,mode==='permission'?/permission/:/Unable to load saved memories/);
     await audit(page,'Memory '+mode);
     await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
-    memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry]').click();
+    memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry-ambient]').click();
     await page.waitForSelector('#mxSearch',{state:'attached'});
     await page.locator('#mxSearch').evaluate(el=>el.closest('.mx-search-wrap').classList.remove('hidden'));
     await page.locator('#mxSearch').waitFor({state:'visible'});
