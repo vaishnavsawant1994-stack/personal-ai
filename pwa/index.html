@@ -555,7 +555,7 @@
     }
     .drawer-overlay{background:rgba(0,0,0,.52);backdrop-filter:blur(3px)}
     .sidebar-top{padding:max(13px,env(safe-area-inset-top)) 12px 9px;flex:0 0 auto}
-    .sidebar-brand{display:grid;grid-template-columns:32px minmax(0,1fr) 40px;align-items:center;gap:9px;min-height:42px;margin-bottom:15px;padding:0 1px}
+    .sidebar-brand{display:grid;grid-template-columns:48px minmax(0,1fr) 40px;align-items:center;gap:11px;min-height:50px;margin-bottom:15px;padding:0 1px}
     .sidebar-brand strong{font-size:.99rem;font-weight:610;letter-spacing:-.01em}
     .sidebar-symbol{height:30px;width:30px;border-radius:11px;display:grid;place-items:center;background:radial-gradient(circle at 30% 20%,rgba(140,179,248,.43),transparent 70%),#292f3f}
     .sidebar-symbol-inner{display:block;width:15px;height:15px;border:2px solid #9dc4ff;border-radius:50% 42% 52% 43%;box-shadow:inset 0 0 6px rgba(123,169,255,.4);transform:rotate(-30deg)}
@@ -3304,8 +3304,9 @@ function syncDrawerOverlay(){
  $('drawerOverlay').classList.toggle('hidden',!open);
  document.body.classList.toggle('conversation-drawer-open',conversationOpen)
 }
-function openAppDrawer(){lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
-function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
+function attachSidebarSphere(){const stage=document.querySelector('.core-stage'),target=document.querySelector('#appDrawer .sidebar-symbol');if(!stage||!target)return;if(!identityCoreHomeParent){identityCoreHomeParent=stage.parentElement;identityCoreHomeNext=stage.nextSibling}target.replaceWith(stage);stage.classList.add('identity-core-stage');requestAnimationFrame(resizeCanvas)}
+function openAppDrawer(){restoreIdentitySphere();lastFocusedElement=document.activeElement;closeFloatingMenus();closeSidebarAccountMenu();$('appDrawer').classList.remove('hidden');attachSidebarSphere();$('appDrawer').setAttribute('aria-hidden','false');$('historyButton').setAttribute('aria-expanded','true');syncDrawerOverlay();renderSidebarChatList();refreshConversationList('').catch(()=>{const p=$('sidebarChatList');if(!p.children.length)p.textContent='Unable to load your chats.'});setTimeout(()=>$('closeAppDrawer').focus(),20)}
+function closeAppDrawer(){if($('appDrawer').classList.contains('hidden'))return;closeSidebarAccountMenu();$('appDrawer').classList.add('hidden');restoreIdentitySphere();$('appDrawer').setAttribute('aria-hidden','true');$('historyButton').setAttribute('aria-expanded','false');syncSidebarViewport();syncDrawerOverlay();if(lastFocusedElement&&lastFocusedElement.focus)lastFocusedElement.focus()}
 function setConversationDrawerMode(mode){
  const conversations=mode==='conversations';
  $('conversationDrawer').dataset.mode=mode;
