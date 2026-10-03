@@ -280,13 +280,12 @@ try {
   }
   await page.screenshot({ path: "artifacts/personal-ai-sidebar-account-390x844.png", fullPage: true });
   await page.click("#appOwnerControls");
-  await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
-  for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
-    assert.ok((await page.locator("#ownerMenu").innerText()).includes(item), "Owner Controls missing " + item);
-  }
+  await page.waitForFunction(() => document.querySelector("#modulePanel").dataset.surface === "owner");
+  assert.match(await page.locator(".owner-page").innerText(), /Personal AI Owner/);
+  assert.match(await page.locator(".owner-page").innerText(), /Account email isn’t exposed/);
+  assert.match(await page.locator(".owner-page").innerText(), /not available in this installation/i);
   await page.screenshot({ path: "artifacts/personal-ai-owner-controls-390x844.png", fullPage: true });
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
+  await page.evaluate(()=>openModule('home'));
 
   // Direct header history opens the secondary panel from the right, without the main sidebar.
   await page.click("#ownerButton");
@@ -321,6 +320,8 @@ try {
   assert.ok(drawerState.rect.width <= 390 && drawerState.rect.left >= -1, "sidebar must fit mobile viewport");
   assert.ok(drawerState.footer.bottom <= 845 && drawerState.footer.height >= 44, "account actions must remain visible and touchable");
   assert.ok(await page.locator("#sidebarNewChat").isVisible(), "new chat must be a primary action");
+  assert.equal(await page.locator(".sidebar-primary-actions #sidebarNewChat").count(),0,"the large top New chat action is removed");
+  assert.equal(await page.locator(".sidebar-footer-row #sidebarNewChat").innerText(),"New chat","the compact footer action keeps its visible label");
   assert.ok(await page.locator("#sidebarSearchToggle").isVisible(), "chat search must be a primary action");
   await audit(page,"menu-390x844");
   await page.screenshot({ path: "artifacts/personal-ai-menu-390x844.png", fullPage: true });
@@ -498,11 +499,16 @@ try {
   assert.equal(await page.locator(".message-entry.assistant .message-footer .message-time").count(),1);
   assert.equal(await page.locator(".message-entry.assistant .message-footer .message-actions").count(),1);
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
-  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
+  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),6,"assistant messages expose copy, feedback, speech, share and collapse controls");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
   await page.locator('.message-entry.assistant [aria-label="Good response"]').click();
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
   await page.locator('.message-entry.assistant [aria-label="Bad response"]').click();
+  await page.locator('.message-entry.assistant [aria-label="Minimize response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant .message-collapsed').count(),1,"minimize collapses the existing response");
+  await page.locator('.message-entry.assistant [aria-label="Maximize response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant .message-collapsed').count(),0,"maximize restores the same response");
+
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Bad response"]').getAttribute("aria-pressed"),"true");
 
@@ -895,7 +901,7 @@ try {
   await audit(page,'Memory tree');
   await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
   await page.evaluate(()=>openModule('settings'));
-  await page.evaluate(()=>renderSettingsIndex());assert.equal(await page.locator('.settings-index h2').count(),0,'Settings category list must not duplicate the page heading');
+  await page.evaluate(()=>renderSettingsIndex());assert.equal(await page.locator('.settings-hub-group').count(),4,'Settings exposes all four approved groups');assert.equal(await page.locator('.settings-index').count(),0,'old category dropdown/navigation presentation is removed');assert.ok(await page.locator('[data-open-owner]').isVisible(),'Manage account opens the canonical Owner page');
   for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
     await page.evaluate(section=>renderSettings(section),section);
     assert.ok(await page.locator('.settings-content h2').count(),section+' must have a settings heading');
