@@ -112,6 +112,8 @@ try {
       body = item || {};
     } else if (path === '/memory/graph') {
       body={nodes:[{id:'memory-qa',subject:'Project context',type:'note'}],edges:[]};
+    } else if (path === '/memory/tree/children') {
+      body={nodes:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',type:'note',child_count:0}],total:1,types:[{type:'note',total:1}]};
     } else if (path === '/memory/tree') {
       body={roots:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',children:[]}]};
     } else if (path === '/memory') {
