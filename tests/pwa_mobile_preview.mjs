@@ -434,9 +434,9 @@ try {
   }
   await page.screenshot({ path: "artifacts/personal-ai-owner-controls-390x844.png", fullPage: true });
 
-  // Return from the full-screen Owner page before using the Home header Timeline control.
-  await page.click("[data-owner-back]");
-  await page.waitForFunction(() => !document.body.classList.contains("focused-module"));
+  // Reload the app shell before checking its Home-only Timeline control.
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
 
   // Approved Timeline is a premium RIGHT-side contextual drawer and must not regress Home or Conversations.
   await page.click("#ownerButton");
