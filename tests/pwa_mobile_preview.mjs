@@ -420,6 +420,7 @@ try {
   await page.click("#historyButton");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   assert.ok(await page.locator("#sidebarAccountButton").isVisible(), "account controls must be anchored to bottom");
+  await page.waitForTimeout(300);
   await page.screenshot({ path: "artifacts/personal-ai-sidebar-approved-390x844.png", fullPage: true });
   await page.click("#sidebarAccountButton");
   assert.equal(await page.locator("#sidebarAccountButton").getAttribute("aria-expanded"), "true", "account popover must advertise expanded state");
