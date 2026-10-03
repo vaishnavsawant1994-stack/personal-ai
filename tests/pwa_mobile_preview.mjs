@@ -20,7 +20,7 @@ const everydayItems = [
   { id:"done-1",kind:"task",context:"personal-ai:today:task",title:"Complete weekly report",due_at:atToday(11),created_at:atToday(8),updated_at:atToday(12,20),completed_at:atToday(12,20),status:"completed" },
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
-const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_completed",status:"completed",created_at:atToday(8,15),details:{workflow_title:"Morning operations"}}];
+const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15),details:{workflow_title:"Morning operations"}}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
@@ -1205,7 +1205,7 @@ try {
   await page.evaluate(()=>openModule('activities'));
   await page.waitForFunction(()=>document.querySelectorAll('.activity-record').length===1);
   assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Activities must show the three canonical counts');
-  assert.match(await page.locator('.activity-record').innerText(),/Workflow Run Completed/i,'canonical audit action should have a readable title');
+  assert.match(await page.locator('.activity-record').innerText(),/Workflow Run Finished/i,'canonical audit action should have a readable title');
   assert.match(await page.locator('.activity-record').innerText(),/Completed/,'canonical completion state must remain explicit');
   assert.match(await page.locator('#ongoingOperations').innerText(),/Synchronize project notes/,'Activities shows active operations from the operations endpoint');
   assert.match((await page.locator('.activity-stat-grid article').nth(2).innerText()).replace(/\s+/g,' '),/^1 In progress$/,'in-progress count uses active persisted operations');
