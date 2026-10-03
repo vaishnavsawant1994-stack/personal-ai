@@ -155,7 +155,7 @@ try {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
   });
-  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2, { timeout: 10000 }).catch(async error => { const state = await page.evaluate(() => ({ date: document.querySelector("#todayDate")?.textContent, timeline: document.querySelector("#todayTimeline")?.innerHTML, refreshing: typeof refreshToday })); throw new Error(error.message + "\\nToday state: " + JSON.stringify(state) + "\\nAPI requests: " + appRequests.join(", ") + "\\nPage errors: " + pageErrors.join("\\n")); });
+  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2, { timeout: 10000 }).catch(async error => { const state = await page.evaluate(() => ({ date: document.querySelector("#todayDate")?.textContent, timeline: document.querySelector("#todayTimeline")?.innerHTML, alert: document.querySelector("#voiceAlert")?.textContent, refreshing: typeof refreshToday })); throw new Error(error.message + "\\nToday state: " + JSON.stringify(state) + "\\nAPI requests: " + appRequests.join(", ") + "\\nPage errors: " + pageErrors.join("\\n")); });
   await page.waitForTimeout(500);
 
   // The explicit demo mode shows realistic sample records without calling mutation APIs.
