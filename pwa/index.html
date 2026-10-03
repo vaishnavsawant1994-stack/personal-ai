@@ -813,9 +813,9 @@
     .message-entry.assistant,.message-entry.system{align-self:flex-start;align-items:flex-start}
     .message-entry .message{align-self:inherit;max-width:min(100%,720px)}
     .message-actions{display:flex;align-items:center;gap:2px;flex-wrap:wrap;padding:1px 3px;opacity:.82}
-    .message-actions button{display:grid;place-items:center;width:36px;height:36px;min-width:36px;border:0;border-radius:10px;background:transparent;color:#aabbd2;cursor:pointer;font-size:1.03rem}
-    .message-actions button:hover,.message-actions button:focus-visible{background:rgba(158,187,231,.13);color:#fff}
-    .message-actions button[aria-pressed="true"]{background:rgba(83,155,255,.19);color:#b5d5ff}
+    .message-actions button{display:grid;place-items:center;width:40px;height:40px;min-width:40px;border:0;border-radius:10px;background:transparent;color:#aabbd2;cursor:pointer;font-size:1.03rem}
+    .message-actions button:hover,.message-actions button:focus-visible{background:transparent;color:#fff}.message-actions button:focus-visible{outline:2px solid rgba(65,155,255,.75);outline-offset:-3px}
+    .message-actions button[aria-pressed="true"]{background:transparent;color:#58a9ff}
     .message-actions button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .message-actions button:disabled{opacity:.35;cursor:not-allowed}
     .message-entry.user .message-actions{justify-content:flex-end}
@@ -2501,7 +2501,11 @@ function renderMessages(){
    function setReaction(value){const next=messageReactions.get(key)===value?'':value;messageReactions.set(key,next);up.setAttribute('aria-pressed',String(next==='up'));down.setAttribute('aria-pressed',String(next==='down'));showToast(next?'Feedback noted on this device.':'Feedback cleared.')}
    messageAction(bar,'speak','Read response aloud',()=>{if(!synth)return showToast('Speech playback unavailable');synth.cancel();const utterance=new SpeechSynthesisUtterance(item.text);utterance.lang=navigator.language||'en-US';synth.speak(utterance)});
    messageAction(bar,'share','Share response',async()=>{try{if(navigator.share)await navigator.share({title:'Personal AI response',text:item.text});else{await navigator.clipboard.writeText(item.text);showToast('Copied for sharing')}}catch(error){if(error.name!=='AbortError')showToast('Sharing unavailable')}});
-   messageAction(bar,collapsedMessages.has(collapseKey)?'maximize':'minimize',collapsedMessages.has(collapseKey)?'Maximize response':'Minimize response',event=>{event?.stopPropagation?.();if(collapsedMessages.has(collapseKey))collapsedMessages.delete(collapseKey);else collapsedMessages.add(collapseKey);renderMessages()});
+   const isCollapsed=collapsedMessages.has(collapseKey);
+   const minimizeButton=messageAction(bar,'minimize','Minimize response',event=>{event?.stopPropagation?.();if(isCollapsed)return;collapsedMessages.add(collapseKey);renderMessages()});
+   minimizeButton.disabled=isCollapsed;
+   const maximizeButton=messageAction(bar,'maximize','Maximize response',event=>{event?.stopPropagation?.();if(!isCollapsed)return;collapsedMessages.delete(collapseKey);renderMessages()});
+   maximizeButton.disabled=!isCollapsed;
   }
   const footer=document.createElement('div');footer.className='message-footer';if(item.role==='assistant')footer.append(bar,meta);else footer.append(meta,bar);
   content.append(node,footer);entry.append(content);stream.append(entry);
