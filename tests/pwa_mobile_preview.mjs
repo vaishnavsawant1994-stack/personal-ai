@@ -120,6 +120,10 @@ try {
         return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(item)});
       }
       body={memories:memoryEntries};
+    } else if (path.startsWith('/memory/') && method==='GET') {
+      const item=memoryEntries.find(memory=>memory.id===decodeURIComponent(path.split('/')[2]));
+      if(!item)return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({detail:'Memory not found'})});
+      body=item;
     } else if (path.startsWith('/memory/') && method==='PATCH') {
       const item=memoryEntries.find(memory=>memory.id===decodeURIComponent(path.split('/')[2]));
       if(item)Object.assign(item,JSON.parse(request.postData()||'{}'));
