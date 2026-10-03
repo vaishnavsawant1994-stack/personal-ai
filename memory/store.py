@@ -363,6 +363,10 @@ class MemoryStore:
                 focus_visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
                 focal = con.execute(f"SELECT * FROM memories WHERE id=? AND {self.STORABLE_SQL}{focus_visibility}", (str(focal_id),)).fetchone()
                 if focal:
+                    # Keep the requested focal node inside the caller's hard limit.
+                    # The recent-node query may already have filled the projection.
+                    if focal['id'] not in by_id and len(by_id) >= bounded:
+                        by_id.pop(next(reversed(by_id)))
                     by_id[focal['id']] = dict(focal)
                     neighbors = con.execute(
                         f'''SELECT m.* FROM relations r JOIN memories m
