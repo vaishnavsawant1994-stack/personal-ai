@@ -785,7 +785,7 @@ try {
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
-  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),6,"assistant actions include copy, feedback, speech, share and the current collapse action");
+  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),7,"assistant actions show copy, like, dislike, read, share, minimize and maximize");
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"false");
   await page.locator('.message-entry.assistant [aria-label="Like response"]').click();
   assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
