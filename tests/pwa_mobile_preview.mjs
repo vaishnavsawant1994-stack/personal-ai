@@ -896,7 +896,7 @@ try {
       assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Unable to load this section/,name+' API fixture must render successfully');
       const moduleGeometry=await page.evaluate(name=>({headerBottom:document.querySelector('.topbar').getBoundingClientRect().bottom,titleTop:document.querySelector(name==='memory'?'.mx-identity':name==='devices'||name==='system'?'#moduleBody .page-title-row h2':'#moduleTitle').getBoundingClientRect().top}),name);
       assert.ok(moduleGeometry.titleTop>=moduleGeometry.headerBottom-1,name+' page title overlaps the glass header at '+width+'px: '+JSON.stringify(moduleGeometry));
-      if(width===390&&name==='activities')assert.equal(await page.locator('.drawer-row.active').count(),1,'only the current page is selected in the main sidebar');
+      if(width===390&&name==='activities')assert.equal(await page.locator('.sidebar-nav-row.active').count(),1,'only the current page is selected in the main sidebar');
       const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
       assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
       assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
