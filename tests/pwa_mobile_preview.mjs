@@ -305,7 +305,7 @@ try {
   await page.fill('#todayTitle','Popup note fixture');
   await page.fill('#todayContent','Saved through the canonical Memory endpoint.');
   await page.click('#todaySave');
-  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture'));
+  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture')).catch(async error=>{console.error('Memory create state',JSON.stringify(await page.evaluate(()=>({body:document.querySelector('#moduleBody')?.innerText,dialogOpen:document.querySelector('#todayDialog')?.open,category:document.querySelector('#todayCategory')?.value,title:document.querySelector('#todayTitle')?.value,error:document.querySelector('#todayFormError')?.innerText,saveDisabled:document.querySelector('#todaySave')?.disabled}))));throw error});
   assert.ok(await page.locator('#todayDialog').isHidden(),'shared create dialog should close after a successful Memory save');
   await page.locator('[data-memory-edit="memory-created-1"]').click();
   await page.waitForSelector('#todayDialog[open]');
@@ -620,6 +620,7 @@ try {
   });
   activeConversation.events.push(longResponseFixture);
   await page.waitForFunction(()=>document.querySelectorAll(".message-entry.assistant").length===2);
+  console.log('Long response code block diagnostics',JSON.stringify(await page.locator(".message-entry.assistant").last().evaluate(node=>({html:node.innerHTML,preCount:node.querySelectorAll('pre').length,codeCount:node.querySelectorAll('pre code').length,box:node.querySelector('pre code')?.getBoundingClientRect().toJSON(),display:node.querySelector('pre code')?getComputedStyle(node.querySelector('pre code')).display:null,visibility:node.querySelector('pre code')?getComputedStyle(node.querySelector('pre code')).visibility:null}))));
   assert.ok(await page.locator(".message-entry.assistant").last().locator("pre code").isVisible(),"long response code block must remain readable");
   assert.ok(await page.locator(".message-entry.assistant").last().locator("table").isVisible(),"long response Markdown table must render");
   await page.locator('.code-copy').last().click();
