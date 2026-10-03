@@ -923,7 +923,8 @@ try {
   await page.evaluate(()=>renderSettingsIndex());assert.equal(await page.locator('.settings-index h2').count(),0,'Settings category list must not duplicate the page heading');
   for(const section of ['personal','voice','models','memory','apps','approvals','devices','notifications','data','security','system','advanced']){
     await page.evaluate(section=>renderSettings(section),section);
-    assert.ok(await page.locator('.settings-content h2').count(),section+' must have a settings heading');
+    const settingsHeading=section==='devices'||section==='system'?'#moduleBody .page-title-row h2':'.settings-content h2';
+    assert.ok(await page.locator(settingsHeading).count(),section+' must have its visible settings heading');
     await audit(page,'Settings '+section);
   }
   await page.evaluate(()=>openModule('home'));
