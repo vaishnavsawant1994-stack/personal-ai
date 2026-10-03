@@ -764,14 +764,14 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), true, "idle conversations must show the approved compact ACTIVE status under the Personal AI sphere");
-  assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
+  assert.equal(await page.locator(".state").isVisible(), false, "the approved Chat header has no ACTIVE status label");
+  
   assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
   assert.equal(chatState.messageCount, 2);
   assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
   assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
   assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
-  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant .message-avatar").count(),0,"assistant messages stay open without avatar circles");
   assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
   assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
   const messageVisual=await page.evaluate(()=>({
@@ -779,21 +779,19 @@ try {
     assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
     user:document.querySelector(".message.user").getBoundingClientRect(),
     stream:document.querySelector("#messageStream").getBoundingClientRect(),
-    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
   }));
   assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
   assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
-  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
-  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
-  await page.locator('.message-entry.assistant [aria-label="Good response"]').click();
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
-  await page.locator('.message-entry.assistant [aria-label="Bad response"]').click();
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Bad response"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),6,"assistant actions include copy, feedback, speech, share and the current collapse action");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"false");
+  await page.locator('.message-entry.assistant [aria-label="Like response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
+  await page.locator('.message-entry.assistant [aria-label="Dislike response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Dislike response"]').getAttribute("aria-pressed"),"true");
 
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
