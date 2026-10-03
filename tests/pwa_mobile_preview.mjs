@@ -147,7 +147,7 @@ try {
   await page.route("https://accounts.google.com/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/iphone/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !document.querySelector("#voicePanel").classList.contains("hidden"), { timeout: 10000 }).catch(error => { throw new Error(error.message + "\\nInitial app errors: " + pageErrors.join("\\n")); });
-  await page.waitForFunction(() => document.body.classList.contains("home-landing"), { timeout: 10000 }).catch(error => { throw new Error(error.message + "\\nBody classes: " + document.body?.className + "\\nVoice alert: " + document.querySelector("#voiceAlert")?.textContent + "\\nInitial app errors: " + pageErrors.join("\\n")); });
+  await page.waitForFunction(() => document.body.classList.contains("home-landing"), { timeout: 10000 }).catch(async error => { const state = await page.evaluate(() => ({ body: document.body.className, alert: document.querySelector("#voiceAlert")?.textContent })); throw new Error(error.message + "\\nBody classes: " + state.body + "\\nVoice alert: " + state.alert + "\\nInitial app errors: " + pageErrors.join("\\n")); });
   await page.waitForFunction(() => {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
