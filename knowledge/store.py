@@ -401,9 +401,9 @@ class KnowledgeStore:
         current_clause = '' if include_history else ' AND d.is_current=1'
         with self._con() as con:
             if query.strip():
-                rows = con.execute(f'''SELECT DISTINCT d.* FROM knowledge_documents d LEFT JOIN knowledge_chunks c ON c.document_id=d.id WHERE (d.title LIKE ? OR d.filename LIKE ? OR d.source LIKE ? OR c.content LIKE ?) {current_clause} ORDER BY d.updated_at DESC LIMIT ?''', (term, term, term, term, max(1, min(int(limit), 500)))).fetchall()
+                rows = con.execute(f'''SELECT DISTINCT d.*, (SELECT COUNT(*) FROM knowledge_chunks kc WHERE kc.document_id=d.id) AS indexed_chunk_count FROM knowledge_documents d LEFT JOIN knowledge_chunks c ON c.document_id=d.id WHERE (d.title LIKE ? OR d.filename LIKE ? OR d.source LIKE ? OR c.content LIKE ?) {current_clause} ORDER BY d.updated_at DESC LIMIT ?''', (term, term, term, term, max(1, min(int(limit), 500)))).fetchall()
             else:
-                rows = con.execute(f'''SELECT d.* FROM knowledge_documents d WHERE 1=1 {current_clause} ORDER BY d.updated_at DESC LIMIT ?''', (max(1, min(int(limit), 500)),)).fetchall()
+                rows = con.execute(f'''SELECT d.*, (SELECT COUNT(*) FROM knowledge_chunks kc WHERE kc.document_id=d.id) AS indexed_chunk_count FROM knowledge_documents d WHERE 1=1 {current_clause} ORDER BY d.updated_at DESC LIMIT ?''', (max(1, min(int(limit), 500)),)).fetchall()
         documents = [self._document(row) for row in rows]
         if access_classes is not None:
             documents = [item for item in documents if item['access_class'] in access_classes]

@@ -20,7 +20,7 @@ const everydayItems = [
   { id:"done-1",kind:"task",context:"personal-ai:today:task",title:"Complete weekly report",due_at:atToday(11),created_at:atToday(8),updated_at:atToday(12,20),completed_at:atToday(12,20),status:"completed" },
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
-const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_completed",status:"completed",created_at:atToday(8,15),details:{workflow_title:"Morning operations"}}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
@@ -68,6 +68,14 @@ try {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/timeline" && method === "GET") {
       body = { items: everydayItems };
+    } else if (path === "/memory" && method === "GET") {
+      const query=(url.searchParams.get("q")||"").toLowerCase();
+      const memories=[{id:"memory-qa",subject:"Project context",type:"note",content:"Browser qualification fixture with source evidence",source:"owner",tags_json:'["QA"]',created_at:atToday(8),confidence:1}];
+      body={memories:memories.filter(item=>!query||`${item.subject} ${item.content}`.toLowerCase().includes(query))};
+    } else if (path === "/knowledge" && method === "GET") {
+      body={documents:[{id:"knowledge-qa",title:"Project notes",filename:"notes.md",media_type:"text/markdown",source:"owner-upload:iphone",access_class:"private",size_bytes:1024,indexed_chunk_count:2,updated_at:atToday(8)}]};
+    } else if (path === "/operations" && method === "GET") {
+      body={operations:[{id:"op-1",status:"executing",plan:{title:"Synchronize project notes"},created_at:atToday(8)}]};
     } else if (path === "/activities" && method === "GET") {
       if(!allowActivity)return route.fulfill({status:403,contentType:"application/json",body:JSON.stringify({detail:"Not authorized"})});
       body={activities:auditedEvents};
@@ -1191,6 +1199,46 @@ try {
   await page.click("#chatDelete");
   await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
+
+  // Memory, Knowledge and Activities render live-shaped API data in focused owner pages.
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>openModule('activities'));
+  await page.waitForFunction(()=>document.querySelectorAll('.activity-record').length===1);
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Activities must show the three canonical counts');
+  assert.match(await page.locator('.activity-record').innerText(),/Workflow Run Completed/i,'canonical audit action should have a readable title');
+  assert.match(await page.locator('.activity-record').innerText(),/Completed/,'canonical completion state must remain explicit');
+  assert.match(await page.locator('#ongoingOperations').innerText(),/Synchronize project notes/,'Activities shows active operations from the operations endpoint');
+  assert.match((await page.locator('.activity-stat-grid article').nth(2).innerText()).replace(/\s+/g,' '),/^1 In progress$/,'in-progress count uses active persisted operations');
+  await page.fill('#activitiesSearch','Morning operations');
+  assert.equal(await page.locator('.activity-record').count(),1,'Activities search uses safe structured metadata');
+  await page.fill('#activitiesSearch','no matching title');
+  assert.match(await page.locator('.activity-history').innerText(),/No matching activities/,'Activities search has a useful empty state');
+  await page.fill('#activitiesSearch','');
+  await page.locator('[data-filter-group="activitiesFilters"][data-filter="workflows"]').click();
+  assert.equal(await page.locator('.activity-record').count(),1,'Workflow filter uses canonical audit fields');
+  await page.locator('#activityRefresh').click();
+  await page.waitForFunction(()=>document.querySelector('.activity-record'));
+  await page.screenshot({path:'artifacts/personal-ai-activities-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('knowledge'));
+  await page.waitForFunction(()=>document.querySelector('.knowledge-record'));
+  assert.match(await page.locator('.knowledge-record').innerText(),/Owner upload/,'Knowledge row preserves safe source provenance');
+  assert.match(await page.locator('.knowledge-record').innerText(),/Indexed · 2 sections/,'Knowledge index status uses persisted chunk count');
+  await page.fill('#knowledgeSearch','notes');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'knowledgeSearch','Knowledge search retains focus after refreshed results');
+  await page.screenshot({path:'artifacts/personal-ai-knowledge-390x844.png',fullPage:true});
+
+  await page.locator('[data-section-back]').click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),false,'section Back returns to Home');
+  await page.evaluate(()=>openModule('memory'));
+  await page.waitForFunction(()=>document.querySelector('.memory-record'));
+  await page.fill('#memorySearch','project');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'memorySearch','Memory search retains focus after refreshed results');
+  await page.screenshot({path:'artifacts/personal-ai-memory-390x844.png',fullPage:true});
+  await page.locator('[data-section-close]').click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),false,'section Close returns to Home');
 
   // Signing out clears previously loaded private rows, and the drawer must not
   // leave an unauthorized request stuck in its loading state.
