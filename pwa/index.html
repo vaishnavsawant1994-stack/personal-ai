@@ -2051,6 +2051,7 @@ body.focused-module .section-filter {font-size:13px}
     body.focused-module .module-panel.open[data-surface='settings'],body.focused-module .module-panel.open[data-surface='owner']{inset:0!important;inset-block-start:0!important;inset-block-end:0!important;inset-inline-start:0!important;transform:none!important;width:100vw!important;height:100dvh!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
     .core-stage.identity-core-stage{width:48px!important;height:48px!important;min-width:48px!important;max-width:48px!important;flex:0 0 48px!important}
     .core-stage.identity-core-stage .core-glow{filter:blur(12px);opacity:.38}
+    body:not(.home-landing):not(.focused-module) .state{display:none!important}
     .settings-hub,.owner-page{width:min(100%,860px);gap:12px;padding:calc(8px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom))}
     .settings-hub-header{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;min-height:46px}
     .settings-identity{display:grid;justify-items:center;gap:4px;margin:0 auto 1px;color:#899bb8;font-size:12px}
@@ -2495,8 +2496,8 @@ function renderMessages(){
   if(item.role==='assistant'){
    const key=String(currentConversationId||'unsaved')+':'+index+':'+item.text;
    const state=messageReactions.get(key)||'';
-   const up=messageAction(bar,'up','Good response',()=>setReaction('up'),state==='up');
-   const down=messageAction(bar,'down','Bad response',()=>setReaction('down'),state==='down');
+   const up=messageAction(bar,'up','Like response',()=>setReaction('up'),state==='up');
+   const down=messageAction(bar,'down','Dislike response',()=>setReaction('down'),state==='down');
    function setReaction(value){const next=messageReactions.get(key)===value?'':value;messageReactions.set(key,next);up.setAttribute('aria-pressed',String(next==='up'));down.setAttribute('aria-pressed',String(next==='down'));showToast(next?'Feedback noted on this device.':'Feedback cleared.')}
    messageAction(bar,'speak','Read response aloud',()=>{if(!synth)return showToast('Speech playback unavailable');synth.cancel();const utterance=new SpeechSynthesisUtterance(item.text);utterance.lang=navigator.language||'en-US';synth.speak(utterance)});
    messageAction(bar,'share','Share response',async()=>{try{if(navigator.share)await navigator.share({title:'Personal AI response',text:item.text});else{await navigator.clipboard.writeText(item.text);showToast('Copied for sharing')}}catch(error){if(error.name!=='AbortError')showToast('Sharing unavailable')}});
