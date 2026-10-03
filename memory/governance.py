@@ -42,6 +42,11 @@ class GovernedMemory:
                     created_at REAL NOT NULL,
                     updated_at REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS ambient_preferences(
+                    owner_id TEXT PRIMARY KEY,
+                    preferences_json TEXT NOT NULL,
+                    updated_at REAL NOT NULL
+                );
                 CREATE INDEX IF NOT EXISTS idx_memory_candidates_status
                     ON memory_candidates(status,created_at);
                 '''
@@ -53,6 +58,10 @@ class GovernedMemory:
             con.execute('CREATE INDEX IF NOT EXISTS idx_memory_candidates_owner_status ON memory_candidates(owner_id,status,created_at)')
             con.execute('CREATE INDEX IF NOT EXISTS idx_memory_candidates_request ON memory_candidates(owner_id,request_id)')
             con.execute('CREATE INDEX IF NOT EXISTS idx_memory_candidates_fingerprint ON memory_candidates(owner_id,fingerprint,status)')
+            con.execute(
+                "INSERT OR IGNORE INTO ambient_preferences(owner_id,preferences_json,updated_at) VALUES(?,?,?)",
+                (self.CANONICAL_OWNER, json.dumps({'enabled': False, 'sources': {'conversations': True}, 'review_before_save': True, 'retention_days': 365, 'auto_clean': False}), time.time()),
+            )
         try:
             self._brain.store.second_brain = self
         except Exception:
@@ -140,6 +149,13 @@ class GovernedMemory:
     def remember(self, candidate: MemoryCandidate, *, owner_id: str = CANONICAL_OWNER, request_id: str | None = None) -> str | None:
         owner = self._require_owner(owner_id)
         data = self._normalize(candidate)
+        # Model-extracted conversation candidates are Ambient capture. Explicit
+        # owner writes remain available while Ambient is paused.
+        if data['source'] == 'user-message':
+            settings = self.ambient_settings(owner_id=owner)
+            if not settings['enabled'] or not settings['sources'].get('conversations', False):
+                self._emit('memory.ambient.capture_skipped', reason='paused_or_source_disabled')
+                return None
         sensitivity = data['sensitivity']
         if is_never_store(sensitivity=sensitivity, metadata=data.get('metadata')):
             self._emit('memory.candidate.blocked', reason='never_store', source=data['source'])
@@ -177,6 +193,52 @@ class GovernedMemory:
             )
         self._emit('memory.candidate.pending', candidate_id=candidate_id, source=data['source'])
         return candidate_id
+
+    def ambient_settings(self, *, owner_id: str = CANONICAL_OWNER) -> dict:
+        owner = self._require_owner(owner_id)
+        defaults = {'enabled': False, 'sources': {'conversations': True}, 'review_before_save': True, 'retention_days': 365, 'auto_clean': False}
+        with self._con() as con:
+            row = con.execute('SELECT preferences_json FROM ambient_preferences WHERE owner_id=?', (owner,)).fetchone()
+        if not row:
+            return defaults
+        try:
+            saved = json.loads(row['preferences_json'])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return defaults
+        sources = saved.get('sources') if isinstance(saved.get('sources'), dict) else {}
+        return {
+            **defaults, 'enabled': bool(saved.get('enabled', False)),
+            'sources': {'conversations': bool(sources.get('conversations', True))},
+            # Mandatory review cannot be disabled until a separately reviewed
+            # low-risk auto-save policy exists.
+            'review_before_save': True,
+            'retention_days': int(max(30, min(3650, saved.get('retention_days', 365)))),
+            'auto_clean': bool(saved.get('auto_clean', False)),
+        }
+
+    def update_ambient_settings(self, changes: dict, *, owner_id: str = CANONICAL_OWNER) -> dict:
+        owner = self._require_owner(owner_id)
+        current = self.ambient_settings(owner_id=owner)
+        if 'enabled' in changes:
+            current['enabled'] = bool(changes['enabled'])
+        sources = changes.get('sources')
+        if isinstance(sources, dict) and 'conversations' in sources:
+            current['sources']['conversations'] = bool(sources['conversations'])
+            if not current['sources']['conversations']:
+                current['enabled'] = False
+        if 'retention_days' in changes:
+            current['retention_days'] = int(max(30, min(3650, changes['retention_days'])))
+        if 'auto_clean' in changes:
+            current['auto_clean'] = bool(changes['auto_clean'])
+        current['review_before_save'] = True
+        with self._con() as con:
+            con.execute(
+                'INSERT INTO ambient_preferences(owner_id,preferences_json,updated_at) VALUES(?,?,?) '
+                'ON CONFLICT(owner_id) DO UPDATE SET preferences_json=excluded.preferences_json,updated_at=excluded.updated_at',
+                (owner, json.dumps(current, sort_keys=True), time.time()),
+            )
+        self._emit('memory.ambient.settings_updated', enabled=current['enabled'], conversations=current['sources']['conversations'])
+        return current
 
     def candidates(self, *, status: str = 'pending', limit: int = 100, owner_id: str = CANONICAL_OWNER) -> list[dict]:
         owner = self._require_owner(owner_id)

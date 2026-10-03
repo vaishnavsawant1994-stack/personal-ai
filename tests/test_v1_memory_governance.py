@@ -100,4 +100,5 @@ def test_owner_can_edit_pending_candidate_and_counts_follow_lifecycle(tmp_path):
     assert memory.candidate_counts(owner_id='owner')['rejected'] == 1
     with pytest.raises(PermissionError, match='canonical owner'):
         memory.update_candidate(candidate_id, {'subject': 'Unauthorized'}, owner_id='other')
-    assert len(memory.candidates()) == 1
+    assert memory.candidates() == []
+    assert len(memory.candidates(status='rejected')) == 1

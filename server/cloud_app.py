@@ -53,12 +53,31 @@ print(json.dumps({'event':'storage.ready',**storage_status}),flush=True)
 @asynccontextmanager
 async def lifespan(app):
     runtime['automations'].start();evaluation_task=None
+    async def ambient_retention_worker():
+        while True:
+            try:
+                settings_reader = getattr(runtime['second_brain'], 'ambient_settings', None)
+                cleaner = getattr(runtime['second_brain'], 'run_ambient_auto_clean', None)
+                if callable(settings_reader) and callable(cleaner):
+                    policy = settings_reader(owner_id='owner')
+                    if policy.get('auto_clean'):
+                        result = await asyncio.to_thread(cleaner, older_than_days=policy.get('retention_days', 365), limit=200)
+                        if result.get('deleted'):
+                            runtime['memory'].audit('ambient-memory', 'memory.ambient.auto_cleaned', {'deleted': result['deleted'], 'older_than_days': result['older_than_days']})
+            except Exception as exc:
+                # Never log memory content or credentials from maintenance errors.
+                print(json.dumps({'event': 'memory.ambient.auto_clean_error', 'error_type': type(exc).__name__}), flush=True)
+            await asyncio.sleep(86400)
+    ambient_task=asyncio.create_task(ambient_retention_worker())
     if settings.model_evaluation_on_startup:
         async def evaluate_model():
             result=await asyncio.to_thread(runtime['model_evaluation'].run);safe={key:value for key,value in result.items() if key!='cases'};safe['case_results']=[{'case':item['case'],'passed':item['passed'],'error_code':item['error_code']} for item in result['cases']];print(json.dumps({'event':'model.dialogue_evaluation',**safe}),flush=True)
         evaluation_task=asyncio.create_task(evaluate_model())
     try:yield
     finally:
+        ambient_task.cancel()
+        try: await ambient_task
+        except asyncio.CancelledError: pass
         if evaluation_task and not evaluation_task.done():evaluation_task.cancel()
         runtime['voice'].stop();runtime['automations'].stop();runtime['telemetry'].persist();runtime['apns'].close()
 

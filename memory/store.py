@@ -468,6 +468,26 @@ class MemoryStore:
                 self.delete_memory(memory_id)
         return {'dry_run': bool(dry_run), 'older_than_days': days, 'matched': len(ids), 'memory_ids': ids}
 
+    def ambient_cleanup_candidates(self, *, older_than_days: int, limit: int = 200):
+        """Return only stale, unused, low-importance conversation-derived memories."""
+        days = max(30, min(int(older_than_days), 3650))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        with self.con() as con:
+            rows = con.execute(
+                f'''SELECT m.id FROM memories m
+                    WHERE {self.STORABLE_SQL.replace('sensitivity', 'm.sensitivity')}
+                      AND lower(COALESCE(m.source,'')) LIKE '%user-message%'
+                      AND lower(COALESCE(m.sensitivity,'normal'))='normal'
+                      AND COALESCE(m.importance,0.5)<0.4
+                      AND COALESCE(m.use_count,0)=0
+                      AND m.updated_at<?
+                      AND m.parent_id IS NULL
+                      AND NOT EXISTS(SELECT 1 FROM memories c WHERE c.parent_id=m.id)
+                      AND NOT EXISTS(SELECT 1 FROM relations r WHERE r.source_id=m.id OR r.target_id=m.id)
+                    ORDER BY m.updated_at LIMIT ?''', (cutoff, max(1, min(int(limit), 1000))),
+            ).fetchall()
+        return [row['id'] for row in rows]
+
     def export(self, *, include_sensitive: bool = True):
         with self.con() as con:
             clauses = [self.STORABLE_SQL]
