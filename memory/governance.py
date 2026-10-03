@@ -194,6 +194,47 @@ class GovernedMemory:
             output.append({**item, 'candidate': candidate})
         return output
 
+    def candidate_counts(self, *, owner_id: str = CANONICAL_OWNER, include_sensitive: bool = True) -> dict[str, int]:
+        owner = self._require_owner(owner_id)
+        with self._con() as con:
+            query = 'SELECT status,COUNT(*) AS total FROM memory_candidates WHERE owner_id=?'
+            params = [owner]
+            if not include_sensitive:
+                query += " AND lower(COALESCE(json_extract(candidate_json,'$.sensitivity'),'normal')) NOT IN ('sensitive','secret')"
+            rows = con.execute(query + ' GROUP BY status', params).fetchall()
+        return {str(row['status']): int(row['total']) for row in rows}
+
+    def update_candidate(self, candidate_id: str, changes: dict, *, owner_id: str = CANONICAL_OWNER) -> bool:
+        owner = self._require_owner(owner_id)
+        allowed = {'type', 'subject', 'content', 'tags', 'importance'}
+        clean = {key: value for key, value in changes.items() if key in allowed and value is not None}
+        if not clean:
+            return False
+        with self._con() as con:
+            con.execute('BEGIN IMMEDIATE')
+            row = con.execute(
+                "SELECT candidate_json FROM memory_candidates WHERE id=? AND owner_id=? AND status='pending'",
+                (str(candidate_id), owner),
+            ).fetchone()
+            if not row:
+                return False
+            data = json.loads(row['candidate_json'])
+            data.update(clean)
+            if not str(data.get('subject') or '').strip() or not str(data.get('content') or '').strip():
+                raise ValueError('Candidate title and memory text are required')
+            data['subject'] = str(data['subject']).strip()[:240]
+            data['content'] = str(data['content']).strip()[:20000]
+            data['type'] = str(data.get('type') or 'note').strip()[:60]
+            data['tags'] = [str(tag).strip()[:80] for tag in (data.get('tags') or [])[:50] if str(tag).strip()]
+            data['importance'] = max(0.0, min(1.0, float(data.get('importance', 0.5))))
+            fingerprint = self._fingerprint(data)
+            con.execute(
+                "UPDATE memory_candidates SET candidate_json=?,fingerprint=?,updated_at=? WHERE id=? AND owner_id=? AND status='pending'",
+                (json.dumps(data, sort_keys=True, default=str), fingerprint, time.time(), str(candidate_id), owner),
+            )
+        self._emit('memory.candidate.edited', candidate_id=str(candidate_id))
+        return True
+
     def candidate(self, candidate_id: str, *, owner_id: str = CANONICAL_OWNER) -> dict | None:
         owner = self._require_owner(owner_id)
         with self._con() as con:

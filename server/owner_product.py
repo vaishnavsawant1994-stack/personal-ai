@@ -253,6 +253,11 @@ def owner_product_router(runtime):
             return rows
         return [row for row in rows if str(row.get('sensitivity', 'normal')) not in {'sensitive', 'secret'}]
 
+    def memory_ui_row(row):
+        allowed = ('id', 'type', 'subject', 'content', 'source', 'sensitivity', 'importance', 'confidence',
+                   'verified', 'occurred_at', 'valid_from', 'valid_to', 'parent_id', 'created_at', 'updated_at', 'use_count')
+        return {key: row.get(key) for key in allowed if key in row}
+
     def filter_tree(rows, device_id: str):
         output = []
         for row in rows:
@@ -275,17 +280,87 @@ def owner_product_router(runtime):
         return {'memories': filter_memories(rows, device_id)}
 
     @router.get('/memory/graph')
-    def memory_graph(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+    def memory_graph(limit: int = 36, focus_id: str | None = None, entity_type: str | None = None, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
         device_id = authenticate(pa_device, pa_token, 'memory:read')
-        graph = second_brain.graph()
-        nodes = filter_memories(graph.get('nodes', []), device_id)
+        if focus_id:
+            focus = memory.get(focus_id)
+            if not focus or not filter_memories([focus], device_id):
+                raise HTTPException(404, 'Memory not found')
+        project = getattr(memory, 'graph_projection', None)
+        if not callable(project):
+            raise HTTPException(503, 'Bounded Memory Graph projection is unavailable')
+        graph = project(limit=max(1, min(limit, 60)), focal_id=focus_id, memory_type=entity_type)
+        nodes = [memory_ui_row(row) for row in filter_memories(graph.get('nodes', []), device_id)]
         ids = {row['id'] for row in nodes}
-        return {'nodes': nodes, 'edges': [edge for edge in graph.get('edges', []) if edge['source_id'] in ids and edge['target_id'] in ids]}
+        return {**graph, 'nodes': nodes, 'edges': [edge for edge in graph.get('edges', []) if edge['source_id'] in ids and edge['target_id'] in ids]}
 
     @router.get('/memory/tree')
     def memory_tree(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
         device_id = authenticate(pa_device, pa_token, 'memory:read')
         return {'roots': filter_tree(memory.tree(), device_id)}
+
+    @router.get('/memory/tree/children')
+    def memory_tree_children(parent_id: str | None = None, limit: int = 100, offset: int = 0, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        query = getattr(memory, 'tree_children', None)
+        if not callable(query):
+            raise HTTPException(503, 'Lazy Memory Tree loading is unavailable')
+        if parent_id:
+            parent = memory.get(parent_id)
+            if not parent or not filter_memories([parent], device_id):
+                raise HTTPException(404, 'Memory not found')
+        result = query(parent_id=parent_id, limit=max(1, min(limit, 200)), offset=max(0, offset), include_sensitive=can_read_sensitive_memory(device_id))
+        visible = {row['id']: row for row in filter_memories(result.get('nodes', []), device_id)}
+        result['nodes'] = [{**memory_ui_row(row), 'child_count': int(result_row.get('child_count', 0))} for result_row in result.get('nodes', []) if (row := visible.get(result_row['id']))]
+        return result
+
+    @router.get('/memory/tree/path/{memory_id}')
+    def memory_tree_path(memory_id: str, pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        row = memory.get(memory_id)
+        if not row or (str(row.get('sensitivity', 'normal')) in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id)):
+            raise HTTPException(404, 'Memory not found')
+        path, seen = [], set()
+        cursor = row
+        while cursor:
+            if cursor['id'] in seen or len(path) >= 64:
+                raise HTTPException(409, 'Memory hierarchy path is invalid')
+            if str(cursor.get('sensitivity', 'normal')) in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id):
+                raise HTTPException(404, 'Memory not found')
+            seen.add(cursor['id'])
+            path.append({key: cursor.get(key) for key in ('id', 'parent_id', 'type', 'subject', 'updated_at', 'created_at')})
+            cursor = memory.get(cursor['parent_id']) if cursor.get('parent_id') else None
+        return {'path': list(reversed(path))}
+
+    @router.get('/memory/ambient/summary')
+    def memory_ambient_summary(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        device_id = authenticate(pa_device, pa_token, 'memory:read')
+        sensitive = can_read_sensitive_memory(device_id)
+        visibility = '' if sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+        try:
+            with memory.con() as con:
+                ambient_captured = int(con.execute(
+                    f"SELECT COUNT(*) FROM memories WHERE {memory.STORABLE_SQL} AND lower(COALESCE(source,'')) LIKE 'ambient%' {visibility}"
+                ).fetchone()[0])
+                active_context = int(con.execute(
+                    f"SELECT COUNT(*) FROM memories WHERE {memory.STORABLE_SQL} AND COALESCE(use_count,0)>0 AND valid_to IS NULL {visibility}"
+                ).fetchone()[0])
+            count_candidates = getattr(second_brain, 'candidate_counts', None)
+            candidate_counts = count_candidates(owner_id='owner', include_sensitive=sensitive) if callable(count_candidates) else {}
+            pending_count = int(candidate_counts.get('pending', 0))
+            ignored_count = int(candidate_counts.get('rejected', 0))
+        except (AttributeError, TypeError, ValueError):
+            raise HTTPException(503, 'Ambient Memory summary is unavailable')
+        return {
+            'capture_available': False,
+            'capture_state': 'unavailable',
+            'capture_message': 'Background capture sources are not configured on this deployment. Existing memories remain available.',
+            'metrics': {'captured': ambient_captured, 'needs_review': pending_count, 'active_context': active_context, 'ignored': ignored_count},
+            'source_controls_available': False,
+            'privacy_controls_available': False,
+            'review_required': True,
+            'sensitive_memory_access': sensitive,
+        }
 
     @router.get('/memory/export')
     def memory_export(
@@ -368,8 +443,11 @@ def owner_product_router(runtime):
         if body.sensitivity in {'sensitive', 'secret'} and not can_read_sensitive_memory(device_id):
             raise HTTPException(403, 'This device cannot mark memory sensitive')
         changes = body.model_dump(exclude_none=True)
-        if not memory.update_memory(memory_id, **changes):
-            raise HTTPException(404, 'Memory not found or no supported changes supplied')
+        try:
+            if not memory.update_memory(memory_id, **body.model_dump(exclude_unset=True)):
+                raise HTTPException(404, 'Memory not found or no supported changes supplied')
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
         audit('memory.corrected', device_id=device_id, memory_id=memory_id, fields=sorted(changes))
         return second_brain.memory_detail(memory_id)
 

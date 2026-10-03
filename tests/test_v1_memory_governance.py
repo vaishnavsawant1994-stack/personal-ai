@@ -88,4 +88,16 @@ def test_non_owner_cannot_confirm_or_reject_candidate(tmp_path):
         memory.approve_candidate(candidate_id, owner_id='other')
     with pytest.raises(PermissionError, match='canonical owner'):
         memory.reject_candidate(candidate_id, owner_id='other')
+
+
+def test_owner_can_edit_pending_candidate_and_counts_follow_lifecycle(tmp_path):
+    memory = GovernedMemory(Brain(), tmp_path / 'candidates.sqlite3')
+    candidate_id = memory.remember(candidate())
+    assert memory.candidate_counts(owner_id='owner')['pending'] == 1
+    assert memory.update_candidate(candidate_id, {'subject': 'Espresso preference'}, owner_id='owner')
+    assert memory.candidate(candidate_id, owner_id='owner')['candidate']['subject'] == 'Espresso preference'
+    memory.reject_candidate(candidate_id, owner_id='owner')
+    assert memory.candidate_counts(owner_id='owner')['rejected'] == 1
+    with pytest.raises(PermissionError, match='canonical owner'):
+        memory.update_candidate(candidate_id, {'subject': 'Unauthorized'}, owner_id='other')
     assert len(memory.candidates()) == 1
