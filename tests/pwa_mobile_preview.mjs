@@ -911,10 +911,10 @@ try {
   await page.setViewportSize({width:390,height:844});
   await page.evaluate(()=>openModule('memory'));
   const emptyGraph=await page.evaluate(()=>drawMemoryGraph({nodes:[],edges:[]}));assert.match(emptyGraph,/No memory relationships yet/);assert.doesNotMatch(emptyGraph,/<svg/,'empty graph must use readable text instead of tiny SVG labels');
-  await page.click('#memoryGraph');await page.waitForSelector('.graph-view');
+  await page.locator('[data-view="graph"]').click();await page.waitForSelector('.mx-graph-layout');
   await audit(page,'Memory graph');
   await page.screenshot({path:'artifacts/personal-ai-memory-graph-390x844.png',fullPage:true});
-  await page.click('#memoryTree');await page.waitForSelector('.tree-branch');
+  await page.locator('[data-view="tree"]').click();await page.waitForSelector('.mx-tree[role="tree"]');
   await audit(page,'Memory tree');
   await page.screenshot({path:'artifacts/personal-ai-memory-tree-390x844.png',fullPage:true});
   await page.evaluate(()=>openModule('settings'));
