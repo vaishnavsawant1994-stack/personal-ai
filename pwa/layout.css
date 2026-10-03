@@ -219,7 +219,7 @@
 
     /* Compact animated original neural core + approved dark mobile Home mockup. */
     body{background:radial-gradient(ellipse at 50% 12%,var(--border-subtle),transparent 35%),var(--bg-secondary);}
-    .app-shell{padding:max(8px,env(safe-area-inset-top)) clamp(12px,3vw,32px) max(12px,env(safe-area-inset-bottom));}
+    .app-shell{padding:max(8px,calc(env(safe-area-inset-top) - 8px)) clamp(12px,3vw,32px) max(12px,env(safe-area-inset-bottom));}
     .topbar{grid-template-columns:48px minmax(0,1fr) 48px;min-height:68px;border:0;padding:0;gap:0;}
     .history-button{width:46px;height:46px;justify-self:start;color:var(--text-primary);}
     .history-button svg{width:25px;height:25px;}

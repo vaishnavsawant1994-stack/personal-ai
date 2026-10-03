@@ -3,7 +3,10 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import os
+import re
 import time
+import tomllib
 from pathlib import Path
 from typing import Literal
 
@@ -820,6 +823,19 @@ def owner_product_router(runtime):
             'emergency_stop': bool(getattr(runtime['tools'], 'emergency_stop', False)),
             'model_evaluation': runtime['model_evaluation'].latest(),
         }
+
+    @router.get('/system/app-info')
+    def system_app_info(pa_device: str | None = Cookie(default=None), pa_token: str | None = Cookie(default=None)):
+        authenticate(pa_device, pa_token, 'activities:read')
+        version = None
+        try:
+            project = tomllib.loads((Path(__file__).resolve().parent.parent / 'pyproject.toml').read_text())
+            version = project.get('project', {}).get('version')
+        except (OSError, ValueError, TypeError):
+            version = None
+        raw_build = next((os.environ.get(name, '') for name in ('PA_BUILD_ID', 'RAILWAY_GIT_COMMIT_SHA', 'RENDER_GIT_COMMIT', 'GITHUB_SHA') if os.environ.get(name)), '')
+        build = raw_build[:80] if raw_build and re.fullmatch(r'[A-Za-z0-9._-]{1,80}', raw_build) else None
+        return {'version': version, 'build': build, 'runtime': 'web-pwa'}
 
     @router.post('/system/model-evaluation')
     def run_model_evaluation(

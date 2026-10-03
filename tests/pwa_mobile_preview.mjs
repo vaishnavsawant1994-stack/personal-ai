@@ -35,6 +35,7 @@ const everydayItems = [
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
 const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const memoryEntries=[{id:'memory-qa',subject:'Project context',type:'note',content:'Browser qualification fixture with source evidence',source:'owner',confidence:1}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
@@ -76,9 +77,10 @@ try {
     const url = new URL(request.url());
     const path = url.pathname.replace("/iphone/api", "");
     const method = request.method();
+    if(path==='/fixture-object-error')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({detail:{type:'service_error',internal:18}})});
     if(path.startsWith('/conversations/')&&method==='PATCH')renamedConversationIds.push(decodeURIComponent(path.split('/')[2]));
     if(path.startsWith('/conversations/')&&method==='DELETE')deletedConversationIds.push(decodeURIComponent(path.split('/')[2]));
-    if(path==='/memory'){
+    if(path==='/memory'&&method==='GET'){
       if(memoryMode==='loading')await new Promise(resolve=>{releaseMemory=resolve});
       if(memoryMode==='permission')return route.fulfill({status:403,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
       if(memoryMode==='failure')return route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({detail:'Internal trace should never be shown'})});
@@ -113,13 +115,25 @@ try {
     } else if (path === '/memory/tree') {
       body={roots:[{id:'memory-qa',subject:'Project context',content:'Browser qualification fixture',children:[]}]};
     } else if (path === '/memory') {
-      body={memories:[{id:'memory-qa',subject:'Project context',type:'note',content:'Browser qualification fixture with source evidence',source:'owner',confidence:1}]};
+      if(method==='POST'){
+        const input=JSON.parse(request.postData()||'{}'),item={id:'memory-created-'+memoryEntries.length,subject:input.subject,type:input.type||'note',content:input.content,source:input.source||'owner',confidence:1};memoryEntries.unshift(item);
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(item)});
+      }
+      body={memories:memoryEntries};
+    } else if (path.startsWith('/memory/') && method==='PATCH') {
+      const item=memoryEntries.find(memory=>memory.id===decodeURIComponent(path.split('/')[2]));
+      if(item)Object.assign(item,JSON.parse(request.postData()||'{}'));
+      body=item||{};
     } else if (path === '/knowledge' && method==='GET') {
       body={documents:[{id:'knowledge-qa',title:'Project notes',filename:'notes.md',source:'owner-upload',access_class:'private',size_bytes:1024}]};
     } else if (path === '/system/status') {
       body={model:{state:'available',primary_provider:'private',providers:[{id:'self_hosted',configured:true,private:true,model:'Owner model',health:{state:'available'}}]},tools:[]};
+    } else if (path === '/system/app-info') {
+      body={version:'0.6.0',build:'qualification-fixture',runtime:'web-pwa'};
     } else if (path === '/devices') {
-      body={devices:[{id:'qa-browser',name:'Qualification browser',platform:'browser',permissions:['ai:chat']}],current_device_id:'qa-browser'};
+      body={devices:[{id:'qa-browser',name:'Qualification browser',platform:'browser',created_at:new Date().toISOString(),last_seen_at:new Date().toISOString(),permissions:['ai:chat'],metadata:{}},{id:'qa-phone',name:'Test phone',platform:'ios-pwa',created_at:new Date(Date.now()-86400000).toISOString(),last_seen_at:new Date(Date.now()-3600000).toISOString(),permissions:['ai:chat'],metadata:{}}],current_device_id:'qa-browser'};
+    } else if (path === '/devices-presence') {
+      body={devices:[{device_id:'qa-browser',display_name:'Qualification browser',platform:'browser',trust_state:'trusted',presence_state:'online',connected:true,metadata:{}},{device_id:'qa-phone',display_name:'Test phone',platform:'ios-pwa',trust_state:'trusted',presence_state:'unknown',connected:false,metadata:{}}]};
     } else if (path === '/apps-tools/tools') {
       body={tools:[{tool_id:'qa-tool',name:'Approved tool',description:'Browser qualification fixture',availability:'available',approval_policy:'owner'}]};
     } else if (path === '/apps-tools/apps') {
@@ -188,6 +202,8 @@ try {
   });
   await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   await page.waitForTimeout(500);
+  const objectError=await page.evaluate(async()=>{try{await api('/fixture-object-error')}catch(error){return error.message}});
+  assert.doesNotMatch(objectError,/\[object Object\]/,'structured API errors must never render as [object Object]');
 
   const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
@@ -214,6 +230,10 @@ try {
     actionTitles: [...document.querySelectorAll(".quick-action strong")].map(node => node.textContent),
     cardRects: [...document.querySelectorAll(".quick-action")].map(node => { const r=node.getBoundingClientRect(); return {width:r.width,height:r.height} }),
     homeWidth: document.querySelector(".home-intro").getBoundingClientRect().width,
+    greeting: document.querySelector(".home-greeting").getBoundingClientRect().toJSON(),
+    recent: document.querySelector(".recent-feed").getBoundingClientRect().toJSON(),
+    today: document.querySelector(".today-panel").getBoundingClientRect().toJSON(),
+    topbar: document.querySelector(".topbar").getBoundingClientRect().toJSON(),
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     innerHeight,
@@ -235,6 +255,8 @@ try {
   assert.equal(homeState.headerSphere, true, "original sphere must occupy compact top header");
   assert.equal(homeState.headerGreenDot, false, "top status dot must be removed");
   assert.equal(homeState.todayTitle, "Today");
+  assert.ok(homeState.greeting.top>=homeState.topbar.bottom-1,"Home greeting must remain below the header");
+  assert.ok(homeState.today.top>=homeState.recent.bottom-1,"Today must start after Recent without overlapping its rows");
   assert.deepEqual(homeState.timeline, ["Finish daily review","Team planning meeting"], "Today timeline must show REAL canonical items, not conversations or fake meetings");
   assert.ok(homeState.cardRects.every(card => card.height <= 70), "four Home cards must be genuinely slim");
   assert.equal(await page.locator("#recentList .recent-feed-row").count(), 3, "Recent must show canonical saved conversations alongside Today tasks");
@@ -248,7 +270,11 @@ try {
   // Today timeline is real: add a meeting, mark a task complete, verify empty-state.
   await page.click("#todayAdd");
   assert.ok(await page.locator("#todayForm").isVisible(), "Add control must reveal accessible item form");
-  await page.selectOption("#todayCategory", "meeting");
+  const dragHandle=await page.locator('.creation-header').boundingBox();
+  await page.mouse.move(dragHandle.x+dragHandle.width/2,dragHandle.y+20);await page.mouse.down();await page.mouse.move(-300,-300,{steps:5});await page.mouse.up();
+  const movedDialog=await page.locator('#todayDialog').boundingBox();
+  assert.ok(movedDialog.x>=8&&movedDialog.y>=8&&movedDialog.x+movedDialog.width<=391&&movedDialog.y+movedDialog.height<=845,'movable create dialog must stay inside viewport edges');
+  await page.click('[data-today-kind="meeting"]');
   await page.fill("#todayTitle", "Afternoon planning review");
   await page.fill("#todayTime", "15:30");
   await page.click("#todaySave");
@@ -265,6 +291,38 @@ try {
   await audit(page,"Today unavailable");
   await page.locator("#todayTimeline button").click();
   await page.waitForFunction(()=>document.querySelectorAll("#todayTimeline .today-item").length===2);
+
+  // The same floating form creates a real Memory note from the Memory screen.
+  await page.evaluate(()=>openModule('memory'));
+  await page.waitForSelector('#memoryAdd');
+  await page.click('#memoryAdd');
+  await page.fill('#todayTitle','Popup note fixture');
+  await page.fill('#todayContent','Saved through the canonical Memory endpoint.');
+  await page.click('#todaySave');
+  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture'));
+  assert.ok(await page.locator('#todayDialog').isHidden(),'shared create dialog should close after a successful Memory save');
+  await page.locator('[data-memory-edit="memory-created-1"]').click();
+  assert.equal(await page.locator('#todayDialogTitle').textContent(),'Edit Note');
+  assert.equal(await page.locator('#todayTitle').inputValue(),'Popup note fixture');
+  await page.fill('#todayContent','Updated through the shared edit popup.');
+  await page.click('#todaySave');
+  await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Updated through the shared edit popup.'));
+
+  await page.evaluate(()=>openModule('devices'));
+  await page.waitForSelector('.trusted-page');
+  assert.match(await page.locator('.trusted-page').innerText(),/Current device/);
+  assert.match(await page.locator('.trusted-page').innerText(),/Total sessions/);
+  await audit(page,'trusted-devices-390x844');
+  await page.screenshot({path:'artifacts/personal-ai-trusted-devices-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('system'));
+  await page.waitForSelector('.system-page');
+  assert.match(await page.locator('.system-page').innerText(),/v0\.6\.0/);
+  assert.match(await page.locator('.system-page').innerText(),/Unavailable/);
+  await audit(page,'system-390x844');
+  await page.screenshot({path:'artifacts/personal-ai-system-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('home'));
 
   // The conversation-first sidebar keeps owner security behind its anchored account footer.
   await page.click("#historyButton");
@@ -831,6 +889,9 @@ try {
       await page.evaluate(name=>openModule(name),name);
       assert.equal(await page.locator('#modulePanel').isVisible(),true,name+' must render');
       assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Unable to load this section/,name+' API fixture must render successfully');
+      const moduleGeometry=await page.evaluate(()=>({headerBottom:document.querySelector('.topbar').getBoundingClientRect().bottom,titleTop:document.querySelector('#moduleTitle').getBoundingClientRect().top}));
+      assert.ok(moduleGeometry.titleTop>=moduleGeometry.headerBottom-1,name+' page title overlaps the glass header at '+width+'px');
+      if(width===390&&name==='activities')assert.equal(await page.locator('.drawer-row.active').count(),1,'only the current page is selected in the main sidebar');
       const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
       assert.ok(dimensions.scroll<=dimensions.w,name+' overflows '+width);
       assert.ok(dimensions.body.width>0&&dimensions.body.height>0,name+' has no usable content region '+width);
