@@ -847,9 +847,10 @@ def test_stage8_rotating_forwarded_addresses_cannot_bypass_global_access_limit(t
 
 def test_public_design_assets_are_css_and_do_not_require_owner_login(tmp_path):
     client, _ = make_client(tmp_path)
-    for name in ('layout.css', 'design-system.css'):
+    for name in ('layout.css', 'design-system.css', 'primitives.css'):
         response = client.get('/iphone/' + name)
         assert response.status_code == 200
         assert response.headers['content-type'].startswith('text/css')
         assert '<!doctype html>' not in response.text
     assert '--bg-root:' in client.get('/iphone/design-system.css').text
+    assert '.pa-page' in client.get('/iphone/primitives.css').text

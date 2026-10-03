@@ -131,6 +131,7 @@ def test_home_keyboard_text_alternatives_reduced_motion_and_responsive_breakpoin
     styles = (ROOT / 'pwa' / 'layout.css').read_text(encoding='utf-8')
     assert '/iphone/layout.css' in page
     assert '/iphone/design-system.css' in page
+    assert '/iphone/primitives.css' in page
     page += styles
     assert '@media(prefers-reduced-motion:reduce)' in styles
     assert '@media(max-width:900px)' in styles

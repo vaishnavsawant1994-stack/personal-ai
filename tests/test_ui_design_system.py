@@ -1,4 +1,5 @@
 """Contract checks preventing parallel clients drifting from their shared theme."""
+import re
 from pathlib import Path
 
 
@@ -6,6 +7,39 @@ def test_companion_generated_tokens_match_canonical_web_contract():
     canonical = Path('pwa/design-system.css').read_text().split('html,body {')[0]
     companion = Path('web-companion/design-system.css').read_text().split('\n', 1)[1]
     assert companion == canonical
+    primitive = Path('pwa/primitives.css').read_text()
+    companion_primitive = Path('web-companion/primitives.css').read_text().split('\n', 1)[1]
+    assert companion_primitive == primitive
+
+
+def test_master_design_constitution_is_implemented_as_web_tokens_and_primitives():
+    from pathlib import Path
+
+    tokens = Path('pwa/design-system.css').read_text()
+    primitives = Path('pwa/primitives.css').read_text()
+    entry = Path('pwa/index.html').read_text()
+    companion_entry = Path('web-companion/index.html').read_text()
+    constitution = Path('docs/design/PERSONAL_AI_DESIGN_SYSTEM.md')
+    for token in (
+        '--pa-bg-0', '--pa-surface-1', '--pa-border-subtle', '--pa-text-primary',
+        '--pa-blue', '--pa-success', '--pa-text-body', '--pa-space-4',
+        '--pa-radius-md', '--pa-motion-normal', '--pa-touch-min', '--pa-z-modal',
+    ):
+        assert token in tokens
+    for component in (
+        '.pa-page', '.pa-section', '.pa-card', '.pa-group', '.pa-row',
+        '.pa-button--primary', '.pa-icon-button', '.pa-search', '.pa-tabs',
+        '.pa-status', '.pa-metric', '.pa-empty', '.pa-error', '.pa-skeleton',
+        '.pa-switch', '.pa-check', '.pa-textarea', '.pa-segmented',
+        '.pa-identity-header', '.pa-toast', '.pa-bottom-sheet', '.pa-popup-surface',
+    ):
+        assert component in primitives
+    assert 'prefers-reduced-motion:reduce' in primitives
+    assert 'env(safe-area-inset-bottom)' in primitives
+    assert not re.search(r'#[0-9a-fA-F]{3,8}|rgba?\(', re.sub(r'/\*.*?\*/', '', primitives, flags=re.S))
+    assert '/iphone/primitives.css' in entry
+    assert '/primitives.css' in companion_entry
+    assert constitution.is_file()
 
 
 def test_desktop_theme_preserves_readability_and_high_contrast():

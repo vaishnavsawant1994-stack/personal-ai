@@ -302,6 +302,10 @@ def iphone_pwa_router(runtime, settings, *, include_legacy_runtime_routes: bool 
     def design_styles():
         return Response((web_dir / 'design-system.css').read_text(encoding='utf-8'), media_type='text/css', headers={'Cache-Control': 'no-cache'})
 
+    @router.get('/primitives.css', include_in_schema=False)
+    def primitive_styles():
+        return Response((web_dir / 'primitives.css').read_text(encoding='utf-8'), media_type='text/css', headers={'Cache-Control': 'no-cache'})
+
     @router.get('/manifest.webmanifest', include_in_schema=False)
     def manifest():
         return Response((web_dir / 'manifest.webmanifest').read_text(encoding='utf-8'), media_type='application/manifest+json')

@@ -1,5 +1,7 @@
 # Personal AI interface system
 
+The permanent global contract is now [`design/PERSONAL_AI_DESIGN_SYSTEM.md`](design/PERSONAL_AI_DESIGN_SYSTEM.md). This document remains the implementation note for existing clients and visual regression gates; the master constitution governs new and existing UI decisions.
+
 The shared web styling contract is `pwa/design-system.css`. It owns semantic colors,
 spacing, radii, elevation, motion, layering, readable widths, interaction states,
 and the optional light-theme token architecture. `pwa/layout.css` contains feature
