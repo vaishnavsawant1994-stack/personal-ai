@@ -935,14 +935,16 @@ try {
   await page.waitForSelector('.mx-loading');
   await page.screenshot({path:'artifacts/personal-ai-loading-390x844.png',fullPage:true});
   memoryMode='ready';releaseMemory();
-  await page.waitForSelector('#memorySearch');
+  await page.locator('.mx-nav [data-search]').click();
+  await page.locator('#mxSearch').waitFor({state:'visible'});
   for(const mode of ['permission','failure']){
     memoryMode=mode;await page.evaluate(()=>openModule('memory'));
     assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Internal trace/);
     assert.match(await page.locator('#moduleBody').innerText(),mode==='permission'?/permission/:/Unable to load/);
     await audit(page,'Memory '+mode);
     await page.screenshot({path:`artifacts/personal-ai-${mode}-390x844.png`,fullPage:true});
-    memoryMode='ready';await page.click('#moduleBody .ui-button');await page.waitForSelector('#memorySearch');
+    memoryMode='ready';await page.locator('#moduleBody .mx-error [data-retry]').click();
+    await page.locator('.mx-nav [data-search]').click();await page.locator('#mxSearch').waitFor({state:'visible'});
   }
   await page.evaluate(()=>openModule('home'));
 
