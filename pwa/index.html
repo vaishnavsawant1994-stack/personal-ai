@@ -1193,6 +1193,12 @@ function openCreationDialog(kind='task',record=null){
  requestAnimationFrame(()=>{todayClampDialog(true);$('todayTitle').focus({preventScroll:true})})
 }
 window.openCreationDialog=openCreationDialog;
+document.addEventListener('click',event=>{
+ const trigger=event.target instanceof Element?event.target.closest('#memoryAdd'):null;
+ if(!trigger||$('todayDialog').open)return;
+ window.creationParentId=null;
+ openCreationDialog('note');
+},true);
 function syncCreationFields(){const type=$('todayCategory').value,note=type==='note';$('todayContentWrap').classList.toggle('hidden',!note);$('todayScheduleFields').classList.toggle('hidden',note);$('todayScheduledDate').required=!note;$('todayTime').required=type==='meeting';$('todayTitle').maxLength=note?240:160;$('todayTitle').placeholder=note?'Name this note…':type==='meeting'?'What is the meeting?':'What needs to be done?';$('todayDialogDescription').textContent=note?'Save a note to Personal AI Memory.':'Create a task, meeting, plan item or reminder.';$('todayClose').setAttribute('aria-label',`Close ${note?'note':'creation'} dialog`)}
  $('todayDialog').addEventListener('close',()=>{creationTrigger?.setAttribute('aria-expanded','false');creationTrigger=null;creationEditRecord=null});
 $('todayDialog').addEventListener('cancel',event=>{event.preventDefault();closeTodayForm()});
