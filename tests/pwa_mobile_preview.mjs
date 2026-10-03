@@ -84,6 +84,10 @@ try {
       body={activities:auditedEvents};
     } else if (path === "/workflows" && method === "GET") {
       body={runs:workflowRuns,workflows:[]};
+    } else if (path === "/apps-tools/tools" && method === "GET") {
+      body={tools:[{tool_id:"search_memory",name:"Search memory",description:"Search approved owner memories",availability:"AVAILABLE",approval_policy:"READ ONLY"}]};
+    } else if (path === "/apps-tools/apps" && method === "GET") {
+      body={apps:[{app_id:"gmail",name:"Gmail",connection_status:"Available",category:"Email"},{app_id:"drive",name:"Google Drive",connection_status:"Connected",category:"Storage"}]};
     } else if (path === "/everyday/items" && method === "POST") {
       const input = JSON.parse(request.postData() || "{}");
       const item = { id: "created-" + everydayItems.length, title: input.title, kind: input.category === "meeting" ? "commitment" : input.category === "reminder" ? "reminder" : "task",
@@ -1234,6 +1238,24 @@ try {
   await page.waitForFunction(()=>document.querySelector('.activity-record'));
   await page.screenshot({path:'artifacts/personal-ai-activities-390x844.png',fullPage:true});
 
+  await page.evaluate(()=>openModule('tools'));
+  await page.waitForFunction(()=>document.querySelector('#appsToolsSearch'));
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Apps & Tools shows total, connected, and available counts');
+  assert.match(await page.locator('#moduleBody').innerText(),/Google Drive[\s\S]*Connected/,'connected services show their real connection state');
+  await page.locator('[data-filter-group="appsToolsFilters"][data-filter="available"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Gmail/,'Available filter displays available integrations');
+  assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Google Drive/,'Available filter excludes connected integrations');
+  await page.locator('[data-filter-group="appsToolsFilters"][data-filter="tools"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Search memory/,'Tools filter displays approved tools');
+  await page.screenshot({path:'artifacts/personal-ai-apps-tools-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('workflows'));
+  await page.waitForFunction(()=>document.querySelector('#workflowSearch'));
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Workflows shows total, running, and waiting approval counts');
+  await page.locator('[data-filter-group="workflowFilters"][data-filter="templates"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Weekly summary workflow/,'Templates filter displays workflow templates');
+  await page.screenshot({path:'artifacts/personal-ai-workflows-390x844.png',fullPage:true});
+
   await page.evaluate(()=>openModule('knowledge'));
   await page.waitForFunction(()=>document.querySelector('.knowledge-record'));
   assert.match(await page.locator('.knowledge-record').innerText(),/Owner upload/,'Knowledge row preserves safe source provenance');
@@ -1298,3 +1320,4 @@ try {
 } finally {
   await browser.close();
 }
+
