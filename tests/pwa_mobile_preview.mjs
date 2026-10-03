@@ -427,7 +427,7 @@ try {
   }
   await page.screenshot({ path: "artifacts/personal-ai-sidebar-account-390x844.png", fullPage: true });
   await page.click("#appOwnerControls");
-  await page.waitForFunction(() => document.querySelector("#modulePanel")?.dataset.surface === "owner" && document.querySelector("#moduleBody")?.innerText.includes("Personal AI Owner"));
+  await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Personal AI Owner" && document.querySelector("#moduleBody")?.innerText.includes("Personal AI Owner"));
   const ownerPageText = await page.locator("#moduleBody").innerText();
   for (const item of ["Account & Plan", "Profile & Preferences", "Security & Access", "Data & Privacy", "Sign out"]) {
     assert.ok(ownerPageText.includes(item), "Owner page missing " + item);
