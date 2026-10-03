@@ -1190,7 +1190,7 @@ function openCreationDialog(kind='task',record=null){
  creationEditRecord=record||null;$('todayCategory').value=startType;$('todayScheduledDate').value=todayKey(new Date());$('todayTitle').value=record?.subject||'';$('todayContent').value=record?.content||'';$('todayTime').value='';$('todayFormError').textContent='';$('todayTypeTabs').classList.toggle('hidden',Boolean(record));
  document.querySelectorAll('[data-today-kind]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.todayKind===startType)));
  syncCreationFields();$('todayDialogTitle').textContent=record?'Edit Note':activeModule==='memory'?'Remember':'Add to Today';$('todayDialogDescription').textContent=record?'Update this note in Personal AI Memory.':activeModule==='memory'?'Save a note to Personal AI Memory.':'Create a task, meeting, plan item or reminder.';$('todaySave').textContent=record?'✓ Save changes':'✓ Save';todayFormBaseline=todayFormValue();dialog.dataset.x='';dialog.dataset.y='';dialog.style.transform='';creationTrigger=activeModule==='memory'?$('memoryAdd'):$('todayAdd');creationTrigger.setAttribute('aria-controls','todayDialog');creationTrigger.setAttribute('aria-expanded','true');dialog.showModal();
- requestAnimationFrame(()=>{todayClampDialog(true);$('todayTitle').focus({preventScroll:true})})
+ $('todayTitle').focus({preventScroll:true});requestAnimationFrame(()=>todayClampDialog(true))
 }
 window.openCreationDialog=openCreationDialog;
 document.addEventListener('click',event=>{
