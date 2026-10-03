@@ -289,7 +289,7 @@ def owner_product_router(runtime):
         project = getattr(memory, 'graph_projection', None)
         if not callable(project):
             raise HTTPException(503, 'Bounded Memory Graph projection is unavailable')
-        graph = project(limit=max(1, min(limit, 60)), focal_id=focus_id, memory_type=entity_type)
+        graph = project(limit=max(1, min(limit, 60)), focal_id=focus_id, memory_type=entity_type, include_sensitive=can_read_sensitive_memory(device_id))
         nodes = [memory_ui_row(row) for row in filter_memories(graph.get('nodes', []), device_id)]
         ids = {row['id'] for row in nodes}
         return {**graph, 'nodes': nodes, 'edges': [edge for edge in graph.get('edges', []) if edge['source_id'] in ids and edge['target_id'] in ids]}

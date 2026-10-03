@@ -343,11 +343,13 @@ class MemoryStore:
             ]
             return {'nodes': nodes, 'edges': edges}
 
-    def graph_projection(self, *, limit=36, focal_id=None, memory_type=None):
+    def graph_projection(self, *, limit=36, focal_id=None, memory_type=None, include_sensitive=True):
         """Return a bounded graph projection for owner-facing exploration."""
         bounded = max(1, min(int(limit), 60))
         with self.con() as con:
             clauses = [self.STORABLE_SQL]
+            visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+            clauses.append('1=1' + visibility)
             params = []
             if memory_type and memory_type != 'all':
                 clauses.append('lower(type)=lower(?)')
@@ -358,15 +360,17 @@ class MemoryStore:
             ).fetchall()]
             by_id = {row['id']: row for row in rows}
             if focal_id:
-                focal = con.execute(f"SELECT * FROM memories WHERE id=? AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) != 'never_store'", (str(focal_id),)).fetchone()
+                focus_visibility = '' if include_sensitive else " AND lower(replace(replace(trim(COALESCE(sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret')"
+                focal = con.execute(f"SELECT * FROM memories WHERE id=? AND {self.STORABLE_SQL}{focus_visibility}", (str(focal_id),)).fetchone()
                 if focal:
                     by_id[focal['id']] = dict(focal)
                     neighbors = con.execute(
                         f'''SELECT m.* FROM relations r JOIN memories m
                              ON m.id=CASE WHEN r.source_id=? THEN r.target_id ELSE r.source_id END
-                             WHERE (r.source_id=? OR r.target_id=?) AND lower(replace(replace(trim(COALESCE(m.sensitivity,'')),'-','_'),' ','_')) != 'never_store'
+                             WHERE (r.source_id=? OR r.target_id=?) AND {self.STORABLE_SQL.replace('sensitivity', 'm.sensitivity')}
+                               AND (? OR lower(replace(replace(trim(COALESCE(m.sensitivity,'')),'-','_'),' ','_')) NOT IN ('sensitive','secret'))
                              ORDER BY r.created_at DESC,m.id LIMIT ?''',
-                        (str(focal_id), str(focal_id), str(focal_id), min(24, bounded - 1)),
+                        (str(focal_id), str(focal_id), str(focal_id), int(include_sensitive), min(24, bounded - 1)),
                     ).fetchall()
                     for row in neighbors:
                         if len(by_id) >= bounded:
@@ -381,7 +385,12 @@ class MemoryStore:
                 ).fetchall()]
             else:
                 edges = []
-        return {'nodes': list(by_id.values()), 'edges': edges, 'limited': True, 'limit': bounded}
+            type_rows = con.execute(
+                f'''SELECT lower(type) AS type,COUNT(*) AS total FROM memories WHERE {self.STORABLE_SQL}{visibility}
+                    GROUP BY lower(type) ORDER BY lower(type)'''
+            ).fetchall()
+            total = int(con.execute(f'SELECT COUNT(*) FROM memories WHERE {self.STORABLE_SQL}{visibility}').fetchone()[0])
+        return {'nodes': list(by_id.values()), 'edges': edges, 'type_counts': [dict(row) for row in type_rows], 'total': total, 'limited': True, 'limit': bounded}
 
     def tree_children(self, *, parent_id=None, limit=100, offset=0, include_sensitive=True, entity_type=None):
         """Fetch a single hierarchy branch, with counts scoped to visible rows."""

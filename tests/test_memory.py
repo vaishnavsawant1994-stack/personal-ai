@@ -16,6 +16,16 @@ def test_graph_projection_is_bounded_and_keeps_real_edges(tmp_path: Path):
     assert projected['edges'] == [edge for edge in store.graph()['edges'] if edge['source_id'] in visible and edge['target_id'] in visible]
 
 
+def test_graph_projection_counts_are_real_and_sensitive_records_are_scoped(tmp_path: Path):
+    store = MemoryStore(tmp_path / 'memory.sqlite3')
+    store.remember(type='note', subject='Visible', content='Safe')
+    store.remember(type='note', subject='Private', content='Sensitive', sensitivity='sensitive')
+    projected = store.graph_projection(limit=10, include_sensitive=False)
+    assert projected['total'] == 1
+    assert projected['type_counts'] == [{'type': 'note', 'total': 1}]
+    assert [row['subject'] for row in projected['nodes']] == ['Visible']
+
+
 def test_tree_branch_is_lazy_and_parent_updates_cannot_create_cycles(tmp_path: Path):
     store = MemoryStore(tmp_path / 'memory.sqlite3')
     root = store.remember(type='project', subject='Root', content='Root')
