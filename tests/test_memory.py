@@ -13,7 +13,12 @@ def test_graph_projection_is_bounded_and_keeps_real_edges(tmp_path: Path):
     projected = store.graph_projection(limit=3, focal_id=ids[0])
     visible = {node['id'] for node in projected['nodes']}
     assert len(visible) <= 3
+    assert ids[0] in visible
     assert projected['edges'] == [edge for edge in store.graph()['edges'] if edge['source_id'] in visible and edge['target_id'] in visible]
+
+    single_node = store.graph_projection(limit=1, focal_id=ids[0])
+    assert [node['id'] for node in single_node['nodes']] == [ids[0]]
+    assert single_node['edges'] == []
 
 
 def test_graph_projection_counts_are_real_and_sensitive_records_are_scoped(tmp_path: Path):
