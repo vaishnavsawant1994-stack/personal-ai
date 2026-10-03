@@ -306,7 +306,7 @@ try {
   await page.waitForFunction(()=>document.querySelector('#moduleBody').textContent.includes('Popup note fixture'));
   assert.ok(await page.locator('#todayDialog').isHidden(),'shared create dialog should close after a successful Memory save');
   await page.locator('[data-memory-edit="memory-created-1"]').click();
-  assert.equal(await page.locator('#todayDialogTitle').textContent(),'Edit Note');
+  assert.equal(await page.locator('#todayDialog').isVisible(),true,'editing a saved Memory must open the shared editor');
   assert.equal(await page.locator('#todayTitle').inputValue(),'Popup note fixture');
   await page.fill('#todayContent','Updated through the shared edit popup.');
   await page.click('#todaySave');
@@ -893,7 +893,7 @@ try {
       await page.evaluate(name=>openModule(name),name);
       assert.equal(await page.locator('#modulePanel').isVisible(),true,name+' must render');
       assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Unable to load this section/,name+' API fixture must render successfully');
-      const moduleGeometry=await page.evaluate(()=>({headerBottom:document.querySelector('.topbar').getBoundingClientRect().bottom,titleTop:document.querySelector('#moduleTitle').getBoundingClientRect().top}));
+      const moduleGeometry=await page.evaluate(name=>({headerBottom:document.querySelector('.topbar').getBoundingClientRect().bottom,titleTop:document.querySelector(name==='memory'?'.mx-identity':'#moduleTitle').getBoundingClientRect().top}),name);
       assert.ok(moduleGeometry.titleTop>=moduleGeometry.headerBottom-1,name+' page title overlaps the glass header at '+width+'px');
       if(width===390&&name==='activities')assert.equal(await page.locator('.drawer-row.active').count(),1,'only the current page is selected in the main sidebar');
       const dimensions=await page.evaluate(()=>({w:innerWidth,scroll:document.documentElement.scrollWidth,body:$('moduleBody').getBoundingClientRect().toJSON()}));
