@@ -1429,6 +1429,12 @@
     @media(min-width:768px){
       body{--shared-chrome-x:28px}
     }
+
+    /* Keep conversation chrome at the approved compact sphere size. */
+    body:not(.home-landing) .topbar .header-core .core-stage,
+    body.has-conversation:not(.home-landing) .topbar .header-core .core-stage{
+      width:46px!important;height:46px!important;min-width:46px!important;max-width:46px!important;flex:0 0 46px!important;
+    }
 </style>
 </head>
 <body>
