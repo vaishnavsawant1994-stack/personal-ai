@@ -1597,6 +1597,11 @@
       .conversation-drawer[data-mode="conversations"],.conversations-skeleton-icon,.conversations-skeleton-copy i,.conversations-skeleton-time{animation:none!important}
       .conversations-row,.conversations-search-wrap{transition:none!important}
     }
+    /* Keep the shared compact sphere size in active conversations too. */
+    body.has-conversation:not(.home-landing) .topbar .header-core .core-stage {
+      width:46px!important;height:46px!important;min-width:46px!important;max-width:46px!important;
+      flex:0 0 46px!important;
+    }
 </style>
 </head>
 <body>
