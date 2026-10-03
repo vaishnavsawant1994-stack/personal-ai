@@ -2107,6 +2107,11 @@ body:not(.home-landing):not(.focused-module) .message-entry.is-collapsed .messag
 @media(max-width:350px) {body:not(.home-landing):not(.focused-module) .message-entry.assistant {padding-inline:14px}body:not(.home-landing):not(.focused-module) .message-actions {gap:0}body:not(.home-landing):not(.focused-module) .message-actions button {flex-basis:38px;width:38px;min-width:38px}}
 @media(prefers-reduced-motion:reduce) {.section-search-skeleton,.apps-loading-row {animation:none}}
 
+
+/* Approved conversation header controls float directly on the page background. */
+.topbar .history-button,.topbar .owner-status,.topbar .chat-menu-button{border:0!important;border-radius:12px!important;background:transparent!important;box-shadow:none!important;}
+.topbar .history-button:hover,.topbar .owner-status:hover,.topbar .chat-menu-button:hover,.topbar .history-button[aria-expanded="true"],.topbar .owner-status[aria-expanded="true"],.topbar .chat-menu-button[aria-expanded="true"]{background:transparent!important;opacity:.82;}
+.topbar .history-button:focus-visible,.topbar .owner-status:focus-visible,.topbar .chat-menu-button:focus-visible{outline:2px solid rgba(55,155,255,.65);outline-offset:2px;}
 </style>
 </head>
 <body>
