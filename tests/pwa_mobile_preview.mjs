@@ -436,7 +436,7 @@ try {
 
   // Return from the full-screen Owner page before using the Home header Timeline control.
   await page.click("[data-owner-back]");
-  await page.waitForFunction(() => !document.querySelector("#modulePanel")?.classList.contains("open"));
+  await page.waitForFunction(() => !document.body.classList.contains("focused-module"));
 
   // Approved Timeline is a premium RIGHT-side contextual drawer and must not regress Home or Conversations.
   await page.click("#ownerButton");
