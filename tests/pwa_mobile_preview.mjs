@@ -20,7 +20,7 @@ const everydayItems = [
   { id:"done-1",kind:"task",context:"personal-ai:today:task",title:"Complete weekly report",due_at:atToday(11),created_at:atToday(8),updated_at:atToday(12,20),completed_at:atToday(12,20),status:"completed" },
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
-const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15),details:{workflow_title:"Morning operations"}}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
@@ -68,6 +68,14 @@ try {
       body = { items: everydayItems.filter(item => !['completed','cancelled','dismissed'].includes(item.status)) };
     } else if (path === "/everyday/timeline" && method === "GET") {
       body = { items: everydayItems };
+    } else if (path === "/memory" && method === "GET") {
+      const query=(url.searchParams.get("q")||"").toLowerCase();
+      const memories=[{id:"memory-qa",subject:"Project context",type:"note",content:"Browser qualification fixture with source evidence",source:"owner",tags_json:'["QA"]',created_at:atToday(8),confidence:1}];
+      body={memories:memories.filter(item=>!query||`${item.subject} ${item.content}`.toLowerCase().includes(query))};
+    } else if (path === "/knowledge" && method === "GET") {
+      body={documents:[{id:"knowledge-qa",title:"Project notes",filename:"notes.md",media_type:"text/markdown",source:"owner-upload:iphone",access_class:"private",size_bytes:1024,indexed_chunk_count:2,updated_at:atToday(8)}]};
+    } else if (path === "/operations" && method === "GET") {
+      body={operations:[{id:"op-1",status:"executing",plan:{title:"Synchronize project notes"},created_at:atToday(8)}]};
     } else if (path === "/activities" && method === "GET") {
       if(!allowActivity)return route.fulfill({status:403,contentType:"application/json",body:JSON.stringify({detail:"Not authorized"})});
       body={activities:auditedEvents};
@@ -146,6 +154,64 @@ try {
   });
   await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
   await page.waitForTimeout(500);
+
+  // The explicit demo mode shows realistic sample records without calling mutation APIs.
+  await page.evaluate(async()=>{todayScreenDemo=true;await openTodayScreen()});
+  await page.waitForFunction(()=>document.querySelectorAll("#todayTasksList .today-row").length===4);
+  assert.equal(await page.locator("#todayMeetingsList .today-row").count(),2,"Today demo must show two sample meetings");
+  assert.equal(await page.locator("#todayPlansList .today-row").count(),1,"Today demo must show one sample plan");
+  assert.equal(await page.locator("#todayDemoNotice").isVisible(),true,"sample data must be clearly labeled as preview-only");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-high").textContent(),"High");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-medium").textContent(),"Medium");
+  assert.equal(await page.locator("#todayTasksList .today-chip.priority-low").textContent(),"Low");
+  assert.equal(await page.locator("#todayTasksList .today-task-check:not([disabled])").count(),0,"demo tasks must not persist sample completions");
+  assert.equal(await page.locator("#todayPlanCount").textContent(),"1");
+  const demoItemsBeforeAdd=everydayItems.length;
+  await page.click("#todayScreenAdd");
+  assert.equal(await page.locator("#todayAddSheet").isVisible(),false,"Today sample data must not open a real creation flow");
+  await page.locator("#todayTasksList .today-task-check").first().click({force:true});
+  assert.equal(everydayItems.length,demoItemsBeforeAdd,"Today demo actions must not create or complete real records");
+  await page.screenshot({path:"artifacts/personal-ai-today-demo-390x844.png",fullPage:true});
+  await page.click("#todayScreenClose");
+  await page.evaluate(()=>{todayScreenDemo=false});
+
+  // All three approved surfaces share one explicitly enabled, non-persistent preview dataset.
+  await page.evaluate(async()=>{personalAiDemoMode=true;await openConversationsDrawer()});
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===11);
+  assert.equal(await page.locator("#conversationsDemoNote").isVisible(),true,"Conversations sample data must be labeled preview-only");
+  assert.equal(await page.locator(".conversations-group-title").allTextContents().then(x=>[...new Set(x)]).then(x=>x.join("|")),"Today|Yesterday|Previous 7 days");
+  await page.fill("#conversationManagerSearch","retrospective");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===1);
+  assert.match(await page.locator("#conversationManagerList").innerText(),/Team retrospective/,"conversation search must filter preview data");
+  await page.fill("#conversationManagerSearch","");
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===11);
+  await page.screenshot({path:"artifacts/personal-ai-conversations-demo-390x844.png",fullPage:true});
+  const demoCreateCount=conversationCreateCount;
+  await page.click("#newConversation");
+  assert.equal(conversationCreateCount,demoCreateCount,"Conversations demo New chat must not create a real conversation");
+  await page.click("#closeDrawer");
+  await page.evaluate(()=>openTimelineDrawer());
+  await page.waitForFunction(()=>document.querySelectorAll("#conversationList .timeline-entry").length>=15);
+  assert.equal(await page.locator("#timelineDemoNote").isVisible(),true,"Timeline sample data must be labeled preview-only");
+  const mobileRailAlignment=await page.evaluate(()=>[...document.querySelectorAll("#conversationList .timeline-entry")].map(entry=>{const r=entry.getBoundingClientRect(),d=entry.querySelector(".timeline-dot").getBoundingClientRect(),p=getComputedStyle(entry,"::before");return Math.abs(r.left+parseFloat(p.left)+parseFloat(p.width)/2-(d.left+d.width/2))}));
+  assert.ok(mobileRailAlignment.length>0&&mobileRailAlignment.every(delta=>delta<=1),"Timeline rail must pass through every node center on iPhone: "+mobileRailAlignment.join(","));
+  const mobileTimelineCards=await page.locator("#conversationList .timeline-content").evaluateAll(cards=>cards.map(card=>card.getBoundingClientRect().width));
+  assert.ok(mobileTimelineCards.length>0&&mobileTimelineCards.every(width=>width>=200),"Timeline cards must stay in the content column on iPhone: "+mobileTimelineCards.join(","));
+  const previewTimeline=await page.locator("#conversationList").innerText();
+  assert.match(previewTimeline,/Project update discussion/,"Timeline preview must include sample conversation history");
+  assert.match(previewTimeline,/Weekly team sync/,"Timeline preview must include sample meetings");
+  assert.match(previewTimeline,/Review design feedback/,"Timeline preview must include sample task history");
+  await page.screenshot({path:"artifacts/personal-ai-timeline-demo-390x844.png",fullPage:true});
+  const demoEverydayBeforePlan=everydayItems.length;
+  const demoConversationBeforeOpen=await page.evaluate(()=>currentConversationId);
+  await page.click("#timelineAddPlan");
+  assert.equal(everydayItems.length,demoEverydayBeforePlan,"Timeline demo Add to plan must not create real data");
+  const demoConversationTitle=page.locator('#conversationList .timeline-entry[data-category="conversation"] .timeline-title').first();
+  await demoConversationTitle.evaluate(button=>button.click());
+  assert.equal(await page.evaluate(()=>currentConversationId),demoConversationBeforeOpen,"Timeline demo conversation rows must not navigate to a real record");
+  await page.click("#timelineCloseDrawer");
+  await page.evaluate(async()=>{personalAiDemoMode=false;await refreshConversationsDrawer('')});
+  await page.waitForFunction(()=>document.querySelectorAll(".conversations-row").length===3);
 
   const canvasInk = await page.evaluate(() => {
     const canvas = document.querySelector("#neuralCanvas");
@@ -677,7 +743,8 @@ try {
 
   // Open a real persisted conversation from the preserved Timeline to continue chat qualification.
   await page.locator('[data-conversation-filter="conversation"]').click();
-  await page.locator(".timeline-entry[data-category=conversation] .timeline-title").first().click();
+  const actualTimelineConversation=page.locator(".timeline-entry[data-category=conversation] .timeline-title").first();
+  await actualTimelineConversation.evaluate(button=>button.click());
   await page.waitForFunction(() => !document.body.classList.contains("home-landing"));
   await page.waitForFunction(() => document.querySelectorAll("#messageStream .message").length === 2);
   await page.click("#ownerButton");
@@ -963,6 +1030,10 @@ try {
     const timelineWide=await page.evaluate(()=>({drawer:document.querySelector("#conversationDrawer").getBoundingClientRect(),width:innerWidth,doc:document.documentElement.scrollWidth}));
     assert.ok(timelineWide.drawer.width>=360&&timelineWide.drawer.width<=400,"wide Timeline must remain a contextual panel instead of stretching at "+width+"x"+height);
     assert.ok(timelineWide.drawer.left>=0&&timelineWide.drawer.right<=timelineWide.width+1&&timelineWide.doc<=timelineWide.width,"wide Timeline must fit without horizontal overflow at "+width+"x"+height);
+    const wideRailAlignment=await page.evaluate(()=>[...document.querySelectorAll("#conversationList .timeline-entry")].map(entry=>{const r=entry.getBoundingClientRect(),d=entry.querySelector(".timeline-dot").getBoundingClientRect(),p=getComputedStyle(entry,"::before");return Math.abs(r.left+parseFloat(p.left)+parseFloat(p.width)/2-(d.left+d.width/2))}));
+    assert.ok(wideRailAlignment.length>0&&wideRailAlignment.every(delta=>delta<=1),"Timeline rail must pass through every node center at "+width+"x"+height+": "+wideRailAlignment.join(","));
+    const wideTimelineCards=await page.locator("#conversationList .timeline-content").evaluateAll(cards=>cards.map(card=>card.getBoundingClientRect().width));
+    assert.ok(wideTimelineCards.length>0&&wideTimelineCards.every(cardWidth=>cardWidth>=200),"Timeline cards must remain in the content column at "+width+"x"+height+": "+wideTimelineCards.join(","));
     if(width===768)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-tablet-768x1024.png",fullPage:true});
     if(width===820)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-tablet-820x1180.png",fullPage:true});
     if(width===1440)await page.screenshot({path:"artifacts/personal-ai-timeline-approved-desktop-1440x1000.png",fullPage:true});
@@ -1128,6 +1199,46 @@ try {
   await page.click("#chatDelete");
   await page.waitForFunction(()=>document.body.classList.contains("home-landing")&&document.querySelector("#chatMenuButton").classList.contains("hidden"));
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
+
+  // Memory, Knowledge and Activities render live-shaped API data in focused owner pages.
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>openModule('activities'));
+  await page.waitForFunction(()=>document.querySelectorAll('.activity-record').length===1);
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Activities must show the three canonical counts');
+  assert.match(await page.locator('.activity-record').innerText(),/Workflow Run Finished/i,'canonical audit action should have a readable title');
+  assert.match(await page.locator('.activity-record').innerText(),/Completed/,'canonical completion state must remain explicit');
+  assert.match(await page.locator('#ongoingOperations').innerText(),/Synchronize project notes/,'Activities shows active operations from the operations endpoint');
+  assert.match((await page.locator('.activity-stat-grid article').nth(2).innerText()).replace(/\s+/g,' '),/^1 In progress$/,'in-progress count uses active persisted operations');
+  await page.fill('#activitiesSearch','Morning operations');
+  assert.equal(await page.locator('.activity-record').count(),1,'Activities search uses safe structured metadata');
+  await page.fill('#activitiesSearch','no matching title');
+  assert.match(await page.locator('.activity-history').innerText(),/No matching activities/,'Activities search has a useful empty state');
+  await page.fill('#activitiesSearch','');
+  await page.locator('[data-filter-group="activitiesFilters"][data-filter="workflows"]').click();
+  assert.equal(await page.locator('.activity-record').count(),1,'Workflow filter uses canonical audit fields');
+  await page.locator('#activityRefresh').click();
+  await page.waitForFunction(()=>document.querySelector('.activity-record'));
+  await page.screenshot({path:'artifacts/personal-ai-activities-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('knowledge'));
+  await page.waitForFunction(()=>document.querySelector('.knowledge-record'));
+  assert.match(await page.locator('.knowledge-record').innerText(),/Owner upload/,'Knowledge row preserves safe source provenance');
+  assert.match(await page.locator('.knowledge-record').innerText(),/Indexed · 2 sections/,'Knowledge index status uses persisted chunk count');
+  await page.fill('#knowledgeSearch','notes');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'knowledgeSearch','Knowledge search retains focus after refreshed results');
+  await page.screenshot({path:'artifacts/personal-ai-knowledge-390x844.png',fullPage:true});
+
+  await page.locator('[data-section-back]').click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),false,'section Back returns to Home');
+  await page.evaluate(()=>openModule('memory'));
+  await page.waitForFunction(()=>document.querySelector('.memory-record'));
+  await page.fill('#memorySearch','project');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'memorySearch','Memory search retains focus after refreshed results');
+  await page.screenshot({path:'artifacts/personal-ai-memory-390x844.png',fullPage:true});
+  await page.locator('[data-section-close]').click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),false,'section Close returns to Home');
 
   // Signing out clears previously loaded private rows, and the drawer must not
   // leave an unauthorized request stuck in its loading state.
