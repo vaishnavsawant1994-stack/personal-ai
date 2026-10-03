@@ -438,6 +438,13 @@ try {
   // Reload the app shell before checking its Home-only Timeline control.
   await page.reload();
   await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
+  await page.click("#historyButton");
+  await page.click("#sidebarAccountButton");
+  await page.click("#appSettings");
+  await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Settings" && document.querySelector("#moduleBody")?.innerText.toLowerCase().includes("ai & intelligence"));
+  await page.screenshot({ path: "artifacts/personal-ai-settings-390x844.png", fullPage: true });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
 
   // Approved Timeline is a premium RIGHT-side contextual drawer and must not regress Home or Conversations.
   await page.click("#ownerButton");
