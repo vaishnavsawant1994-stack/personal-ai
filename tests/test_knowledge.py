@@ -14,6 +14,10 @@ def test_knowledge_ingestion_search_provenance_update_and_delete(tmp_path):
 
     assert document['filename'] == 'aurora-notes.txt'
     assert document['chunks'][0]['content'].startswith('Project Aurora')
+    listed = store.list()[0]
+    assert listed['source'] == 'owner-upload:test'
+    assert listed['indexed_chunk_count'] == len(document['chunks'])
+    assert store.list('Aurora launch')[0]['indexed_chunk_count'] == len(document['chunks'])
     result = store.search('Aurora launch')[0]
     assert result['citation']['document_id'] == document['id']
     assert result['citation']['source'] == 'owner-upload:test'

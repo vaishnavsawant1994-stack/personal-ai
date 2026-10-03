@@ -34,7 +34,7 @@ const everydayItems = [
   { id:"done-1",kind:"task",context:"personal-ai:today:task",title:"Complete weekly report",due_at:atToday(11),created_at:atToday(8),updated_at:atToday(12,20),completed_at:atToday(12,20),status:"completed" },
   { id:"reminder-1",kind:"reminder",context:"personal-ai:today:reminder",title:"Send follow-up",due_at:atDayOffset(1,10),created_at:atToday(7),updated_at:atToday(7),status:"scheduled" },
 ];
-const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_finished",status:"completed",created_at:atToday(8,15)}];
+const auditedEvents=[{id:"audit-1",category:"workflow",kind:"workflow",label:"Workflow",action:"workflow_run_completed",status:"completed",created_at:atToday(8,15),details:{workflow_title:"Morning operations"}}];
 const workflowRuns=[{id:'run-1',workflow_title:'Morning operations',status:'completed',created_at:atToday(7),updated_at:atToday(9,30),current_step:3}];
 let allowActivity=true;
 let revokeSession=false;
@@ -115,7 +115,7 @@ try {
     } else if (path === '/memory') {
       body={memories:[{id:'memory-qa',subject:'Project context',type:'note',content:'Browser qualification fixture with source evidence',source:'owner',confidence:1}]};
     } else if (path === '/knowledge' && method==='GET') {
-      body={documents:[{id:'knowledge-qa',title:'Project notes',filename:'notes.md',source:'owner-upload',access_class:'private',size_bytes:1024}]};
+      body={documents:[{id:'knowledge-qa',title:'Project notes',filename:'notes.md',media_type:'text/markdown',source:'owner-upload:iphone',access_class:'private',size_bytes:1024,indexed_chunk_count:2,updated_at:atToday(8)}]};
     } else if (path === '/system/status') {
       body={model:{state:'available',primary_provider:'private',providers:[{id:'self_hosted',configured:true,private:true,model:'Owner model',health:{state:'available'}}]},tools:[]};
     } else if (path === '/devices') {
@@ -830,6 +830,43 @@ try {
   assert.deepEqual(deletedConversationIds,["new"],"confirmed delete must call the secured conversation endpoint exactly once");
 
   // Product-wide responsive qualification, using API fixtures only in tests.
+  await page.setViewportSize({width:390,height:844});
+  await page.evaluate(()=>openModule('activities'));
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Activities must show the three canonical counts');
+  assert.equal((await page.locator('.activity-stat-grid article').nth(0).innerText()).includes('1'),true,'Activities total must derive from the audit response');
+  assert.match(await page.locator('.activity-record').innerText(),/Workflow run completed/i,'canonical audit action should have a readable title');
+  assert.match(await page.locator('.activity-record').innerText(),/Completed/,'canonical completion state must remain explicit');
+  assert.equal(await page.locator('[data-filter-group="activitiesFilters"]').count(),6,'Activities exposes each approved category filter');
+  await page.fill('#activitiesSearch','Morning operations');
+  assert.equal(await page.locator('.activity-record').count(),1,'Activities search uses safe structured metadata');
+  await page.fill('#activitiesSearch','no matching title');
+  assert.match(await page.locator('.activity-history').innerText(),/No matching activities/,'Activities search has a useful empty state');
+  await page.fill('#activitiesSearch','');
+  await page.locator('[data-filter-group="activitiesFilters"][data-filter="workflows"]').click();
+  assert.equal(await page.locator('.activity-record').count(),1,'Workflow filter uses canonical workflow audit fields');
+  await page.locator('#activityRefresh').click();
+  await page.waitForFunction(()=>document.querySelector('.activity-record'));
+  await audit(page,'Activities');
+  await page.screenshot({path:'artifacts/personal-ai-activities-390x844.png',fullPage:true});
+  await page.evaluate(()=>openModule('knowledge'));
+  assert.match(await page.locator('.knowledge-record').innerText(),/Owner upload/,'Knowledge row preserves safe source provenance');
+  assert.match(await page.locator('.knowledge-record').innerText(),/Indexed · 2 sections/,'Knowledge indexing state derives from persisted index chunks');
+  await page.fill('#knowledgeSearch','notes');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'knowledgeSearch','Knowledge search retains focus after refreshed results render');
+  assert.equal(await page.locator('#knowledgeSearch').inputValue(),'notes');
+  await audit(page,'Knowledge');
+  await page.screenshot({path:'artifacts/personal-ai-knowledge-390x844.png',fullPage:true});
+  await page.getByRole('button',{name:'Go back'}).click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),true,'section Back must return through application navigation');
+  await page.locator('[data-section-close]').click();
+  assert.equal(await page.locator('#modulePanel').isVisible(),false,'section Close returns to Home');
+  await page.evaluate(()=>openModule('memory'));
+  await page.fill('#memorySearch','project');
+  await page.waitForTimeout(360);
+  assert.equal(await page.evaluate(()=>document.activeElement?.id),'memorySearch','Memory search retains focus after refreshed results render');
+  assert.equal(await page.locator('#memorySearch').inputValue(),'project');
+  await page.evaluate(()=>openModule('home'));
   const productViewports=[[320,568],[360,800],[375,812],[390,844],[393,852],[430,932],[768,1024],[820,1180],[1024,768],[1280,800],[1440,900]];
   for(const [width,height] of productViewports){
     await page.setViewportSize({width,height});
