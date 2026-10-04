@@ -47,10 +47,13 @@ try {
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
     isMobile: true,
+    serviceWorkers: "block",
     hasTouch: true,
   });
 
   const pageErrors = [];
+  const appRequests = [];
+  page.on("request", request => { if (request.url().includes("/iphone/api/")) appRequests.push(request.url()); });
   const uploadedDocuments = [];
   page.on("pageerror", error => pageErrors.push(error.message));
 
@@ -81,6 +84,10 @@ try {
       body={activities:auditedEvents};
     } else if (path === "/workflows" && method === "GET") {
       body={runs:workflowRuns,workflows:[]};
+    } else if (path === "/apps-tools/tools" && method === "GET") {
+      body={tools:[{tool_id:"search_memory",name:"Search memory",description:"Search approved owner memories",availability:"AVAILABLE",approval_policy:"READ ONLY"}]};
+    } else if (path === "/apps-tools/apps" && method === "GET") {
+      body={apps:[{app_id:"gmail",name:"Gmail",connection_status:"Available",category:"Email"},{app_id:"drive",name:"Google Drive",connection_status:"Connected",category:"Storage"}]};
     } else if (path === "/everyday/items" && method === "POST") {
       const input = JSON.parse(request.postData() || "{}");
       const item = { id: "created-" + everydayItems.length, title: input.title, kind: input.category === "meeting" ? "commitment" : input.category === "reminder" ? "reminder" : "task",
@@ -152,7 +159,7 @@ try {
     const canvas = document.querySelector("#neuralCanvas");
     return canvas.width > 0 && canvas.height > 0;
   });
-  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2);
+  await page.waitForFunction(() => document.querySelectorAll("#todayTimeline .today-item").length === 2, { timeout: 10000 }).catch(async error => { const state = await page.evaluate(() => ({ date: document.querySelector("#todayDate")?.textContent, timeline: document.querySelector("#todayTimeline")?.innerHTML, startupError: document.querySelector("#voiceAlert")?.dataset.startupError, alert: document.querySelector("#voiceAlert")?.textContent, refreshing: typeof refreshToday })); throw new Error(error.message + "\\nToday state: " + JSON.stringify(state) + "\\nAPI requests: " + appRequests.join(", ") + "\\nPage errors: " + pageErrors.join("\\n")); });
   await page.waitForTimeout(500);
 
   // The explicit demo mode shows realistic sample records without calling mutation APIs.
@@ -417,6 +424,8 @@ try {
   await page.click("#historyButton");
   await page.waitForFunction(() => document.querySelectorAll("#sidebarChatList .sidebar-chat-row").length === 3);
   assert.ok(await page.locator("#sidebarAccountButton").isVisible(), "account controls must be anchored to bottom");
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: "artifacts/personal-ai-sidebar-approved-390x844.png", fullPage: true });
   await page.click("#sidebarAccountButton");
   assert.equal(await page.locator("#sidebarAccountButton").getAttribute("aria-expanded"), "true", "account popover must advertise expanded state");
   for (const label of ["Owner controls","Settings","Trusted devices","System status","Sign out"]) {
@@ -424,13 +433,24 @@ try {
   }
   await page.screenshot({ path: "artifacts/personal-ai-sidebar-account-390x844.png", fullPage: true });
   await page.click("#appOwnerControls");
-  await page.waitForFunction(() => !document.querySelector("#ownerMenu").classList.contains("hidden"));
-  for (const item of ["Settings", "Trusted devices", "System status", "Sign out this browser"]) {
-    assert.ok((await page.locator("#ownerMenu").innerText()).includes(item), "Owner Controls missing " + item);
+  await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Personal AI Owner" && document.querySelector("#moduleBody")?.innerText.includes("Personal AI Owner"));
+  const ownerPageText = (await page.locator("#moduleBody").innerText()).toLowerCase();
+  for (const item of ["account & plan", "profile & preferences", "security & access", "data & privacy", "sign out"]) {
+    assert.ok(ownerPageText.includes(item), "Owner page missing " + item);
   }
   await page.screenshot({ path: "artifacts/personal-ai-owner-controls-390x844.png", fullPage: true });
-  await page.keyboard.press("Escape");
-  await page.waitForFunction(() => document.querySelector("#ownerMenu").classList.contains("hidden"));
+
+  // Reload the app shell before checking its Home-only Timeline control.
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
+  await page.click("#historyButton");
+  await page.click("#sidebarAccountButton");
+  await page.locator("#sidebarAccountMenu [data-app-module=\"settings\"]").click();
+  await page.waitForFunction(() => document.querySelector("#modulePanel")?.classList.contains("open") && document.querySelector("#moduleTitle")?.textContent === "Settings" && document.querySelector("#moduleBody")?.innerText.toLowerCase().includes("ai & intelligence"));
+  assert.ok(await page.locator("[data-settings-home-back]").isVisible(), "Settings hub must expose its Back control");
+  await page.screenshot({ path: "artifacts/personal-ai-settings-390x844.png", fullPage: true });
+  await page.reload();
+  await page.waitForFunction(() => document.querySelector("#ownerButton") && !document.body.classList.contains("focused-module"));
 
   // Approved Timeline is a premium RIGHT-side contextual drawer and must not regress Home or Conversations.
   await page.click("#ownerButton");
@@ -762,14 +782,14 @@ try {
     innerHeight,
   }));
   assert.equal(chatState.coreVisibility, "visible", "compact original sphere remains visible in the header while chatting");
-  assert.equal(await page.locator(".state").isVisible(), true, "idle conversations must show the approved compact ACTIVE status under the Personal AI sphere");
-  assert.equal((await page.locator("#stateLabel").innerText()).trim().toUpperCase(),"ACTIVE","idle conversation status must match the approved reference");
+  assert.equal(await page.locator(".state").isVisible(), false, "the approved Chat header has no ACTIVE status label");
+  
   assert.equal(await page.locator("#status").isVisible(),false,"idle ACTIVE status must stay visually minimal without redundant helper copy");
   assert.equal(chatState.messageCount, 2);
   assert.equal(await page.locator(".message-time").count(),2,"every persisted message must render its canonical timestamp");
   assert.deepEqual(await page.locator(".message-time").evaluateAll(nodes=>nodes.map(node=>node.dateTime)),activeConversation.events.map(event=>event.created_at),"DOM timestamps must come from persisted event creation time");
   assert.equal(await page.locator(".date-separator").count(),2,"calendar-date changes must create one subtle separator per day");
-  assert.ok(await page.locator(".message-entry.assistant .message-avatar").isVisible(),"Personal AI responses must retain a compact glowing orb identity");
+  assert.equal(await page.locator(".message-entry.assistant .message-avatar").count(),0,"assistant messages stay open without avatar circles");
   assert.equal(await page.locator(".message-entry.assistant ol li").count(),3,"numbered Markdown must render structurally");
   assert.equal(await page.locator(".message-entry.assistant code").count(),1,"inline code must render structurally");
   const messageVisual=await page.evaluate(()=>({
@@ -777,21 +797,19 @@ try {
     assistantBorder:getComputedStyle(document.querySelector(".message.assistant")).borderTopWidth,
     user:document.querySelector(".message.user").getBoundingClientRect(),
     stream:document.querySelector("#messageStream").getBoundingClientRect(),
-    avatar:document.querySelector(".message-avatar").getBoundingClientRect(),
   }));
   assert.equal(messageVisual.assistantBackground,"rgba(0, 0, 0, 0)","AI responses must use an open transparent surface instead of a boxed card");
   assert.equal(messageVisual.assistantBorder,"0px","AI responses must not retain the old card border");
   assert.ok(messageVisual.user.right>=messageVisual.stream.right-8,"owner bubble must align to the right edge");
   assert.ok(messageVisual.user.width<=messageVisual.stream.width*.83,"owner bubble must remain compact rather than becoming a full-width card");
-  assert.ok(messageVisual.avatar.width>=33&&messageVisual.avatar.width<=40,"AI orb must remain close to the approved 34–40px size");
   assert.equal(await page.locator(".message-entry.user .message-actions button").count(),2,"user messages expose copy and edit");
-  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),5,"assistant messages expose copy, feedback, speech and share");
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false");
-  await page.locator('.message-entry.assistant [aria-label="Good response"]').click();
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
-  await page.locator('.message-entry.assistant [aria-label="Bad response"]').click();
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Good response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
-  assert.equal(await page.locator('.message-entry.assistant [aria-label="Bad response"]').getAttribute("aria-pressed"),"true");
+  assert.equal(await page.locator(".message-entry.assistant .message-actions button").count(),7,"assistant actions show copy, like, dislike, read, share, minimize and maximize");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"false");
+  await page.locator('.message-entry.assistant [aria-label="Like response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"true","positive feedback has selected visual state");
+  await page.locator('.message-entry.assistant [aria-label="Dislike response"]').click();
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Like response"]').getAttribute("aria-pressed"),"false","negative feedback deselects positive feedback");
+  assert.equal(await page.locator('.message-entry.assistant [aria-label="Dislike response"]').getAttribute("aria-pressed"),"true");
 
   assert.ok(chatState.messages.height > 0, "active conversation needs a real scroll viewport");
   assert.ok(chatState.composer.bottom <= chatState.innerHeight + 1, "chat composer must remain visible");
@@ -1220,6 +1238,24 @@ try {
   await page.waitForFunction(()=>document.querySelector('.activity-record'));
   await page.screenshot({path:'artifacts/personal-ai-activities-390x844.png',fullPage:true});
 
+  await page.evaluate(()=>openModule('tools'));
+  await page.waitForFunction(()=>document.querySelector('#appsToolsSearch'));
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Apps & Tools shows total, connected, and available counts');
+  assert.match(await page.locator('#moduleBody').innerText(),/Google Drive[\s\S]*Connected/,'connected services show their real connection state');
+  await page.locator('[data-filter-group="appsToolsFilters"][data-filter="available"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Gmail/,'Available filter displays available integrations');
+  assert.doesNotMatch(await page.locator('#moduleBody').innerText(),/Google Drive/,'Available filter excludes connected integrations');
+  await page.locator('[data-filter-group="appsToolsFilters"][data-filter="tools"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Search memory/,'Tools filter displays approved tools');
+  await page.screenshot({path:'artifacts/personal-ai-apps-tools-390x844.png',fullPage:true});
+
+  await page.evaluate(()=>openModule('workflows'));
+  await page.waitForFunction(()=>document.querySelector('#workflowSearch'));
+  assert.equal(await page.locator('.activity-stat-grid article').count(),3,'Workflows shows total, running, and waiting approval counts');
+  await page.locator('[data-filter-group="workflowFilters"][data-filter="templates"]').click();
+  assert.match(await page.locator('#moduleBody').innerText(),/Weekly summary workflow/,'Templates filter displays workflow templates');
+  await page.screenshot({path:'artifacts/personal-ai-workflows-390x844.png',fullPage:true});
+
   await page.evaluate(()=>openModule('knowledge'));
   await page.waitForFunction(()=>document.querySelector('.knowledge-record'));
   assert.match(await page.locator('.knowledge-record').innerText(),/Owner upload/,'Knowledge row preserves safe source provenance');
@@ -1284,3 +1320,4 @@ try {
 } finally {
   await browser.close();
 }
+
